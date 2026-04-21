@@ -1,0 +1,30 @@
+{
+  "name": "project1(no-name)",
+  "version": "1.0.0",
+  "description": "A high-performance agentic AI workflow engine and CLI tool inspired by modern agentic architectures.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx src/main.tsx",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.3",
+    "ink": "^7.0.1",
+    "ink-text-input": "^6.0.0",
+    "react": "^19.2.5",
+    "tsx": "^4.21.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
