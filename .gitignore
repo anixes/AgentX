@@ -1,38 +1,9 @@
-# Dependencies
 node_modules/
-.pnp
-.pnp.js
-
-# Build
 dist/
-build/
-coverage/
-.next/
-.cache/
-
-# Reference Source (Leaked)
-claude-code-reference/
-*claude-code*
-
-# Environment & Secrets
-.env*
-!.env.example
-secrets.json
-*.pem
-*.key
-
-# Logs
+dashboard/node_modules/
+dashboard/dist/
+.env
+vault_data.json
+temp_batons/
+graphify-out/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-bun.lockb
-
-# IDE & OS
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-Desktop.ini
