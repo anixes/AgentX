@@ -8,10 +8,10 @@
     "dev": "tsx src/main.tsx",
     "build": "tsc",
     "start": "node dist/main.js",
-    "ui": "& \"D:\\ANACONDA py\\python.exe\" agentx.py ui",
-    "watch": "& \"D:\\ANACONDA py\\python.exe\" agentx.py watch",
-    "plan": "& \"D:\\ANACONDA py\\python.exe\" agentx.py plan",
-    "dashboard": "start /b \"\" \"D:\\ANACONDA py\\python.exe\" scripts/api_bridge.py & cd dashboard && npm run dev"
+    "ui": "launch.bat ui",
+    "watch": "launch.bat watch",
+    "plan": "launch.bat plan",
+    "dashboard": "start /b \"\" launch.bat api_bridge & cd dashboard && npm run dev"
   },
   "keywords": [],
   "author": "",

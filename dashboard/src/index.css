@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --color-emerald-500: #10b981;
+}
 
 :root {
   color-scheme: dark;
@@ -12,8 +13,8 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  background-color: #0a0a0c;
-  font-family: 'Inter', sans-serif;
+  background-color: #0d0f14;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* Custom Scrollbar */
@@ -26,23 +27,16 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(16, 185, 129, 0.1);
   border-radius: 10px;
 }
 
-/* Glass Effect */
-.glass {
-  background: rgba(17, 17, 20, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
 /* Animations */
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
 }
 
-.animate-pulse-soft {
-  animation: pulse-soft 3s ease-in-out infinite;
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
 }

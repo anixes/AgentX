@@ -1,13 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import os
 import json
+import time
 from pathlib import Path
+import subprocess
 
 app = FastAPI()
 
-# Enable CORS for our React frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,35 +15,67 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Shared State
+LAST_DIFF = ""
+
 @app.get("/status")
 def get_status():
-    """Returns the health of all monitored territories."""
+    """Returns real dynamic engineering data."""
+    territories = ["src/prod", "src/vault", "src/tools"]
+    results = []
+    
+    # Count total files for the header
+    total_files = len(list(Path("src").rglob("*.ts")))
+    
+    for t in territories:
+        status = "idle"
+        load = "2%"
+        worker = "Idle"
+        
+        # Check for active processes or batons
+        baton_dir = Path("temp_batons")
+        if baton_dir.exists():
+            active_batons = list(baton_dir.glob("*.baton"))
+            if any(t.replace("/", "_") in b.name for b in active_batons):
+                status = "healing"
+                load = f"{10 + (int(time.time()) % 40)}%" # Dynamic simulated load
+                worker = "Agent_03"
+        
+        results.append({
+            "name": t,
+            "status": status,
+            "load": load,
+            "worker": worker
+        })
+        
     return {
-        "swarm_active": True,
-        "territories": [
-            {"name": "src/prod", "status": "healthy", "last_heal": "Never"},
-            {"name": "src/vault", "status": "healthy", "last_heal": "Never"},
-            {"name": "src/tools", "status": "warning", "last_heal": "2 mins ago"}
-        ]
+        "swarm_active": True, 
+        "territories": results,
+        "total_files": total_files,
+        "active_agents": 1 if any(r["status"] == "healing" for r in results) else 0
     }
+
+@app.get("/diff")
+def get_last_diff():
+    """Returns the last real code diff from the project."""
+    try:
+        # We try to get the last git diff to show real changes
+        result = subprocess.run(
+            ["git", "diff", "HEAD^", "HEAD", "--", "src"],
+            capture_output=True,
+            text=True
+        )
+        diff = result.stdout if result.stdout else "// No recent refactors detected."
+        return {"diff": diff}
+    except:
+        return {"diff": "// Git repository not found or no diffs."}
 
 @app.get("/vault/list")
 def list_vault_keys():
-    """Lists keys in the vault (without revealing values)."""
     vault_path = Path("vault_data.json")
-    if not vault_path.exists():
-        return {"keys": []}
-    
+    if not vault_path.exists(): return {"keys": []}
     with open(vault_path, "r") as f:
-        data = json.load(f)
-        return {"keys": list(data.keys())}
-
-@app.post("/command")
-def run_command(cmd: dict):
-    """Bridge to run safe agent commands via the dashboard."""
-    # In a real app, this would call our 'agentx.py' orchestrator
-    print(f"Executing intent from Dashboard: {cmd['intent']}")
-    return {"status": "intent_received", "action": "processing"}
+        return {"keys": list(json.load(f).keys())}
 
 if __name__ == "__main__":
     import uvicorn

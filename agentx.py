@@ -6,15 +6,15 @@ import os
 PYTHON = r"D:\ANACONDA py\python.exe"
 
 def run_ui():
-    print("🚀 Launching AgentX SafeShell TUI...")
+    print("[-] Starting SafeShell TUI...")
     subprocess.run([PYTHON, "scripts/tui_shell.py"])
 
 def run_watcher():
-    print("👁️ Starting Zero-Token Graph Watcher...")
+    print("[-] Starting Zero-Token Graph Watcher...")
     subprocess.run([PYTHON, "scripts/graph_watcher.py"])
 
 def run_plan(objective):
-    print(f"🏗️ Dispatching Baton Orchestrator for: {objective}")
+    print(f"[-] Starting Orchestrator for mission: {objective}")
     subprocess.run([PYTHON, "scripts/baton_orchestrator.py", objective])
 
 def show_help():
