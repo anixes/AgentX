@@ -4,13 +4,18 @@ The Bash Parser is the primary security gate for all terminal operations in Clau
 
 ## 🔍 Parsing Strategy
 
-Claude does not rely on simple regex for command validation. Instead, it uses a deep AST (Abstract Syntax Tree) approach.
+AgentX is moving toward AST-aware validation, but the current shipped runtime uses a structured normalization pass in `scripts/stripper.py` plus TypeScript classification logic in `src/tools/bashTool.ts`.
 
-### 1. Tree-Sitter Integration
-The system uses `tree-sitter-bash` to parse raw strings into a structured format. This allows the `checkSemantics` logic to:
-- Identify pipes (`|`) and logical operators (`&&`, `||`).
-- Distinguish between a command and its arguments.
-- Detect redirections (e.g., `> /etc/shadow`) even when buried in complex chains.
+### 1. Current Normalization Layer
+The current runtime:
+- Strips leading environment variables and separates safe wrappers such as `sudo`, `timeout`, and `nohup`
+- Identifies the root binary and argument tokens
+- Extracts shell operators (`|`, `&&`, `||`, `;`, redirections)
+- Flags dangerous patterns such as:
+  - command substitution `` `...` `` and `$(...)`
+  - `curl | bash` / `wget | sh` style network pipes
+  - writes into `.ssh`, `/etc`, Windows system paths, and other protected targets
+  - blocked env vars like `PATH`, `LD_PRELOAD`, `PYTHONPATH`, and `NODE_OPTIONS`
 
 ### 2. Wrapper Transparency
 The parser is "wrapper-aware." It can strip and "see through" safe wrappers to validate the underlying command:
@@ -25,19 +30,28 @@ For example, `sudo rm -rf /` is correctly identified as an `rm` command at the r
 ## 🛡️ Security Gating
 
 ### Environment Variable Sanitization
-The system maintains a strict allow-list of "safe" environment variables (e.g., `LANG`, `TZ`, `NODE_ENV`).
-- **Blocked**: Variables that can hijack execution (e.g., `PATH`, `LD_PRELOAD`, `PYTHONPATH`) are stripped or cause the command to be blocked.
-- **Attribution**: It distinguishes between user-set env vars and those injected by the system.
+The runtime now strips dangerous env vars before execution.
+- **Blocked**: `PATH`, `LD_PRELOAD`, `DYLD_INSERT_LIBRARIES`, `PYTHONPATH`, `NODE_OPTIONS`, `BASH_ENV`, `ENV`, and related variables trigger a hard deny.
+- **Allowed**: Non-sensitive leading env vars are passed through to execution.
 
 ### Command Classification
 Commands are classified into three behaviors via the `bashClassifier`:
 - **Allow**: Safe commands (e.g., `ls`, `git status`).
-- **Ask**: Potentially destructive commands that require a user prompt (e.g., `rm`, `npm install`).
-- **Deny**: Strictly forbidden commands (e.g., modifying system kernel parameters).
+- **Ask**: Potentially destructive or compound commands that require explicit user approval (e.g., `rm`, `npm install`, shell chains with `&&` or `>`).
+- **Deny**: Strictly forbidden commands and patterns (e.g., `mkfs`, `dd`, `curl | bash`, SSH trust writes, blocked env vars).
 
 ### Attack Mitigations
-- **ReDoS/Starvation**: Compound commands are capped at 50 subcommands to prevent malicious strings from consuming 100% CPU.
-- **Heredoc Scrubbing**: Multiline commands and heredocs are scrubbed to find a stable "prefix" for permission rules, preventing rules from becoming too specific and brittle.
+- **Command Explosion Guard**: Extremely long compound commands are denied once they exceed the segment limit enforced by the classifier.
+- **Pending Approval Queue**: The runtime stores one risky pending tool call at a time and requires `/approve` or `/deny` before proceeding.
+
+## 🔜 Planned Upgrade Path
+
+The long-term direction is still an AST-backed parser for shell semantics. The current implementation is a deliberate midpoint:
+
+1. structured stripping and normalization
+2. deterministic `Allow / Ask / Deny` classification
+3. explicit approval flow in the runtime
+4. future AST integration for deeper semantic checks
 
 ---
 *Generated via RARV analysis on 2026-04-22.*

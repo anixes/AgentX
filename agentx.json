@@ -1,0 +1,29 @@
+{
+  "project_name": "AgentX_Core",
+  "territories": [
+    {
+      "path": "src/prod",
+      "health_cmd": "node src/prod/app.ts",
+      "auto_heal": true
+    },
+    {
+      "path": "src/vault",
+      "health_cmd": "ls src/vault",
+      "auto_heal": false
+    },
+    {
+      "path": "src/tools",
+      "health_cmd": "ls src/tools",
+      "auto_heal": true
+    }
+  ],
+  "swarm_settings": {
+    "max_agents": 5,
+    "check_interval": 30,
+    "models": {
+      "planner": "phi4-mini",
+      "worker": "qwen2.5:3b",
+      "critic": "phi4-mini"
+    }
+  }
+}

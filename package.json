@@ -3,15 +3,18 @@
   "version": "1.0.0",
   "description": "A high-performance agentic AI workflow engine and CLI tool inspired by modern agentic architectures.",
   "main": "index.js",
-  "type": "commonjs",
+  "type": "module",
+  "bin": {
+    "agentx": "./dist/cli.js"
+  },
   "scripts": {
     "dev": "tsx src/main.tsx",
+    "dev:cli": "tsx src/cli.ts",
     "build": "tsc",
     "start": "node dist/main.js",
-    "ui": "launch.bat ui",
-    "watch": "launch.bat watch",
-    "plan": "launch.bat plan",
-    "dashboard": "start /b \"\" launch.bat api_bridge & cd dashboard && npm run dev"
+    "start:cli": "node dist/cli.js",
+    "dash": "python agentx.py dash",
+    "status": "python agentx.py status"
   },
   "keywords": [],
   "author": "",

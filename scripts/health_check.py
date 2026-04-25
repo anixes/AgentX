@@ -1,12 +1,12 @@
 import subprocess
 import os
 
-def run_health_check():
-    print("[-] Running Health Check on src/prod/app.ts...")
+def run_health_check(file_path="src/prod/app.ts"):
+    print(f"[-] Running Health Check on {file_path}...")
     try:
         # Try to run the app via tsx (using shell=True for Windows resolution)
         result = subprocess.run(
-            "npx tsx src/prod/app.ts",
+            f"npx tsx {file_path}",
             shell=True,
             capture_output=True,
             text=True,

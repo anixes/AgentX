@@ -1,7 +1,5 @@
 @echo off
-SET PYTHON_PATH="D:\ANACONDA py\python.exe"
-if "%1"=="api_bridge" (
-    %PYTHON_PATH% scripts/api_bridge.py
-) else (
-    %PYTHON_PATH% agentx.py %*
-)
+REM AgentX Unified Launcher
+REM Routes all commands through agentx.py using the system Python
+
+python agentx.py %*

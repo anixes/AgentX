@@ -16,19 +16,33 @@ class ChatRequest(BaseModel):
     temperature: Optional[float] = 0.7
     max_tokens: Optional[int] = 1024
 
+import json
+from pathlib import Path
+
+def load_providers():
+    try:
+        path = Path("providers.json")
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {"openai": "https://api.openai.com/v1"}
+
+PROVIDERS = load_providers()
+
 def get_provider_url(model: str, custom_url: Optional[str]) -> str:
     """Claude Logic: Auto-detect provider or use override."""
     if custom_url:
         return custom_url.rstrip("/")
     
     if model.startswith("nvidia/"):
-        return "https://integrate.api.nvidia.com/v1"
+        return PROVIDERS.get("nvidia", "https://integrate.api.nvidia.com/v1")
     if "versatile" in model or model.startswith("llama3") or model.startswith("mixtral"):
-        return "https://api.groq.com/openai/v1"
+        return PROVIDERS.get("groq", "https://api.groq.com/openai/v1")
     if "together" in model:
-        return "https://api.together.xyz/v1"
+        return PROVIDERS.get("together", "https://api.together.xyz/v1")
     
-    return "https://api.openai.com/v1"
+    return PROVIDERS.get("openai", "https://api.openai.com/v1")
 
 @app.post("/v1/chat/completions")
 async def proxy_chat(

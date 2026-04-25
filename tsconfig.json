@@ -3,6 +3,8 @@
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "rootDir": "./src",
+    "types": ["node"],
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
@@ -12,6 +14,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
     "outDir": "dist"
   },
   "include": ["src/**/*"],

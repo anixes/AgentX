@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# AgentX Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The dashboard is the Visual Command Center for AgentX. It renders runtime state exposed by `scripts/api_bridge.py` and is designed to make the security model visible instead of burying it inside terminal logs.
 
-Currently, two official plugins are available:
+## Current Views
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Approval Queue**: Shows the single pending risky command and lets you approve or deny it directly from the dashboard
+- **Task Board**: Streams baton task state from `temp_batons/`, including lifecycle stage, failures, recent worker output, and the latest baton history
+- **Security Events**: Recent `ALLOW`, `ASK`, `DENY`, `APPROVED`, and `DENIED` runtime events
+- **Territories**: Health cards for monitored project areas
+- **Runtime Diff**: Current git diff snapshot from the bridge
+- **Git History**: Recent commit history
 
-## React Compiler
+## Data Contract
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The dashboard now keeps a live connection open to:
 
-## Expanding the ESLint configuration
+- `GET /runtime/stream`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+and still uses these action endpoints when the user clicks buttons:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `POST /runtime/approve`
+- `POST /runtime/deny`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The SSE stream emits a runtime snapshot containing:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `status`
+- `batons`
+- `events`
+- `diff`
+- `history`
+
+The bridge reads from the shared runtime state file at `.agentx/runtime-state.json`, which is written by the TypeScript runtime, and combines it with git/diff status into each stream payload.
+Approve and deny actions are executed through `src/runtime_actions.ts`, so the dashboard triggers the same tool system used by the CLI instead of simulating state changes locally.
+
+## Runtime Notes
+
+- The dashboard now uses **Server-Sent Events (SSE)** for live runtime updates.
+- SSE snapshots are emitted from `scripts/api_bridge.py`.
+- Pending approvals are single-item for now: one risky command can be awaiting review at a time.
+- The bridge is state-driven: it reads `.agentx/runtime-state.json` rather than keeping its own in-memory approval queue.
+
+## Development
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Build for production:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```

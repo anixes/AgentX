@@ -14,6 +14,7 @@ export const vaultTool: ToolDefinition<any> = {
     value: z.string().optional().describe('Secret value (for add)'),
     password: z.string().describe('Master password for the vault')
   }),
+  permissionLevel: 'high',
   call: async ({ action, key, value, password }) => {
     const crypto = new VaultCrypto(password);
     const data = storage.load();

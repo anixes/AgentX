@@ -1,17 +1,24 @@
 import { z } from 'zod';
+import type { ExecutionMode } from '../engine/executionModes.js';
 
 export type PermissionLevel = 'default' | 'high' | 'none';
 
 export interface ToolContext {
   cwd: string;
   abortSignal: AbortSignal;
-  sessionid: string;
+  sessionId: string;
+  approvalGranted?: boolean;
+  /** Current execution mode — tools check this for permission decisions */
+  mode?: ExecutionMode;
 }
 
 export interface ToolResult<T = any> {
   output: T;
   summary?: string;
   isError?: boolean;
+  requiresApproval?: boolean;
+  approvalCommand?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ToolDefinition<T extends z.ZodObject<any> = any> {

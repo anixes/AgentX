@@ -2,8 +2,8 @@ from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Input, Static
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 from textual.binding import Binding
-from stripper import CommandStripper
-from gateway import UnifiedGateway
+from scripts.core.stripper import CommandStripper
+from scripts.core.gateway import UnifiedGateway
 import os
 import subprocess
 import json
@@ -114,7 +114,7 @@ class SafeShellTUI(App):
                 "Return ONLY the raw command string, no explanation, no backticks."
             )
             try:
-                if self.gateway.key != "dummy":
+                if self.gateway.api_key != "dummy":
                     cmd = await self.gateway.chat(self.model, translation_prompt)
                     cmd = cmd.strip().replace("`", "")
                 else:
@@ -173,7 +173,7 @@ class SafeShellTUI(App):
             )
             
             try:
-                if self.gateway.key != "dummy":
+                if self.gateway.api_key != "dummy":
                     explanation = await self.gateway.chat(self.model, prompt)
                 else:
                     explanation = f"POTENTIAL {level} THREAT: {reason} Sudo/wrappers detected: {wrappers}."
@@ -183,20 +183,18 @@ class SafeShellTUI(App):
                 self.query_one("#risk-display").update_risk(f"AI Analysis Failed: {str(e)}", "danger")
         else:
             self.query_one("#risk-display").update_risk("Command appears safe. Executing...", "info")
-            self.execute_command(cmd)
+            self.execute_command(cmd, report["Env Vars"])
 
     def log_command(self, cmd: str):
         log = self.query_one("#log-container")
         log.mount(Static(f"> [bold green]{cmd}[/]", classes="log-entry"))
         log.scroll_end()
 
-    def execute_command(self, cmd: str):
+    def execute_command(self, cmd: str, env_vars: dict = None):
         try:
-            # Use environment variables extracted by stripper
-            stripper = CommandStripper(cmd)
-            stripper.strip()
             env = os.environ.copy()
-            env.update(stripper.report()["Env Vars"])
+            if env_vars:
+                env.update(env_vars)
 
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, env=env)
             log = self.query_one("#log-container")

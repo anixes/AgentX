@@ -1,4 +1,4 @@
-from scripts.stripper import CommandStripper
+from scripts.core.stripper import CommandStripper
 import json
 
 tests = [
