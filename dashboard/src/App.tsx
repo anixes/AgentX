@@ -28,9 +28,17 @@ type Approval = {
   tool: string;
   input: Record<string, unknown>;
   command?: string;
+  commandPreview?: string;
+  actionType?: string;
   rootBinary?: string;
   level?: string;
+  riskLevel?: 'low' | 'medium' | 'high';
   reasons: string[];
+  humanReason?: string;
+  rollbackPath?: string;
+  expiresAt?: string;
+  requesterSource?: 'CLI' | 'dashboard' | 'Telegram' | 'swarm';
+  dryRunSummary?: string;
   createdAt: string;
 };
 
@@ -512,7 +520,7 @@ const ApprovalPanel = ({
           <div>
             <p className="text-white font-medium">No approval is waiting.</p>
             <p className="text-sm text-slate-500 mt-2">
-              Risky tool calls will appear here with their command, root binary, and review reasons.
+              Risky actions will appear here with command preview, expected effect, rollback path, and expiry.
             </p>
             {actionMessage && <p className="text-sm text-cyan-300 mt-3">{actionMessage}</p>}
           </div>
@@ -525,21 +533,27 @@ const ApprovalPanel = ({
     <div className="bg-[linear-gradient(180deg,rgba(245,158,11,0.12),rgba(22,25,31,0.96))] rounded-[28px] border border-amber-400/20 p-8 shadow-[0_20px_80px_rgba(0,0,0,0.2)]">
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <RiskPill tone="ask">{approval.level || 'MEDIUM'} Risk</RiskPill>
-        <RiskPill tone="neutral">{approval.tool}</RiskPill>
+        <RiskPill tone="neutral">{approval.actionType || approval.tool}</RiskPill>
+        {approval.requesterSource && <RiskPill tone="neutral">Source: {approval.requesterSource}</RiskPill>}
         {approval.rootBinary && <RiskPill tone="neutral">Root: {approval.rootBinary}</RiskPill>}
       </div>
 
       <p className="text-white text-lg font-medium leading-snug">Manual review required before execution</p>
       <p className="text-sm text-amber-100/80 mt-2">
-        Review the command below, then approve or deny it directly from the dashboard.
+        {approval.humanReason || 'Review the full approval object, then approve or deny it directly from the dashboard.'}
       </p>
 
       <div className="mt-6 rounded-2xl bg-black/25 border border-white/10 p-5">
         <p className="text-[10px] uppercase tracking-[0.24em] text-amber-200/60 mb-2">Command</p>
-        <pre className="text-sm text-amber-50 whitespace-pre-wrap font-mono">{approval.command || 'Unknown command'}</pre>
+        <pre className="text-sm text-amber-50 whitespace-pre-wrap font-mono">{approval.commandPreview || approval.command || 'Unknown command'}</pre>
       </div>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ApprovalDetail title="Request ID" body={approval.id} />
+        <ApprovalDetail title="Risk" body={approval.riskLevel || approval.level || 'medium'} />
+        <ApprovalDetail title="Expires" body={approval.expiresAt || 'No expiry recorded'} />
+        <ApprovalDetail title="Expected Effect" body={approval.dryRunSummary || 'No dry-run summary available.'} />
+        <ApprovalDetail title="Rollback" body={approval.rollbackPath || 'No rollback path known.'} />
         {approval.reasons.map((reason, index) => (
           <div key={`${approval.id}-${index}`} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
             <p className="text-[10px] uppercase tracking-[0.18em] text-amber-200/50 mb-2">Reason {index + 1}</p>
@@ -569,6 +583,13 @@ const ApprovalPanel = ({
     </div>
   );
 };
+
+const ApprovalDetail = ({ title, body }: { title: string; body: string }) => (
+  <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+    <p className="text-[10px] uppercase tracking-[0.18em] text-amber-200/50 mb-2">{title}</p>
+    <p className="text-sm text-slate-100 break-words">{body}</p>
+  </div>
+);
 
 const EventCard = ({ event }: { event: RuntimeEvent }) => {
   const tone =

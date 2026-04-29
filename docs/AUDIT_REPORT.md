@@ -1,15 +1,22 @@
-# AgentX Surgical Audit: Phase 1 & Phase 2 Summary
+# AgentX Core Surgical Audit: Historical Refactor Summary
 
-This document serves as a historical record of the architectural refactoring performed during Phases 1 and 2 of the AgentX codebase surgical audit.
+This document is a historical record of the architectural refactoring performed before the AJA Telegram remote-control work.
 
-## Phase 1: Critical Bug Fixes & Token Efficiency
+For the current product phases, see [PHASE_1_2_REMOTE_APPROVALS.md](./PHASE_1_2_REMOTE_APPROVALS.md):
+
+- Phase 1: Telegram Remote Control
+- Phase 2: Production Approval Workflow
+
+The sections below use **Audit Stage** labels to avoid confusion with the current AJA Phase 1 and Phase 2 track.
+
+## Audit Stage 1: Critical Bug Fixes & Token Efficiency
 
 ### Critical Bug Fixes (P0)
 1.  **Self-Healing Logic Fixes**: Refactored `scripts/self_healer.py` to accurately scan local "territories" rather than relying on hardcoded failure loops. Updated `scripts/health_check.py` to allow dynamic path evaluation.
-2.  **Swarm Orchestration Argument Passing**: Patched `scripts/swarm_launcher.py` (before it was deprecated in Phase 2) to properly pass valid CLI arguments (`--key`, `--model`, `--prompt`), ensuring sub-agents successfully communicated with the AI Gateway.
+2.  **Swarm Orchestration Argument Passing**: Patched `scripts/swarm_launcher.py` before it was deprecated in Audit Stage 2 to properly pass valid CLI arguments (`--key`, `--model`, `--prompt`), ensuring sub-agents successfully communicated with the AI Gateway.
 3.  **Mock Engine Security**: Refactored `src/engine/QueryEngine.ts` and `src/engine/MockQueryEngine.ts` to use `protected` members instead of unsafe `(this as any)` type-casting in TypeScript.
 
-### Token Efficiency (Phase 1)
+### Token Efficiency (Audit Stage 1)
 1.  **History Sliding Window**: Implemented a token-saving sliding window in `QueryEngine.ts` (pruning the message history to the last 12 messages).
 2.  **Dynamic Token Savings Logic**: Replaced hardcoded token-savings metrics with an actual runtime calculation based on the pruned history length.
 
@@ -20,7 +27,7 @@ This document serves as a historical record of the architectural refactoring per
 
 ---
 
-## Phase 2: Swarm Unification & God Node Decoupling
+## Audit Stage 2: Swarm Unification & God Node Decoupling
 
 ### 1. Unified Gateway Provider Management
 We identified 3 different implementations with drifting provider URL maps (`src/services/gatewayClient.ts`, `scripts/gateway.py`, and `scripts/proxy_server.py`).
@@ -41,6 +48,6 @@ There were three overlapping orchestration nodes (`swarm_controller.py`, `swarm_
     -   `--mode baton` (replaces `baton_orchestrator.py` - JSON-based objective breakdown and delegation)
 -   Removed the old, deprecated orchestrator files to drastically clean up the codebase.
 
-### Phase 3: Security Hardening
-- **CSRF Protection**: Added erify_token middleware (dependency-injected) to pi_bridge.py for /runtime/approve and /runtime/deny endpoints.
-- **Dashboard Integration**: Updated dashboard/src/App.tsx to handle authentication tokens when calling /runtime/approve and /runtime/deny.
+### Audit Stage 3: Security Hardening
+- **CSRF Protection**: Added `verify_token` middleware (dependency-injected) to `api_bridge.py` for `/runtime/approve` and `/runtime/deny` endpoints.
+- **Dashboard Integration**: Updated `dashboard/src/App.tsx` to handle authentication tokens when calling `/runtime/approve` and `/runtime/deny`.

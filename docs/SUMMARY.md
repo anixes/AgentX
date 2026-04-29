@@ -1,14 +1,25 @@
-# 📊 AgentX Build Summary
+# AJA + AgentX Core Build Summary
 
-## Project Milestone: "Fortress Alpha"
-We have successfully implemented a secure, self-healing agentic environment.
+## Project Milestone: "Remote Human Loop"
+AgentX Core now powers AJA as a secure, self-healing agentic environment with phone-based remote control and production-grade approvals.
+
+## Naming
+
+- **AgentX Core**: the engine, runtime, tools, bridge, dashboard, vault, and swarm.
+- **AJA**: the assistant/operator that turns intent into explainable action.
+- **AgentX Core powers AJA**.
 
 ### Components Delivered:
-- **Unified CLI**: Single `agentx` command with 4 clean subcommands (`dash`, `run`, `status`, `help`).
+- **Unified CLI**: Single `agentx` command with clean subcommands (`dash`, `run`, `status`, `setup`, `doctor`, `memory`, `help`).
 - **Safety Gate**: Semantic command auditing via `CommandStripper`.
 - **Secret Vault**: Encrypted credential storage.
 - **Unified Swarm Engine**: Replaces disjointed scripts with a single engine supporting Background, Parallel, and Baton modes.
 - **API Bridge & Dashboard**: Glassmorphic real-time telemetry with secure, CSRF-protected approval routes and a Mission Launcher panel.
+- **Telegram Remote Control**: AJA can receive whitelisted phone commands through Telegram Bot API -> FastAPI bridge -> AgentX Core.
+- **Structured Approval Workflow**: Risky actions become approval objects with command preview, action type, reason, risk level, rollback path, expiry, requester source, and dry-run summary.
+- **Structured Secretary Memory**: AJA persists obligations, follow-ups, recurring tasks, reminders, stale-task review, and escalation state in SQLite.
+- **Messaging Layer**: AJA drafts, manages, approves, and tracks outbound communication without unsafe auto-send behavior.
+- **Scheduler and Executive Reviews**: AJA generates morning, night, and weekly reviews with urgency scoring, snooze, escalation, and Telegram delivery.
 - **Centralized Gateway**: Unified `UnifiedGateway` utilizing a single `providers.json` source of truth. First-class OpenRouter support.
 
 ### User Experience:
@@ -21,15 +32,136 @@ We have successfully implemented a secure, self-healing agentic environment.
 | System diagnostics | `agentx doctor` |
 | Manage memory | `agentx memory list` |
 | Check swarm status | `agentx status` |
+| Control from phone | Telegram command to AJA |
+| Add an obligation | `agentx memory add "follow up with recruiter next Tuesday"` |
+| Draft communication | `agentx message draft "draft recruiter follow-up"` |
+| Run executive review | `agentx review morning` |
 
 ### Security Metrics:
 - **Zero-Trust Input**: All intents are translated and audited before execution.
 - **Memory Isolation**: Each agent runs in its own OS process via the Baton pattern.
 - **Endpoint Lockdown**: Critical endpoints require Bearer Token authorization to mitigate CSRF attacks.
+- **Telegram Whitelist**: Only `TELEGRAM_ALLOWED_USER_ID` can issue phone commands.
+- **Structured Human Review**: Risky actions default to ASK and must be explainable before approval.
+- **Immutable Approval Audit**: Approval lifecycle events are appended to `.agentx/approval-audit.jsonl`.
 - **Encrypted Persistence**: All secrets are stored using AES-256-GCM.
+
+## Phase 1: Telegram Remote Control
+
+Implemented phone -> Telegram -> PC execution flow:
+
+- `POST /telegram/webhook` receives Telegram Bot API updates.
+- `POST /telegram/command` supports local testing through the same command router.
+- Supported text commands: `status`, `check gpu`, `run training job`, `git pull repo`, `shutdown laptop tonight`, `restart notebook process`.
+- Non-whitelisted users are denied.
+- Non-text messages are rejected with a text-only explanation.
+- Command history persists to `.agentx/telegram-history.jsonl`.
+
+## Phase 2: Production Approval Workflow
+
+Risky actions no longer rely on opaque confirmation prompts. AJA now creates a structured approval object and sends it to Telegram while syncing it to the dashboard queue through `.agentx/runtime-state.json`.
+
+Approval objects include:
+
+- request ID
+- exact command preview
+- action type
+- human-readable reason
+- risk level
+- rollback path
+- expiration timestamp
+- requester source
+- dry-run summary of expected effect
+
+Approval commands:
+
+- Telegram: `approve <id>` / `reject <id>`
+- Dashboard: Approve / Deny buttons
+- CLI/runtime: `/approve` / `/deny`
+
+Before execution, approvals are checked for expiration and revalidated through `FileGuardian` and `CommandStripper`.
+
+## Phase 3: Structured Secretary Memory
+
+AJA now has a persistent SQLite task system at `.agentx/aja_secretary.sqlite3`.
+
+The task object supports:
+
+- task identity, title, context, owner, due date, recurrence, priority, and status
+- follow-up state, reminder state, escalation level, approval state, related people, and communication history
+- source tracking across Telegram, CLI, dashboard, and system-created tasks
+- scheduled review, stale task detection, priority sorting, recurring task rescheduling, and Telegram summaries
+
+Interfaces:
+
+- CLI: `python agentx.py memory add|list|review|complete|archive`
+- FastAPI: `/memory/tasks`, `/memory/review`, `/memory/summary`
+- Telegram: `tasks`, `task review`, `complete <task_id>`, `archive <task_id>`, and natural obligation messages
+
+## Phase 4: Messaging Layer
+
+AJA now stores outbound communication records in the same SQLite secretary database.
+
+The communication object supports:
+
+- recipient, channel, subject, draft content, and tone profile
+- approval required/status
+- follow-up required/due
+- related task ID and communication history
+- delivery status and last sent timestamp
+
+Workflow:
+
+```text
+Draft -> Edit -> Approval -> Send -> Follow-up tracking
+```
+
+Safety rules:
+
+- AJA never auto-sends the first version.
+- All outbound messages require approval.
+- Telegram is the only direct outbound adapter for now.
+- Email and recruiter messages are drafted and tracked, not silently sent.
+
+Interfaces:
+
+- CLI: `python agentx.py message draft|list|approve|reject`
+- FastAPI: `/communications`, `/communications/{message_id}/approve`, `/communications/{message_id}/send`
+- Telegram: `draft recruiter follow-up`, `approve message <id>`, `send message <id>`, `check pending unanswered messages`
+
+## Phase 5: Scheduler and Daily Executive Review
+
+AJA now generates proactive executive reviews from structured tasks and communications.
+
+Supported reviews:
+
+- morning review: unfinished work, missed deadlines, urgent follow-ups, pending communication, top 3 priorities
+- night review: completed work, missed commitments, ignored reminders, carry-forward actions, tomorrow focus
+- weekly review: slipped commitments, stale work, blocked tasks, communication follow-ups, next-week priorities
+
+Scheduler capabilities:
+
+- configurable review windows
+- no-spam delivery event log
+- snooze
+- urgency scoring
+- stale task escalation
+- delayed follow-up escalation
+- accountability prompts
+- Telegram delivery through `/scheduler/run` or `/scheduler/review/{kind}/deliver`
+
+Interfaces:
+
+- CLI: `python agentx.py review morning|night|weekly`
+- FastAPI: `/scheduler/config`, `/scheduler/review/{kind}`, `/scheduler/run`, `/scheduler/snooze/{task_id}`
+- Telegram: `morning review`, `night review`, `weekly review`, `what am I avoiding today`, `what slipped this week`
 
 ## Documentation Index
 - [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md): Visual mapping of the system and CLI reference.
+- [PHASE_1_2_REMOTE_APPROVALS.md](./PHASE_1_2_REMOTE_APPROVALS.md): Telegram control and structured approval workflow.
+- [PHASE_3_SECRETARY_MEMORY.md](./PHASE_3_SECRETARY_MEMORY.md): SQLite-backed secretary memory.
+- [PHASE_4_MESSAGING_LAYER.md](./PHASE_4_MESSAGING_LAYER.md): Outbound communication drafts and follow-up tracking.
+- [PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md](./PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md): Proactive scheduler and accountability reviews.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.

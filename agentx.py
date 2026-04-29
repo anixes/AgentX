@@ -7,7 +7,9 @@ Usage:
   agentx run [--bg]   → Run a SwarmEngine mission (optionally in background)
   agentx status       → Show swarm health, active batons, territories
   agentx doctor       → Run system health checks and diagnostics
-  agentx memory       → Manage agent persistent memory
+  agentx memory       → Manage AJA secretary memory
+  agentx message      → Manage AJA outbound drafts
+  agentx review       → Run executive reviews
   agentx help         → Show this help message
 """
 
@@ -17,6 +19,13 @@ import json
 import subprocess
 import time
 from pathlib import Path
+from scripts.secretary_memory import (
+    SecretaryMemory,
+    format_communication_for_mobile,
+    format_tasks_for_mobile,
+    parse_communication_intent,
+    parse_task_intent,
+)
 
 # ---------------------------------------------------------------------------
 # Resolve python executable portably
@@ -25,7 +34,7 @@ PYTHON = sys.executable
 PROJECT_ROOT = Path(__file__).resolve().parent
 BATON_DIR = PROJECT_ROOT / "temp_batons"
 RUNTIME_STATE = PROJECT_ROOT / ".agentx" / "runtime-state.json"
-MEMORY_FILE = PROJECT_ROOT / ".agentx" / "memory.json"
+SECRETARY_DB = PROJECT_ROOT / ".agentx" / "aja_secretary.sqlite3"
 
 
 # ---------------------------------------------------------------------------
@@ -219,49 +228,113 @@ def cmd_doctor():
 
 
 def cmd_memory(*args):
-    """Manage persistent memory for the swarm."""
-    if not MEMORY_FILE.exists():
-        MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        MEMORY_FILE.write_text("{}", encoding="utf-8")
-        
-    try:
-        mem_data = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        mem_data = {}
-        
-    if not args or args[0] == "list":
-        print("\n--- AgentX Persistent Memory ---")
-        if not mem_data:
-            print("  (empty)")
-        else:
-            for k, v in mem_data.items():
-                print(f"  {k}: {v}")
-        print("--------------------------------\n")
-        print("Usage: agentx memory add <key> <value>")
-        print("       agentx memory remove <key>")
-        print("       agentx memory clear")
-        
-    elif args[0] == "add" and len(args) >= 3:
-        key = args[1]
-        val = " ".join(args[2:])
-        mem_data[key] = val
-        MEMORY_FILE.write_text(json.dumps(mem_data, indent=2), encoding="utf-8")
-        print(f"[OK] Added to memory: '{key}' = '{val}'")
-        
-    elif args[0] == "remove" and len(args) == 2:
-        key = args[1]
-        if key in mem_data:
-            del mem_data[key]
-            MEMORY_FILE.write_text(json.dumps(mem_data, indent=2), encoding="utf-8")
-            print(f"[OK] Removed from memory: '{key}'")
-        else:
-            print(f"[X] Key not found: '{key}'")
-            
-    elif args[0] == "clear":
-        MEMORY_FILE.write_text("{}", encoding="utf-8")
-        print("[OK] Memory cleared.")
+    """Manage AJA's structured secretary memory."""
+    memory = SecretaryMemory(SECRETARY_DB)
+
+    if not args or args[0] in {"list", "tasks"}:
+        tasks = memory.list_tasks(statuses=["pending", "active", "blocked"], limit=50)
+        print("\n--- AJA Secretary Memory ---")
+        print(format_tasks_for_mobile(tasks, memory.review(escalate=False)))
+        print("----------------------------\n")
+        print("Usage:")
+        print("  agentx memory add \"follow up with recruiter next Tuesday\"")
+        print("  agentx memory list")
+        print("  agentx memory review")
+        print("  agentx memory complete <task_id>")
+        print("  agentx memory archive <task_id>")
+        return
+
+    command = args[0].lower()
+    if command == "add" and len(args) >= 2:
+        text = " ".join(args[1:])
+        task_data = parse_task_intent(text, source="CLI", owner="AJA") or {
+            "title": text,
+            "context": text,
+            "source": "CLI",
+            "owner": "AJA",
+            "priority": "medium",
+            "status": "pending",
+            "communication_history": [{"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "type": "source", "message": text}],
+        }
+        task = memory.create_task(task_data)
+        print(f"[OK] Saved secretary task: {task['title']}")
+        print(f"     ID      : {task['task_id']}")
+        print(f"     Due     : {task.get('due_date') or '(none)'}")
+        print(f"     Priority: {task['priority']}")
+    elif command == "review":
+        review = memory.review(escalate=True)
+        tasks = memory.list_tasks(statuses=["pending", "active", "blocked"], limit=50)
+        print(format_tasks_for_mobile(tasks, review))
+    elif command == "complete" and len(args) == 2:
+        try:
+            task = memory.complete_task(args[1])
+            print(f"[OK] Completed: {task['title']} ({task['status']})")
+        except KeyError:
+            print(f"[X] Task not found: {args[1]}")
+    elif command == "archive" and len(args) == 2:
+        try:
+            task = memory.archive_task(args[1])
+            print(f"[OK] Archived: {task['title']}")
+        except KeyError:
+            print(f"[X] Task not found: {args[1]}")
     else:
         print("[X] Invalid memory command.")
+        print("Usage: agentx memory add|list|review|complete|archive")
+
+
+def cmd_message(*args):
+    """Manage AJA outbound communication drafts."""
+    memory = SecretaryMemory(SECRETARY_DB)
+
+    if not args or args[0] in {"list", "drafts"}:
+        print(memory.communication_summary())
+        print("\nUsage:")
+        print("  agentx message draft \"draft recruiter follow-up\"")
+        print("  agentx message approve <message_id>")
+        print("  agentx message reject <message_id>")
+        return
+
+    command = args[0].lower()
+    if command == "draft" and len(args) >= 2:
+        text = " ".join(args[1:])
+        message_data = parse_communication_intent(text, source="CLI") or {
+            "recipient": "recipient",
+            "channel": "draft",
+            "subject": "Draft",
+            "draft_content": text,
+            "tone_profile": "professional",
+            "approval_required": True,
+            "approval_status": "pending",
+            "communication_history": [{"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "type": "source", "message": text}],
+        }
+        message = memory.create_communication(message_data)
+        print(format_communication_for_mobile(message))
+    elif command == "approve" and len(args) == 2:
+        try:
+            message = memory.approve_communication(args[1])
+            print(f"[OK] Approved message {message['message_id']}. It is ready, not auto-sent.")
+        except KeyError:
+            print(f"[X] Message not found: {args[1]}")
+    elif command == "reject" and len(args) >= 2:
+        reason = " ".join(args[2:]) if len(args) > 2 else ""
+        try:
+            message = memory.reject_communication(args[1], reason)
+            print(f"[OK] Rejected message {message['message_id']}.")
+        except KeyError:
+            print(f"[X] Message not found: {args[1]}")
+    else:
+        print("[X] Invalid message command.")
+        print("Usage: agentx message draft|list|approve|reject")
+
+
+def cmd_review(*args):
+    """Run AJA executive reviews."""
+    memory = SecretaryMemory(SECRETARY_DB)
+    kind = args[0].lower() if args else "morning"
+    if kind not in {"morning", "night", "weekly"}:
+        print("[X] Review must be morning, night, or weekly.")
+        return
+    print(memory.generate_executive_review(kind, escalate=True)["summary"])
 
 
 CONFIG_PATH = PROJECT_ROOT / ".agentx" / "config.json"
@@ -350,7 +423,9 @@ def show_help():
 |  agentx status       Show swarm health & active batons    |
 |  agentx setup        Configure AI provider & API key      |
 |  agentx doctor       Run system health diagnostics        |
-|  agentx memory       Manage agent persistent memory       |
+|  agentx memory       Manage AJA secretary memory          |
+|  agentx message      Manage outbound communication drafts |
+|  agentx review       Run morning/night/weekly reviews     |
 |  agentx help         Show this help message               |
 |                                                           |
 +-----------------------------------------------------------+
@@ -392,6 +467,10 @@ def main():
         cmd_doctor()
     elif command == "memory":
         cmd_memory(*args[1:])
+    elif command == "message":
+        cmd_message(*args[1:])
+    elif command == "review":
+        cmd_review(*args[1:])
     elif command == "ui":
         cmd_ui()
     else:

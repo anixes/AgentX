@@ -1,0 +1,122 @@
+# Phase 1 and 2: AJA Remote Control and Approval Workflow
+
+This document is the canonical reference for the Telegram control path and production approval workflow.
+
+## Identity Split
+
+- **AgentX Core** is the engine: tools, runtime state, FastAPI bridge, dashboard, vault, safety gate, and swarm orchestration.
+- **AJA** is the assistant and operator: the personality layer that receives intent, explains consequences, and asks for approval when risk appears.
+
+AgentX Core powers AJA.
+
+## Phase 1: Telegram Remote Control
+
+Goal: control the PC from a phone using Telegram.
+
+Flow:
+
+```text
+Telegram Bot API -> FastAPI bridge -> AgentX Core runtime -> safety gate -> execution layer
+```
+
+Implemented endpoints:
+
+- `POST /telegram/webhook`: Telegram Bot API webhook.
+- `POST /telegram/command`: local test endpoint for the same command router.
+- `GET /telegram/status`: bridge configuration and pending count.
+- `GET /telegram/history`: recent Telegram command history.
+
+Required environment:
+
+```bash
+TELEGRAM_BOT_TOKEN=123456:bot-token
+TELEGRAM_ALLOWED_USER_ID=123456789
+TELEGRAM_WEBHOOK_SECRET=long-random-secret
+```
+
+Supported initial text commands:
+
+- `status`
+- `check gpu`
+- `run training job`
+- `git pull repo`
+- `shutdown laptop tonight`
+- `restart notebook process`
+
+Security behavior:
+
+- Only `TELEGRAM_ALLOWED_USER_ID` can issue commands.
+- Text commands only.
+- Unsupported commands are denied with an explanation.
+- Incoming commands are appended to `.agentx/telegram-history.jsonl`.
+- Output is trimmed for mobile readability.
+
+## Phase 2: Production Approval Workflow
+
+Goal: every risky action must be understandable before approval.
+
+Risky actions no longer use an opaque confirmation-token flow. AJA now sends a structured approval request and waits for explicit human approval.
+
+Approval commands:
+
+- Telegram: `approve <id>` or `reject <id>`
+- Dashboard: Approve or Deny buttons
+- CLI/runtime: `/approve` or `/deny`
+
+## Approval Object
+
+Every approval object includes:
+
+- `id`: request ID
+- `commandPreview`: exact command preview
+- `actionType`: action category such as `git_update`, `scheduled_shutdown`, or `notebook_restart`
+- `humanReason`: human-readable reason for review
+- `riskLevel`: `low`, `medium`, or `high`
+- `rollbackPath`: safe rollback or recovery path when known
+- `expiresAt`: expiration timestamp
+- `requesterSource`: `CLI`, `dashboard`, `Telegram`, or `swarm`
+- `dryRunSummary`: expected effect before execution
+- `reasons`: detailed safety reasons
+
+Example:
+
+```json
+{
+  "id": "approval-1777482768-2487",
+  "commandPreview": "git pull --ff-only",
+  "actionType": "git_update",
+  "humanReason": "Updates the repository working tree.",
+  "riskLevel": "medium",
+  "rollbackPath": "Use git reflog to find the previous HEAD, then reset only after reviewing local changes.",
+  "requesterSource": "Telegram",
+  "dryRunSummary": "Would fetch and fast-forward the current repository only if Git can do so without a merge commit."
+}
+```
+
+## Dashboard Sync
+
+Telegram-originated approvals are written to `.agentx/runtime-state.json` as `pendingApproval`, so the dashboard sees the same object the phone receives.
+
+Dashboard decisions on Telegram-originated approvals execute through the FastAPI bridge and notify the Telegram chat. CLI/runtime approvals still execute through `src/runtime_actions.ts`.
+
+## Audit and Persistence
+
+- `.agentx/runtime-state.json`: current shared runtime state and pending approval.
+- `.agentx/telegram-history.jsonl`: Telegram command history.
+- `.agentx/telegram-pending.json`: compatibility store for Telegram pending IDs.
+- `.agentx/approval-audit.jsonl`: append-only approval lifecycle log.
+
+## Execution Rules
+
+- No hidden execution for risky commands.
+- Default behavior for risky action is ASK.
+- Denied commands explain why.
+- Approval tokens expire.
+- Approved commands are revalidated before execution.
+- Rollback guidance is included whenever AJA can provide one safely.
+
+## Current Limits
+
+- Pending approvals are single-item in `.agentx/runtime-state.json`.
+- Telegram supports text commands only.
+- Shell analysis is heuristic and uses `CommandStripper`, not a full shell AST parser yet.

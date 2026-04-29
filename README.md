@@ -1,26 +1,44 @@
-# 🛡️ AgentX: Autonomous Secure Orchestration
+# AJA on AgentX Core
 
-**AgentX** is a high-performance, security-first agentic development environment. It is designed to bridge the gap between AI code generation and autonomous production maintenance through a "Fortress" architecture.
+**AgentX Core** is the high-performance, security-first orchestration engine.
+**AJA** is the assistant personality and operator that uses AgentX Core to plan, execute, and supervise work.
+
+In short: **AgentX Core powers AJA**.
 
 ---
 
-## 🚀 Key Pillars
+## Key Pillars
 
-### 1. 🐝 Self-Healing Swarm
+### 1. Self-Healing Swarm
 A decentralized network of agents that monitor your territories (`src/prod`, `src/vault`, etc.). If a logic bug or crash is detected, the Swarm automatically diagnoses the error via the **AI Gateway** and applies a verified patch.
 
-### 2. 🔐 The Secure Vault (AES-256-GCM)
+### 2. The Secure Vault (AES-256-GCM)
 A military-grade secret management system. Agents can retrieve deployment tokens and API keys privately in-process, ensuring credentials never leak into chat logs or terminal history.
 
-### 3. 🛡️ SafeShell (Safety Gate)
-A tiered risk auditing system that intercepts every bash command. It now classifies commands as **Allow / Ask / Deny**, pauses risky operations for explicit approval from either the CLI or dashboard, and blocks dangerous patterns like `curl | bash`.
+### 3. SafeShell (Safety Gate)
+A tiered risk auditing system that intercepts every bash command. It classifies commands as **Allow / Ask / Deny**, pauses risky operations as structured approval requests for CLI, dashboard, or Telegram review, and blocks dangerous patterns like `curl | bash`.
 
-### 4. 🛰️ Visual Command Center
-A premium React + Vite dashboard that now surfaces the live approval queue, lets you approve or deny pending commands, and streams security events, baton task progress, territory health, and runtime diff telemetry over SSE from the shared AgentX runtime state.
+### 4. Visual Command Center
+A premium React + Vite dashboard that now surfaces the live approval queue, lets you approve or deny pending commands, and streams security events, baton task progress, territory health, and runtime diff telemetry over SSE from the shared AgentX Core runtime state.
+
+### 5. Telegram Remote Control
+AJA can receive whitelisted phone commands through Telegram, route them through AgentX Core safety checks, and return concise mobile-readable output.
+
+### 6. Production Approval Workflow
+Risky actions become structured approval objects with request ID, command preview, action type, reason, risk level, rollback path, expiration, requester source, and dry-run summary.
+
+### 7. Structured Secretary Memory
+AJA persists obligations, follow-ups, recurring responsibilities, reminders, and accountability commitments in SQLite so they survive restarts and can be reviewed from CLI, dashboard API, or Telegram.
+
+### 8. Messaging Layer
+AJA drafts, edits, approves, and tracks outbound communication without auto-sending first versions. Recruiter follow-ups, reminders, professional replies, and accountability check-ins are stored in SQLite with follow-up tracking.
+
+### 9. Scheduler and Executive Reviews
+AJA generates morning, night, and weekly executive reviews, escalates stale commitments, supports snooze, scores urgency, and can deliver concise accountability summaries through Telegram.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 - **Backend**: Node.js (TypeScript), Python 3.12 (FastAPI/Textual)
 - **Frontend**: React 19, Framer Motion, Tailwind CSS, Vite
 - **Security**: AES-256-GCM, Zod Validation, Custom Command Stripper
@@ -29,9 +47,9 @@ A premium React + Vite dashboard that now surfaces the live approval queue, lets
 
 ---
 
-## 🤖 Local AI Configuration (Optimized for 4GB VRAM)
+## Local AI Configuration (Optimized for 4GB VRAM)
 
-AgentX is optimized to run fully offline using **Ollama**. For hardware with 4GB VRAM (e.g., GTX 1650 Ti), we use a multi-model "Swarm" approach:
+AgentX Core is optimized to run AJA fully offline using **Ollama**. For hardware with 4GB VRAM (e.g., GTX 1650 Ti), we use a multi-model "Swarm" approach:
 
 - **Brain (Planner/Critic)**: `phi4-mini` (3.8B, Q4_K_M) - High reasoning, 2.5 GB.
 - **Hands (Worker)**: `qwen2.5:3b` (3B, Q4_K_M) - Coding specialist, 1.9 GB.
@@ -43,7 +61,7 @@ python scripts/performance_test.py
 ```
 *Goal: >20 TPS for real-time agentic swarms.*
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Setup Environment
 ```bash
@@ -54,27 +72,51 @@ cd dashboard && npm install
 ### 2. Launch the Ecosystem
 Run the unified dashboard to start the API Bridge and the Visual Command Center:
 ```bash
-npm run dashboard
+python agentx.py dash
 ```
+
+### Telegram Remote Control
+AJA can accept Telegram text commands through the AgentX Core FastAPI bridge. Set these environment variables before starting `scripts/api_bridge.py`:
+```bash
+TELEGRAM_BOT_TOKEN=123456:bot-token
+TELEGRAM_ALLOWED_USER_ID=123456789
+TELEGRAM_WEBHOOK_SECRET=long-random-secret
+```
+
+Expose the bridge to Telegram and register the webhook:
+```bash
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook?url=https://YOUR_PUBLIC_URL/telegram/webhook&secret_token=$TELEGRAM_WEBHOOK_SECRET"
+```
+
+Supported commands: `status`, `check gpu`, `run training job`, `git pull repo`, `shutdown laptop tonight`, and `restart notebook process`. Risky commands create structured approval requests with `approve <id>` / `reject <id>`. History is persisted in `.agentx/telegram-history.jsonl`; immutable approval audit entries are persisted in `.agentx/approval-audit.jsonl`.
+
+Secretary commands: `tasks`, `task review`, `complete <task_id>`, `archive <task_id>`, or natural obligations like `follow up with recruiter next Tuesday`.
+
+Messaging commands: `draft recruiter follow-up`, `draft professional reply to recruiter`, `remind Rahul about project deadline`, `approve message <message_id>`, `send message <message_id>`, and `check pending unanswered messages`.
+
+Executive review commands: `morning review`, `night review`, `weekly review`, `what am I avoiding today`, `what slipped this week`, and `snooze <task_id> tomorrow`.
 
 ### 3. CLI Missions
 Use the CLI for autonomous planning:
 ```bash
-npm run plan "Build a new module for X"
+python agentx.py run "Build a new module for X"
 ```
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 - `scripts/`: Python-based AI agents, health checks, and API bridges.
-- `src/tools/`: Hardened AgentX capabilities (Vault, BashTool).
-- `.agentx/runtime-state.json`: Shared runtime state consumed by the dashboard API bridge.
+- `src/tools/`: Hardened AgentX Core capabilities (Vault, BashTool).
+- `.agentx/runtime-state.json`: Shared AgentX Core runtime state consumed by AJA and the dashboard API bridge.
+- `.agentx/aja_secretary.sqlite3`: SQLite secretary memory for AJA obligations and follow-ups.
 - `src/runtime_actions.ts`: Dashboard-triggered approve/deny action runner for pending runtime approvals.
+- `src/telegram_file_guardian_check.ts`: Adapter that lets the Telegram bridge route command previews through FileGuardian.
+- `.agentx/approval-audit.jsonl`: Append-only approval lifecycle audit log.
 - `src/vault/`: Cryptographic core and storage logic.
 - `dashboard/`: The Visual Command Center (React).
 - `graphify-out/`: Live-updated Knowledge Graph of the codebase.
 
 ---
 
-## 🧠 Philosophy
-AgentX is built on the principle that **Autonomous Agents must be constrained by Human Security Patterns.** It is not just an AI that writes code; it is an AI that defends its own work.
+## Philosophy
+AgentX Core is built on the principle that **autonomous agents must be constrained by human security patterns**. AJA is the operator on top: expressive, useful, and accountable to the human approval loop.

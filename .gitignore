@@ -7,3 +7,8 @@ vault_data.json
 temp_batons/
 graphify-out/
 *.log
+.agentx/telegram-history.jsonl
+.agentx/telegram-pending.json
+.agentx/approval-audit.jsonl
+.agentx/aja_secretary.sqlite3
+.agentx/aja_secretary.sqlite3-*

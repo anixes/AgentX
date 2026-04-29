@@ -434,14 +434,48 @@ export class QueryEngine {
       tool: name,
       input,
       command: this.extractCommand(input),
+      commandPreview: this.extractCommand(input) || JSON.stringify(input),
+      actionType: name === 'bash' ? 'shell_command' : name,
       rootBinary: typeof analysis['Root Binary'] === 'string' ? analysis['Root Binary'] : undefined,
       level: typeof classification.level === 'string' ? classification.level : undefined,
+      riskLevel: this.normalizeRiskLevel(classification.level),
       reasons,
+      humanReason: reasons[0] || 'This action changes system or workspace state and needs review.',
+      rollbackPath: this.buildRollbackPath(name, input),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      requesterSource: 'CLI',
+      dryRunSummary: this.buildDryRunSummary(name, input),
       createdAt: new Date().toISOString(),
     };
   }
 
   private extractCommand(input: Record<string, unknown>): string | undefined {
     return typeof input.command === 'string' ? input.command : undefined;
+  }
+
+  private normalizeRiskLevel(level: unknown): 'low' | 'medium' | 'high' {
+    const normalized = String(level || '').toLowerCase();
+    if (normalized === 'critical' || normalized === 'high') return 'high';
+    if (normalized === 'medium') return 'medium';
+    return 'low';
+  }
+
+  private buildRollbackPath(name: string, input: Record<string, unknown>): string {
+    const command = this.extractCommand(input)?.toLowerCase() || '';
+    if (name === 'bash' && command.startsWith('git pull')) {
+      return 'Use git reflog to identify the previous HEAD, then reset only after reviewing local changes.';
+    }
+    if (name === 'bash' && command.includes('shutdown')) {
+      return 'Run shutdown /a before the timer expires.';
+    }
+    return 'No automatic rollback is known. Review output and restore from version control or backups if needed.';
+  }
+
+  private buildDryRunSummary(name: string, input: Record<string, unknown>): string {
+    const command = this.extractCommand(input);
+    if (command) {
+      return `Would execute: ${command}`;
+    }
+    return `Would run ${name} with input ${JSON.stringify(input).slice(0, 300)}`;
   }
 }

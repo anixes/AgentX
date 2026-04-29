@@ -6,9 +6,17 @@ export interface RuntimeApproval {
   tool: string;
   input: Record<string, unknown>;
   command?: string;
+  commandPreview?: string;
+  actionType?: string;
   rootBinary?: string;
   level?: string;
+  riskLevel?: 'low' | 'medium' | 'high';
   reasons: string[];
+  humanReason?: string;
+  rollbackPath?: string;
+  expiresAt?: string;
+  requesterSource?: 'CLI' | 'dashboard' | 'Telegram' | 'swarm';
+  dryRunSummary?: string;
   createdAt: string;
 }
 

@@ -94,7 +94,7 @@ function summarizeReasons(reasons: string[]): string {
 }
 
 async function analyzeCommand(command: string): Promise<StripperAnalysis> {
-  const stripperPath = path.join(process.cwd(), 'scripts', 'stripper.py');
+  const stripperPath = path.join(process.cwd(), 'scripts', 'core', 'stripper.py');
   const { stdout } = await execFileAsync(resolvePythonExecutable(), [stripperPath, command], {
     windowsHide: true,
   });

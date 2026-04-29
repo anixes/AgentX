@@ -2,13 +2,26 @@ import asyncio
 import sys
 import json
 import os
+import shutil
 import subprocess
 import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+
+from scripts.core.stripper import CommandStripper
+from scripts.secretary_memory import (
+    SecretaryMemory,
+    format_communication_for_mobile,
+    format_tasks_for_mobile,
+    parse_communication_intent,
+    parse_task_intent,
+)
 
 app = FastAPI()
 
@@ -27,10 +40,786 @@ app.add_middleware(
 RUNTIME_STATE_PATH = Path(".agentx") / "runtime-state.json"
 BATON_DIR = Path("temp_batons")
 API_TOKEN = os.getenv("AGENTX_API_TOKEN", "dev-token-123")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TELEGRAM_HISTORY_PATH = Path(".agentx") / "telegram-history.jsonl"
+TELEGRAM_PENDING_PATH = Path(".agentx") / "telegram-pending.json"
+APPROVAL_AUDIT_PATH = Path(".agentx") / "approval-audit.jsonl"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ALLOWED_USER_ID = os.getenv("TELEGRAM_ALLOWED_USER_ID", "")
+TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+TELEGRAM_COMMAND_TIMEOUT = int(os.getenv("TELEGRAM_COMMAND_TIMEOUT", "60"))
+SECRETARY_DB_PATH = Path(".agentx") / "aja_secretary.sqlite3"
+
+DENY_BINARIES = {
+    "dd": "Low-level disk writes can irreversibly destroy data.",
+    "mkfs": "Filesystem formatting is blocked.",
+    "format": "Filesystem formatting is blocked.",
+    "diskpart": "Disk partition manipulation is blocked.",
+    "bcdedit": "Boot configuration changes are blocked.",
+}
+
+ASK_BINARIES = {
+    "shutdown": "System shutdown requires confirmation.",
+    "reboot": "System restart requires confirmation.",
+    "taskkill": "Process termination requires confirmation.",
+    "powershell": "PowerShell execution requires confirmation.",
+    "pwsh": "PowerShell execution requires confirmation.",
+    "python": "Interpreter execution can run arbitrary code.",
+    "python3": "Interpreter execution can run arbitrary code.",
+    "node": "Interpreter execution can run arbitrary code.",
+    "git": "Git commands can mutate the workspace.",
+    "npm": "Package manager commands can mutate the workspace.",
+    "pnpm": "Package manager commands can mutate the workspace.",
+    "yarn": "Package manager commands can mutate the workspace.",
+}
+
+DENY_PATTERNS = {
+    "network-pipe": "Piping network output directly into an interpreter is blocked.",
+    "ssh-write": "Writing directly into SSH trust material is blocked.",
+    "system-path-write": "Redirecting output into protected system paths is blocked.",
+    "command-substitution": "Shell substitution syntax can hide unsafe behavior.",
+    "unbalanced-shell-syntax": "Command parsing failed due to invalid shell syntax.",
+}
+
+ASK_PATTERNS = {
+    "protected-path": "The command targets a protected path.",
+    "path-traversal": "The command uses parent-directory traversal.",
+    "recursive-delete-flag": "The command includes recursive destructive flags.",
+}
 
 def verify_token(authorization: str = Header(None)):
     if not authorization or authorization.replace("Bearer ", "") != API_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def now_iso():
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def append_telegram_history(event: dict):
+    TELEGRAM_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    record = {"created_at": now_iso(), **event}
+    with TELEGRAM_HISTORY_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+
+
+def append_approval_audit(event: dict):
+    APPROVAL_AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    record = {"created_at": now_iso(), **event}
+    with APPROVAL_AUDIT_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+
+
+def save_runtime_state(state: dict):
+    RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
+def add_runtime_event(event: dict):
+    state = load_runtime_state()
+    event = {"id": f"event-{int(time.time() * 1000)}", "createdAt": datetime.utcnow().isoformat() + "Z", **event}
+    state["events"] = [event, *(state.get("events") or [])][:50]
+    save_runtime_state(state)
+
+
+def set_runtime_pending_approval(approval: dict | None):
+    state = load_runtime_state()
+    state["pendingApproval"] = approval
+    save_runtime_state(state)
+
+
+def load_telegram_pending():
+    if not TELEGRAM_PENDING_PATH.exists():
+        return {}
+    try:
+        data = json.loads(TELEGRAM_PENDING_PATH.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return {}
+
+
+def save_telegram_pending(data: dict):
+    TELEGRAM_PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TELEGRAM_PENDING_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def compact_text(value: str, limit: int = 1800):
+    text = (value or "").strip()
+    if not text:
+        return "(no output)"
+    text = "\n".join(line.rstrip() for line in text.splitlines() if line.strip())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 80].rstrip() + "\n\n... output trimmed for Telegram."
+
+
+def resolve_npx_executable():
+    return shutil.which("npx") or shutil.which("npx.cmd") or "npx"
+
+
+def get_secretary_memory():
+    return SecretaryMemory(PROJECT_ROOT / SECRETARY_DB_PATH)
+
+
+def format_status_for_mobile(payload: dict):
+    territories = payload.get("territories", [])
+    territory_lines = [
+        f"- {item.get('name')}: {item.get('status')} ({item.get('load')})"
+        for item in territories[:5]
+    ]
+    pending = payload.get("pending_approval")
+    lines = [
+        "AJA status",
+        f"Files: {payload.get('total_files', 0)}",
+        f"Active agents: {payload.get('active_agents', 0)}",
+        f"Batons: {payload.get('baton_count', 0)}",
+        f"Safety alerts: {payload.get('safety_alerts', 0)}",
+    ]
+    if territory_lines:
+        lines.append("Territories:")
+        lines.extend(territory_lines)
+    if pending:
+        lines.append(f"Pending approval: {pending.get('tool', 'unknown')}")
+    return "\n".join(lines)
+
+
+def build_secretary_help():
+    return "\n".join(
+        [
+            "AJA secretary memory",
+            "Commands:",
+            "- tasks",
+            "- task review",
+            "- complete <task_id>",
+            "- archive <task_id>",
+            "- draft recruiter follow-up",
+            "- draft professional reply to recruiter",
+            "- remind Rahul about project deadline",
+            "- approve message <message_id>",
+            "- send message <message_id>",
+            "- check pending unanswered messages",
+            "- add task <title> due <date> priority <low|medium|high|urgent>",
+            "",
+            "Examples:",
+            "- remind me if I skip gym every day",
+            "- follow up with recruiter next Tuesday",
+            "- internship application status check due next Tuesday",
+            "- bill payment reminder due tomorrow priority high",
+        ]
+    )
+
+
+async def send_communication_if_supported(message: dict):
+    if message["approval_status"] != "approved":
+        return {"ok": False, "message": "Message is not approved yet."}
+    if message["channel"] != "telegram":
+        return {
+            "ok": False,
+            "message": "No direct send adapter is configured for this channel. The approved draft remains ready for manual sending.",
+        }
+
+    result = await send_telegram_message(message["recipient"], message["draft_content"])
+    if not result.get("ok"):
+        return {"ok": False, "message": f"Telegram send failed: {result.get('description', 'unknown error')}"}
+    sent = get_secretary_memory().mark_communication_sent(message["message_id"], "Sent through Telegram Bot API.")
+    return {"ok": True, "message": f"Sent Telegram message {sent['message_id']} to {sent['recipient']}."}
+
+
+async def deliver_executive_review(kind: str, chat_id: int | str | None = None, force: bool = False):
+    memory = get_secretary_memory()
+    if not force and kind not in memory.due_review_kinds():
+        return {"ok": False, "message": f"{kind} review is not due."}
+    review = await asyncio.to_thread(memory.generate_executive_review, kind, True)
+    target_chat = chat_id or os.getenv("TELEGRAM_REVIEW_CHAT_ID") or TELEGRAM_ALLOWED_USER_ID
+    if not target_chat:
+        return {"ok": False, "message": "No Telegram review chat is configured."}
+    result = await send_telegram_message(target_chat, review["summary"])
+    if not result.get("ok"):
+        return {"ok": False, "message": f"Telegram delivery failed: {result.get('description', 'unknown error')}"}
+    event = await asyncio.to_thread(
+        memory.record_scheduler_event,
+        f"{kind}_review",
+        str(target_chat),
+        {"summary": review["summary"]},
+        True,
+    )
+    return {"ok": True, "review": review, "event": event}
+
+
+def execute_secretary_command_sync(text: str, source: str, owner: str = "AJA"):
+    normalized = " ".join((text or "").strip().split())
+    lowered = normalized.lower()
+    memory = get_secretary_memory()
+
+    if lowered in {"tasks", "task summary", "secretary summary", "memory summary"}:
+        return memory.summary()
+
+    if lowered in {"task help", "secretary help", "memory help"}:
+        return build_secretary_help()
+
+    if lowered in {"task review", "review tasks", "secretary review"}:
+        review = memory.review(escalate=True)
+        tasks = memory.list_tasks(statuses=["pending", "active", "blocked"], limit=10)
+        return format_tasks_for_mobile(tasks, review)
+
+    if lowered in {"morning review", "daily morning review"}:
+        return memory.generate_executive_review("morning", escalate=True)["summary"]
+
+    if lowered in {"night review", "daily night review"}:
+        return memory.generate_executive_review("night", escalate=True)["summary"]
+
+    if lowered in {"weekly review", "what slipped this week"}:
+        return memory.generate_executive_review("weekly", escalate=True)["summary"]
+
+    if lowered in {"what am i avoiding today", "what am i avoiding"}:
+        return memory.generate_executive_review("morning", escalate=True)["summary"]
+
+    if lowered.startswith("why is ") and "still pending" in lowered:
+        return memory.generate_executive_review("morning", escalate=True)["summary"]
+
+    if lowered.startswith("snooze "):
+        parts = normalized.split(maxsplit=2)
+        if len(parts) < 2:
+            return "Use: snooze <task_id> [until]"
+        task_id = parts[1]
+        until = parts[2] if len(parts) > 2 else "tomorrow"
+        try:
+            task = memory.snooze_task(task_id, until, "Snoozed from command.")
+            return f"Snoozed: {task['title']}\nuntil: {(task.get('reminder_state') or {}).get('snoozed_until')}"
+        except KeyError:
+            return f"No secretary task found for {task_id}."
+
+    for prefix, action in (("complete ", "complete"), ("done ", "complete"), ("archive ", "archive")):
+        if lowered.startswith(prefix):
+            task_id = normalized.split(maxsplit=1)[1].strip()
+            try:
+                task = memory.complete_task(task_id) if action == "complete" else memory.archive_task(task_id)
+                return f"{action.title()}d: {task['title']}\nid: {task['task_id']}\nstatus: {task['status']}"
+            except KeyError:
+                return f"No secretary task found for {task_id}."
+
+    if lowered in {"communications", "communication summary", "drafts", "message drafts", "check pending unanswered messages"}:
+        return memory.communication_summary()
+
+    if lowered.startswith("approve message "):
+        message_id = normalized.split(maxsplit=2)[2].strip()
+        try:
+            message = memory.approve_communication(message_id)
+            return f"Approved message {message['message_id']}. It is ready to send, but not sent yet."
+        except KeyError:
+            return f"No message found for {message_id}."
+
+    if lowered.startswith("reject message "):
+        message_id = normalized.split(maxsplit=2)[2].strip()
+        try:
+            message = memory.reject_communication(message_id)
+            return f"Rejected message {message['message_id']}."
+        except KeyError:
+            return f"No message found for {message_id}."
+
+    if lowered.startswith("edit message "):
+        parts = normalized.split(maxsplit=3)
+        if len(parts) < 4:
+            return "Use: edit message <message_id> <new text>"
+        try:
+            message = memory.edit_communication(parts[2], parts[3], "Edited from command.")
+            return format_communication_for_mobile(message)
+        except KeyError:
+            return f"No message found for {parts[2]}."
+
+    task_data = parse_task_intent(normalized, source=source, owner=owner)
+    if task_data:
+        task = memory.create_task(task_data)
+        due = task.get("due_date") or "no due date"
+        return "\n".join(
+            [
+                "Saved secretary task",
+                f"ID: {task['task_id']}",
+                f"Title: {task['title']}",
+                f"Priority: {task['priority']}",
+                f"Due: {due}",
+                f"Status: {task['status']}",
+            ]
+        )
+
+    message_data = parse_communication_intent(normalized, source=source)
+    if message_data:
+        message = memory.create_communication(message_data)
+        return format_communication_for_mobile(message)
+
+    return None
+
+
+def seconds_until_tonight(hour=23, minute=30):
+    now = datetime.now()
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target <= now:
+        target += timedelta(days=1)
+    return max(60, int((target - now).total_seconds()))
+
+
+def build_supported_command(text: str):
+    normalized = " ".join((text or "").strip().lower().split())
+    if normalized in {"/start", "help", "/help"}:
+        return {
+            "kind": "help",
+            "message": "\n".join(
+                [
+                    "AJA Telegram control is online.",
+                    "Commands:",
+                    "- status",
+                    "- check gpu",
+                    "- run training job",
+                    "- git pull repo",
+                    "- shutdown laptop tonight",
+                    "- restart notebook process",
+                    "- tasks",
+                    "- task review",
+                    "- complete <task_id>",
+                    "",
+                    "Risky commands create structured approval requests.",
+                    "Use approve <id> or reject <id> after reviewing the request.",
+                ]
+            ),
+        }
+    if normalized == "status":
+        return {"kind": "status"}
+    if normalized == "check gpu":
+        return {"kind": "execute", "command": "nvidia-smi", "requires_confirmation": False, "action_type": "gpu_check", "risk_level": "low"}
+    if normalized == "run training job":
+        return {
+            "kind": "execute",
+            "command": f'"{sys.executable}" agentx.py run --bg "run training job"',
+            "requires_confirmation": True,
+            "reason": "Starts a background AJA mission powered by AgentX Core.",
+            "action_type": "training_job",
+            "risk_level": "medium",
+        }
+    if normalized == "git pull repo":
+        return {
+            "kind": "execute",
+            "command": "git pull --ff-only",
+            "requires_confirmation": True,
+            "reason": "Updates the repository working tree.",
+            "action_type": "git_update",
+            "risk_level": "medium",
+        }
+    if normalized == "shutdown laptop tonight":
+        delay = seconds_until_tonight()
+        return {
+            "kind": "execute",
+            "command": f'shutdown /s /t {delay} /c "Scheduled by AJA Telegram"',
+            "requires_confirmation": True,
+            "reason": f"Schedules Windows shutdown in about {delay // 60} minutes.",
+            "action_type": "scheduled_shutdown",
+            "risk_level": "high",
+        }
+    if normalized == "restart notebook process":
+        return {
+            "kind": "execute",
+            "command": 'powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Process -Name jupyter-notebook,jupyter-lab -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Process jupyter-notebook"',
+            "requires_confirmation": True,
+            "reason": "Stops known Jupyter notebook processes and starts a new notebook process.",
+            "action_type": "notebook_restart",
+            "risk_level": "high",
+        }
+    return {
+        "kind": "deny",
+        "message": "Command denied: unsupported text command. Send /help for the current allowlist.",
+    }
+
+
+def analyze_shell_command(command: str):
+    stripper = CommandStripper(command)
+    stripper.strip()
+    analysis = stripper.report()
+    root = (analysis.get("Root Binary") or "").lower()
+    reasons = []
+
+    if root in DENY_BINARIES:
+        reasons.append(DENY_BINARIES[root])
+    for pattern in analysis.get("Dangerous Patterns", []):
+        if pattern in DENY_PATTERNS:
+            reasons.append(DENY_PATTERNS[pattern])
+    if analysis.get("Blocked Env Vars"):
+        reasons.append(
+            "Blocked environment variables detected: "
+            + ", ".join(analysis.get("Blocked Env Vars", {}).keys())
+            + "."
+        )
+    if reasons:
+        return {"decision": "deny", "level": "CRITICAL", "reasons": reasons, "analysis": analysis}
+
+    ask_reasons = []
+    if root in ASK_BINARIES:
+        ask_reasons.append(ASK_BINARIES[root])
+    for pattern in analysis.get("Dangerous Patterns", []):
+        if pattern in ASK_PATTERNS:
+            ask_reasons.append(ASK_PATTERNS[pattern])
+    if analysis.get("Operators"):
+        ask_reasons.append("Compound shell operators require explicit confirmation.")
+    if ask_reasons:
+        return {"decision": "ask", "level": "HIGH" if root in {"shutdown", "taskkill"} else "MEDIUM", "reasons": ask_reasons, "analysis": analysis}
+
+    return {"decision": "allow", "level": "LOW", "reasons": [], "analysis": analysis}
+
+
+def normalize_risk_level(level: str):
+    normalized = (level or "").lower()
+    if normalized in {"critical", "high"}:
+        return "high"
+    if normalized == "medium":
+        return "medium"
+    return "low"
+
+
+def build_rollback_path(action_type: str, command: str):
+    lowered = command.lower()
+    if "shutdown /s" in lowered:
+        return "Run: shutdown /a before the timer expires."
+    if lowered.startswith("git pull"):
+        return "Use git reflog to find the previous HEAD, then reset only after reviewing local changes."
+    if "jupyter" in lowered or "notebook" in lowered:
+        return "Stop the restarted notebook process and relaunch the previous notebook command if needed."
+    if action_type == "training_job":
+        return "Stop the spawned background process from Task Manager or terminal logs; workspace files are not changed directly by the launcher."
+    return "No automatic rollback is known. Review output and restore from version control or backup if needed."
+
+
+def build_dry_run_summary(action_type: str, command: str):
+    if action_type == "git_update":
+        return "Would fetch and fast-forward the current repository only if Git can do so without a merge commit."
+    if action_type == "scheduled_shutdown":
+        return "Would schedule a Windows shutdown timer. It can be canceled before expiry with shutdown /a."
+    if action_type == "notebook_restart":
+        return "Would stop known Jupyter notebook/lab processes, then start a new notebook process."
+    if action_type == "training_job":
+        return "Would delegate a background AJA training mission through AgentX Core."
+    if action_type == "gpu_check":
+        return "Would query NVIDIA GPU status with nvidia-smi."
+    return f"Would execute: {command}"
+
+
+def build_approval_object(text: str, command: str, spec: dict, classification: dict, user_id: int, chat_id: int | str):
+    action_type = spec.get("action_type", "shell_command")
+    reasons = [spec.get("reason")] if spec.get("reason") else []
+    reasons.extend(classification.get("reasons", []))
+    risk_level = normalize_risk_level(classification.get("level", "MEDIUM"))
+    if spec.get("risk_level"):
+        risk_level = spec["risk_level"]
+    request_id = f"approval-{int(time.time())}-{abs(hash((user_id, command, time.time()))) % 10000}"
+    expires_at = (datetime.now().astimezone() + timedelta(minutes=10)).isoformat(timespec="seconds")
+    analysis = classification.get("analysis") or {}
+    return {
+        "id": request_id,
+        "tool": "bash",
+        "input": {"command": command},
+        "command": command,
+        "commandPreview": command,
+        "actionType": action_type,
+        "rootBinary": analysis.get("Root Binary"),
+        "level": classification.get("level", "MEDIUM"),
+        "riskLevel": risk_level,
+        "reasons": [reason for reason in reasons if reason],
+        "humanReason": spec.get("reason") or (reasons[0] if reasons else "This action needs human review before execution."),
+        "rollbackPath": build_rollback_path(action_type, command),
+        "expiresAt": expires_at,
+        "requesterSource": "Telegram",
+        "dryRunSummary": build_dry_run_summary(action_type, command),
+        "createdAt": now_iso(),
+        "telegram": {"userId": user_id, "chatId": chat_id, "text": text},
+    }
+
+
+def format_approval_for_mobile(approval: dict):
+    reasons = approval.get("reasons") or []
+    reason_text = "\n".join(f"- {reason}" for reason in reasons) or "- Manual review required."
+    return "\n".join(
+        [
+            "Approval request",
+            f"ID: {approval.get('id')}",
+            f"Action: {approval.get('actionType')}",
+            f"Risk: {approval.get('riskLevel', approval.get('level', 'medium'))}",
+            f"Source: {approval.get('requesterSource')}",
+            f"Expires: {approval.get('expiresAt')}",
+            "",
+            "Command:",
+            approval.get("commandPreview") or approval.get("command") or "(unknown)",
+            "",
+            "Reason:",
+            approval.get("humanReason") or "Review required.",
+            "",
+            "Expected effect:",
+            approval.get("dryRunSummary") or "No dry-run summary available.",
+            "",
+            "Rollback:",
+            approval.get("rollbackPath") or "No rollback path known.",
+            "",
+            "Review notes:",
+            reason_text,
+            "",
+            f"Approve: approve {approval.get('id')}",
+            f"Reject: reject {approval.get('id')}",
+        ]
+    )
+
+
+async def run_shell_command(command: str):
+    def _run():
+        return subprocess.run(
+            command,
+            cwd=str(PROJECT_ROOT),
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=TELEGRAM_COMMAND_TIMEOUT,
+        )
+
+    result = await asyncio.to_thread(_run)
+    output = result.stdout.strip()
+    if result.stderr.strip():
+        output = f"{output}\nErrors:\n{result.stderr.strip()}".strip()
+    return {
+        "ok": result.returncode == 0,
+        "code": result.returncode,
+        "output": compact_text(output),
+    }
+
+
+async def run_file_guardian_check(command: str):
+    def _run():
+        return subprocess.run(
+            [resolve_npx_executable(), "tsx", "src/telegram_file_guardian_check.ts", ".agentx/telegram-command.txt", command],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+    result = await asyncio.to_thread(_run)
+    try:
+        payload = json.loads((result.stdout or result.stderr).strip())
+    except Exception:
+        payload = {"decision": "DENY", "error": (result.stderr or result.stdout).strip()}
+
+    decision = str(payload.get("decision", "DENY")).upper()
+    if result.returncode != 0 and decision != "DENY":
+        decision = "DENY"
+    return {"decision": decision, "error": payload.get("error")}
+
+
+def get_pending_approval_by_id(request_id: str):
+    pending = (load_runtime_state() or {}).get("pendingApproval")
+    if pending and pending.get("id") == request_id:
+        return pending
+    legacy = load_telegram_pending().get(request_id)
+    return legacy
+
+
+def approval_is_expired(approval: dict):
+    expires_at = approval.get("expiresAt") or approval.get("expires_at")
+    if not expires_at:
+        return False
+    try:
+        return datetime.fromisoformat(str(expires_at).replace("Z", "+00:00")).timestamp() <= time.time()
+    except Exception:
+        return True
+
+
+async def approve_runtime_approval(request_id: str, user_id: int | None = None):
+    approval = get_pending_approval_by_id(request_id)
+    if not approval:
+        return {"ok": False, "message": "No pending approval found for that id."}
+    if user_id is not None:
+        telegram_user = (approval.get("telegram") or {}).get("userId") or approval.get("user_id")
+        if telegram_user is not None and int(telegram_user) != int(user_id):
+            return {"ok": False, "message": "That approval belongs to a different Telegram user."}
+    if approval_is_expired(approval):
+        set_runtime_pending_approval(None)
+        append_approval_audit({"id": request_id, "action": "expired", "requester_source": approval.get("requesterSource"), "command": approval.get("command")})
+        return {"ok": False, "message": "Approval expired. Send the command again."}
+
+    command = approval.get("command") or (approval.get("input") or {}).get("command")
+    if not command:
+        return {"ok": False, "message": "Approval has no executable command."}
+
+    file_guardian = await run_file_guardian_check(command)
+    classification = analyze_shell_command(command)
+    if file_guardian["decision"] == "DENY" or classification["decision"] == "deny":
+        set_runtime_pending_approval(None)
+        reasons = classification.get("reasons", [])
+        if file_guardian.get("error"):
+            reasons.append(file_guardian["error"])
+        append_approval_audit({"id": request_id, "action": "blocked_at_execution", "command": command, "reasons": reasons})
+        return {"ok": False, "message": "Approval blocked at execution re-check: " + "; ".join(reasons or ["FileGuardian denied the command."])}
+
+    append_approval_audit({"id": request_id, "action": "approved", "requester_source": approval.get("requesterSource"), "command": command})
+    result = await run_shell_command(command)
+    set_runtime_pending_approval(None)
+    pending = load_telegram_pending()
+    pending.pop(request_id, None)
+    save_telegram_pending(pending)
+    add_runtime_event(
+        {
+            "type": "APPROVED" if result["ok"] else "DENY",
+            "tool": approval.get("tool", "bash"),
+            "message": compact_text(result["output"], 500),
+            "command": command,
+            "rootBinary": approval.get("rootBinary"),
+            "level": approval.get("level"),
+        }
+    )
+    append_approval_audit({"id": request_id, "action": "executed" if result["ok"] else "execution_failed", "exit_code": result["code"], "command": command})
+    prefix = "OK" if result["ok"] else f"Failed ({result['code']})"
+    return {"ok": result["ok"], "message": f"{prefix}: {approval.get('actionType', 'action')}\n{result['output']}"}
+
+
+def reject_runtime_approval(request_id: str, user_id: int | None = None):
+    approval = get_pending_approval_by_id(request_id)
+    if not approval:
+        return {"ok": False, "message": "No pending approval found for that id."}
+    if user_id is not None:
+        telegram_user = (approval.get("telegram") or {}).get("userId") or approval.get("user_id")
+        if telegram_user is not None and int(telegram_user) != int(user_id):
+            return {"ok": False, "message": "That approval belongs to a different Telegram user."}
+
+    set_runtime_pending_approval(None)
+    pending = load_telegram_pending()
+    pending.pop(request_id, None)
+    save_telegram_pending(pending)
+    append_approval_audit({"id": request_id, "action": "rejected", "requester_source": approval.get("requesterSource"), "command": approval.get("command")})
+    add_runtime_event(
+        {
+            "type": "DENIED",
+            "tool": approval.get("tool", "bash"),
+            "message": f"Rejected approval {request_id}.",
+            "command": approval.get("command"),
+            "rootBinary": approval.get("rootBinary"),
+            "level": approval.get("level"),
+        }
+    )
+    return {"ok": True, "message": f"Rejected approval {request_id}."}
+
+
+async def send_telegram_message(chat_id: int | str, text: str):
+    if not TELEGRAM_BOT_TOKEN:
+        return {"ok": False, "description": "TELEGRAM_BOT_TOKEN is not configured."}
+
+    def _send():
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        body = urllib.parse.urlencode(
+            {
+                "chat_id": str(chat_id),
+                "text": compact_text(text, 3900),
+                "disable_web_page_preview": "true",
+            }
+        ).encode("utf-8")
+        request = urllib.request.Request(url, data=body, method="POST")
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    try:
+        return await asyncio.to_thread(_send)
+    except Exception as exc:
+        return {"ok": False, "description": str(exc)}
+
+
+def ensure_telegram_secret(secret_header: str | None):
+    if TELEGRAM_WEBHOOK_SECRET and secret_header != TELEGRAM_WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid Telegram webhook secret.")
+
+
+def get_telegram_message(update: dict):
+    return update.get("message") or update.get("edited_message") or {}
+
+
+async def execute_telegram_command(text: str, user_id: int, chat_id: int | str):
+    pending = load_telegram_pending()
+    normalized = " ".join((text or "").strip().split())
+    lower = normalized.lower()
+
+    if lower.startswith("approve message ") or lower.startswith("reject message "):
+        secretary_reply = await asyncio.to_thread(execute_secretary_command_sync, text, "Telegram", f"telegram:{user_id}")
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "communication_approval"})
+        return secretary_reply or "Unable to update message approval."
+
+    if lower.startswith("reject ") or lower.startswith("deny "):
+        request_id = normalized.split(maxsplit=1)[1].strip()
+        result = reject_runtime_approval(request_id, user_id)
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "approval_rejected", "approval_id": request_id})
+        return result["message"]
+
+    if lower.startswith("approve ") or lower.startswith("confirm "):
+        request_id = normalized.split(maxsplit=1)[1].strip()
+        result = await approve_runtime_approval(request_id, user_id)
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "approval_approved" if result["ok"] else "approval_failed", "approval_id": request_id})
+        return result["message"]
+
+    if lower.startswith("send message "):
+        message_id = normalized.split(maxsplit=2)[2].strip()
+        message = await asyncio.to_thread(get_secretary_memory().get_communication, message_id)
+        if not message:
+            return f"No message found for {message_id}."
+        result = await send_communication_if_supported(message)
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "communication_send" if result["ok"] else "communication_send_failed", "message_id": message_id})
+        return result["message"]
+
+    secretary_reply = await asyncio.to_thread(execute_secretary_command_sync, text, "Telegram", f"telegram:{user_id}")
+    if secretary_reply:
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "secretary_memory"})
+        return secretary_reply
+
+    spec = build_supported_command(text)
+    if spec["kind"] == "help":
+        return spec["message"]
+    if spec["kind"] == "status":
+        payload = await asyncio.to_thread(build_status_payload)
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "status"})
+        return format_status_for_mobile(payload)
+    if spec["kind"] == "deny":
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "denied", "reason": spec["message"]})
+        return spec["message"]
+
+    command = spec["command"]
+    file_guardian = await run_file_guardian_check(command)
+    if file_guardian["decision"] == "DENY":
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "mapped_command": command, "decision": "blocked_by_file_guardian", "error": file_guardian.get("error")})
+        detail = f": {file_guardian['error']}" if file_guardian.get("error") else "."
+        return f"Command denied by FileGuardian{detail}"
+
+    classification = analyze_shell_command(command)
+    if classification["decision"] == "deny":
+        reason_text = "\n".join(f"- {reason}" for reason in classification["reasons"])
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "mapped_command": command, "decision": "blocked", "reasons": classification["reasons"]})
+        return f"Command denied by AJA Safety Gate.\n{reason_text}"
+
+    if spec.get("requires_confirmation") or classification["decision"] == "ask" or file_guardian["decision"] == "ASK":
+        if file_guardian["decision"] == "ASK":
+            classification["reasons"].append("FileGuardian requested review before execution.")
+        approval = build_approval_object(text, command, spec, classification, user_id, chat_id)
+        pending[approval["id"]] = approval
+        save_telegram_pending(pending)
+        set_runtime_pending_approval(approval)
+        add_runtime_event(
+            {
+                "type": "ASK",
+                "tool": "bash",
+                "message": approval["humanReason"],
+                "command": command,
+                "rootBinary": approval.get("rootBinary"),
+                "level": approval.get("level"),
+            }
+        )
+        append_approval_audit({"id": approval["id"], "action": "requested", "requester_source": "Telegram", "command": command, "risk_level": approval["riskLevel"]})
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "mapped_command": command, "decision": "approval_requested", "approval_id": approval["id"], "reasons": approval["reasons"]})
+        return format_approval_for_mobile(approval)
+
+    result = await run_shell_command(command)
+    append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "mapped_command": command, "decision": "executed", "exit_code": result["code"]})
+    prefix = "OK" if result["ok"] else f"Failed ({result['code']})"
+    return f"{prefix}: {text}\n{result['output']}"
 
 
 def run_runtime_action(action: str):
@@ -144,6 +933,306 @@ def get_status():
     return build_status_payload()
 
 
+@app.get("/telegram/status", dependencies=[Depends(verify_token)])
+async def get_telegram_status():
+    """Return Telegram bridge configuration without exposing secrets."""
+    return {
+        "enabled": bool(TELEGRAM_BOT_TOKEN and TELEGRAM_ALLOWED_USER_ID),
+        "bot_token_set": bool(TELEGRAM_BOT_TOKEN),
+        "allowed_user_id_set": bool(TELEGRAM_ALLOWED_USER_ID),
+        "webhook_secret_set": bool(TELEGRAM_WEBHOOK_SECRET),
+        "pending_count": len(load_telegram_pending()),
+        "history_path": str(TELEGRAM_HISTORY_PATH),
+    }
+
+
+@app.get("/telegram/history", dependencies=[Depends(verify_token)])
+async def get_telegram_history(limit: int = 25):
+    """Return recent Telegram command history."""
+    if not TELEGRAM_HISTORY_PATH.exists():
+        return {"history": []}
+    lines = await asyncio.to_thread(TELEGRAM_HISTORY_PATH.read_text, "utf-8")
+    records = []
+    for line in lines.splitlines()[-max(1, min(limit, 100)) :]:
+        try:
+            records.append(json.loads(line))
+        except Exception:
+            pass
+    return {"history": records}
+
+
+@app.get("/memory/tasks", dependencies=[Depends(verify_token)])
+async def list_memory_tasks(
+    status: str | None = None,
+    include_archived: bool = False,
+    limit: int = 50,
+):
+    statuses = [item.strip().lower() for item in status.split(",")] if status else None
+    tasks = await asyncio.to_thread(get_secretary_memory().list_tasks, statuses, include_archived, limit)
+    return {"tasks": tasks}
+
+
+@app.post("/memory/tasks", dependencies=[Depends(verify_token)])
+async def create_memory_task(request: Request):
+    body = await request.json()
+    body["source"] = body.get("source") or "dashboard"
+    try:
+        task = await asyncio.to_thread(get_secretary_memory().create_task, body)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "task": task}
+
+
+@app.get("/memory/tasks/{task_id}", dependencies=[Depends(verify_token)])
+async def get_memory_task(task_id: str):
+    task = await asyncio.to_thread(get_secretary_memory().get_task, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return {"task": task}
+
+
+@app.patch("/memory/tasks/{task_id}", dependencies=[Depends(verify_token)])
+async def update_memory_task(task_id: str, request: Request):
+    body = await request.json()
+    try:
+        task = await asyncio.to_thread(get_secretary_memory().update_task, task_id, body)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "task": task}
+
+
+@app.post("/memory/tasks/{task_id}/complete", dependencies=[Depends(verify_token)])
+async def complete_memory_task(task_id: str, request: Request):
+    body = await request.json()
+    try:
+        task = await asyncio.to_thread(get_secretary_memory().complete_task, task_id, str(body.get("note") or ""))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "task": task}
+
+
+@app.post("/memory/tasks/{task_id}/archive", dependencies=[Depends(verify_token)])
+async def archive_memory_task(task_id: str):
+    try:
+        task = await asyncio.to_thread(get_secretary_memory().archive_task, task_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "task": task}
+
+
+@app.get("/memory/review", dependencies=[Depends(verify_token)])
+async def review_memory_tasks(escalate: bool = True):
+    review = await asyncio.to_thread(get_secretary_memory().review, 7, 24, escalate)
+    return {"review": review}
+
+
+@app.get("/memory/summary", dependencies=[Depends(verify_token)])
+async def memory_summary():
+    summary = await asyncio.to_thread(get_secretary_memory().summary)
+    return {"summary": summary}
+
+
+@app.get("/communications", dependencies=[Depends(verify_token)])
+async def list_communications(
+    delivery_status: str | None = None,
+    approval_status: str | None = None,
+    pending_follow_up: bool = False,
+    limit: int = 50,
+):
+    messages = await asyncio.to_thread(
+        get_secretary_memory().list_communications,
+        delivery_status,
+        approval_status,
+        pending_follow_up,
+        limit,
+    )
+    return {"messages": messages}
+
+
+@app.post("/communications", dependencies=[Depends(verify_token)])
+async def create_communication(request: Request):
+    body = await request.json()
+    try:
+        message = await asyncio.to_thread(get_secretary_memory().create_communication, body)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "message": message}
+
+
+@app.get("/communications/{message_id}", dependencies=[Depends(verify_token)])
+async def get_communication(message_id: str):
+    message = await asyncio.to_thread(get_secretary_memory().get_communication, message_id)
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    return {"message": message}
+
+
+@app.patch("/communications/{message_id}", dependencies=[Depends(verify_token)])
+async def update_communication(message_id: str, request: Request):
+    body = await request.json()
+    try:
+        message = await asyncio.to_thread(get_secretary_memory().update_communication, message_id, body)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "message": message}
+
+
+@app.post("/communications/{message_id}/edit", dependencies=[Depends(verify_token)])
+async def edit_communication(message_id: str, request: Request):
+    body = await request.json()
+    try:
+        message = await asyncio.to_thread(
+            get_secretary_memory().edit_communication,
+            message_id,
+            str(body.get("draft_content") or ""),
+            str(body.get("note") or "Edited from API."),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "message": message}
+
+
+@app.post("/communications/{message_id}/approve", dependencies=[Depends(verify_token)])
+async def approve_communication(message_id: str):
+    try:
+        message = await asyncio.to_thread(get_secretary_memory().approve_communication, message_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "message": message}
+
+
+@app.post("/communications/{message_id}/reject", dependencies=[Depends(verify_token)])
+async def reject_communication(message_id: str, request: Request):
+    body = await request.json()
+    try:
+        message = await asyncio.to_thread(get_secretary_memory().reject_communication, message_id, str(body.get("reason") or ""))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "message": message}
+
+
+@app.post("/communications/{message_id}/send", dependencies=[Depends(verify_token)])
+async def send_communication(message_id: str):
+    message = await asyncio.to_thread(get_secretary_memory().get_communication, message_id)
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    result = await send_communication_if_supported(message)
+    if not result["ok"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return result
+
+
+@app.get("/communications/summary/mobile", dependencies=[Depends(verify_token)])
+async def communication_summary():
+    summary = await asyncio.to_thread(get_secretary_memory().communication_summary)
+    return {"summary": summary}
+
+
+@app.get("/scheduler/config", dependencies=[Depends(verify_token)])
+async def get_scheduler_config():
+    config = await asyncio.to_thread(get_secretary_memory().get_scheduler_config)
+    return {"config": config}
+
+
+@app.patch("/scheduler/config", dependencies=[Depends(verify_token)])
+async def update_scheduler_config(request: Request):
+    body = await request.json()
+    config = await asyncio.to_thread(get_secretary_memory().update_scheduler_config, body)
+    return {"ok": True, "config": config}
+
+
+@app.get("/scheduler/review/{kind}", dependencies=[Depends(verify_token)])
+async def get_scheduler_review(kind: str, escalate: bool = True):
+    if kind not in {"morning", "night", "weekly"}:
+        raise HTTPException(status_code=400, detail="Review kind must be morning, night, or weekly.")
+    review = await asyncio.to_thread(get_secretary_memory().generate_executive_review, kind, escalate)
+    return {"review": review}
+
+
+@app.post("/scheduler/review/{kind}/deliver", dependencies=[Depends(verify_token)])
+async def deliver_scheduler_review(kind: str, request: Request):
+    if kind not in {"morning", "night", "weekly"}:
+        raise HTTPException(status_code=400, detail="Review kind must be morning, night, or weekly.")
+    body = await request.json()
+    result = await deliver_executive_review(kind, body.get("chat_id"), bool(body.get("force", False)))
+    if not result["ok"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return result
+
+
+@app.post("/scheduler/run", dependencies=[Depends(verify_token)])
+async def run_scheduler_due_reviews(request: Request):
+    body = await request.json()
+    force = bool(body.get("force", False))
+    chat_id = body.get("chat_id")
+    kinds = ["morning", "night", "weekly"] if force else await asyncio.to_thread(get_secretary_memory().due_review_kinds)
+    results = []
+    for kind in kinds:
+        results.append(await deliver_executive_review(kind, chat_id, force=force))
+    return {"ok": True, "results": results}
+
+
+@app.post("/scheduler/snooze/{task_id}", dependencies=[Depends(verify_token)])
+async def snooze_task(task_id: str, request: Request):
+    body = await request.json()
+    try:
+        task = await asyncio.to_thread(
+            get_secretary_memory().snooze_task,
+            task_id,
+            body.get("until") or "tomorrow",
+            body.get("reason") or "Snoozed from API.",
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, "task": task}
+
+
+@app.post("/telegram/command", dependencies=[Depends(verify_token)])
+async def post_telegram_command(request: Request):
+    """Local test endpoint for the Telegram command router."""
+    body = await request.json()
+    user_id = int(body.get("user_id") or TELEGRAM_ALLOWED_USER_ID or 0)
+    chat_id = body.get("chat_id") or user_id
+    text = str(body.get("text", "")).strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Missing text.")
+    if not TELEGRAM_ALLOWED_USER_ID or str(user_id) != str(TELEGRAM_ALLOWED_USER_ID):
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "unauthorized"})
+        raise HTTPException(status_code=403, detail="Telegram user is not whitelisted.")
+    reply = await execute_telegram_command(text, user_id, chat_id)
+    return {"ok": True, "reply": reply}
+
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: str | None = Header(default=None)):
+    """Telegram Bot API webhook entrypoint."""
+    ensure_telegram_secret(x_telegram_bot_api_secret_token)
+    update = await request.json()
+    message = get_telegram_message(update)
+    chat = message.get("chat") or {}
+    sender = message.get("from") or {}
+    chat_id = chat.get("id")
+    user_id = sender.get("id")
+    text = message.get("text")
+
+    if not chat_id or not user_id:
+        return {"ok": True, "ignored": "non-message update"}
+
+    if not text:
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "decision": "ignored_non_text"})
+        await send_telegram_message(chat_id, "Text commands only for now. Send /help for the allowlist.")
+        return {"ok": True}
+
+    if not TELEGRAM_ALLOWED_USER_ID or str(user_id) != str(TELEGRAM_ALLOWED_USER_ID):
+        append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "decision": "unauthorized"})
+        await send_telegram_message(chat_id, "Access denied: this Telegram user is not whitelisted for AJA.")
+        return {"ok": True}
+
+    reply = await execute_telegram_command(text, int(user_id), chat_id)
+    await send_telegram_message(chat_id, reply)
+    return {"ok": True}
+
+
 @app.get("/diff")
 def get_diff():
     try:
@@ -215,18 +1304,34 @@ async def runtime_stream(request: Request):
 
 
 @app.post("/runtime/approve", dependencies=[Depends(verify_token)])
-def approve_pending():
+async def approve_pending():
     state = load_runtime_state()
-    if not state.get("pendingApproval"):
+    pending = state.get("pendingApproval")
+    if not pending:
         raise HTTPException(status_code=404, detail="There is no pending approval.")
+    if pending.get("requesterSource") == "Telegram":
+        result = await approve_runtime_approval(pending.get("id"))
+        if not result["ok"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        chat_id = (pending.get("telegram") or {}).get("chatId")
+        if chat_id:
+            await send_telegram_message(chat_id, f"Dashboard approved {pending.get('id')}.\n{result['message']}")
+        return result
     return run_runtime_action("approve")
 
 
 @app.post("/runtime/deny", dependencies=[Depends(verify_token)])
-def deny_pending():
+async def deny_pending():
     state = load_runtime_state()
-    if not state.get("pendingApproval"):
+    pending = state.get("pendingApproval")
+    if not pending:
         raise HTTPException(status_code=404, detail="There is no pending approval.")
+    if pending.get("requesterSource") == "Telegram":
+        result = reject_runtime_approval(pending.get("id"))
+        chat_id = (pending.get("telegram") or {}).get("chatId")
+        if chat_id:
+            await send_telegram_message(chat_id, f"Dashboard rejected {pending.get('id')}.")
+        return result
     return run_runtime_action("deny")
 
 

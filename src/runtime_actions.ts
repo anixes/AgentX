@@ -1,5 +1,20 @@
 import { ToolManager } from './engine/ToolManager.js';
 import { RuntimeEvent, RuntimeStateStore } from './services/runtimeState.js';
+import { appendFileSync, mkdirSync } from 'fs';
+import path from 'path';
+
+function appendApprovalAudit(record: Record<string, unknown>): void {
+  const dir = path.join(process.cwd(), '.agentx');
+  mkdirSync(dir, { recursive: true });
+  appendFileSync(
+    path.join(dir, 'approval-audit.jsonl'),
+    `${JSON.stringify({ createdAt: new Date().toISOString(), ...record })}\n`,
+  );
+}
+
+function isExpired(expiresAt?: string): boolean {
+  return Boolean(expiresAt && Date.parse(expiresAt) <= Date.now());
+}
 
 async function main() {
   const action = process.argv[2];
@@ -17,8 +32,26 @@ async function main() {
     return;
   }
 
+  if (isExpired(pending.expiresAt)) {
+    store.setPendingApproval(null);
+    appendApprovalAudit({ id: pending.id, action: 'expired', requesterSource: pending.requesterSource, command: pending.command });
+    store.addEvent({
+      id: `event-${Date.now()}`,
+      type: 'DENIED',
+      tool: pending.tool,
+      message: `Approval expired for ${pending.tool}.`,
+      command: pending.command,
+      rootBinary: pending.rootBinary,
+      level: pending.level,
+      createdAt: new Date().toISOString(),
+    });
+    console.log(JSON.stringify({ ok: false, message: 'Approval expired. Request it again.' }));
+    return;
+  }
+
   if (action === 'deny') {
     store.setPendingApproval(null);
+    appendApprovalAudit({ id: pending.id, action: 'rejected', requesterSource: pending.requesterSource, command: pending.command });
     store.addEvent({
       id: `event-${Date.now()}`,
       type: 'DENIED',
@@ -35,6 +68,7 @@ async function main() {
   }
 
   const manager = new ToolManager();
+  appendApprovalAudit({ id: pending.id, action: 'approved', requesterSource: pending.requesterSource, command: pending.command });
   const result = await manager.executeTool(pending.tool, pending.input, {
     cwd: process.cwd(),
     abortSignal: AbortSignal.timeout(30_000),
@@ -52,6 +86,14 @@ async function main() {
     rootBinary: pending.rootBinary,
     level: pending.level,
     createdAt: new Date().toISOString(),
+  });
+
+  appendApprovalAudit({
+    id: pending.id,
+    action: result.isError ? 'execution_failed' : 'executed',
+    requesterSource: pending.requesterSource,
+    command: pending.command,
+    message: String(result.summary || result.output).slice(0, 1000),
   });
 
   console.log(
