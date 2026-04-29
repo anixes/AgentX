@@ -265,6 +265,61 @@ def build_secretary_help():
     )
 
 
+def generate_definition_of_done(objective: str) -> list[str]:
+    """
+    Auto-generate a Definition of Done from an objective string.
+    AJA refuses to delegate without clear success criteria.
+    """
+    o = objective.lower()
+    items: list[str] = ["Goal achieved as described in the brief", "Handoff summary or output note provided"]
+
+    if any(k in o for k in ("code", "build", "implement", "create", "write", "develop", "scaffold", "generate")):
+        items += ["Code reviewed and clean", "Unit tests pass", "No secret or key leakage"]
+
+    if any(k in o for k in ("auth", "login", "token", "session", "security", "password", "credential")):
+        items += ["Authentication works end-to-end", "Rollback path documented", "No credentials hardcoded"]
+
+    if any(k in o for k in ("fix", "debug", "resolve", "patch", "repair", "bug")):
+        items += ["Root cause identified and documented", "Fix verified with test", "No regressions introduced"]
+
+    if any(k in o for k in ("refactor", "clean", "restructure", "reorganize")):
+        items += ["Behaviour unchanged (no regressions)", "Readability improved", "PR summary generated"]
+
+    if any(k in o for k in ("test", "verify", "validate", "check", "qa")):
+        items += ["All cases pass (happy path + edge cases)", "Results documented"]
+
+    if any(k in o for k in ("deploy", "release", "publish", "ship", "launch")):
+        items += ["Deployment verified in target environment", "Health checks pass", "Rollback plan documented"]
+
+    if any(k in o for k in ("email", "message", "reply", "send", "draft", "notify")):
+        items += ["Message content reviewed and approved", "Recipient confirmed", "Tone appropriate for context"]
+
+    if any(k in o for k in ("research", "find", "analyze", "analyse", "report", "investigate")):
+        items += ["Findings documented with sources", "Conclusions are actionable", "Gaps / unknowns flagged"]
+
+    if any(k in o for k in ("apply", "application", "resume", "cv", "recruiter", "interview", "job")):
+        items += ["Application submitted and confirmation received", "Follow-up reminder set", "Status logged in secretary memory"]
+
+    if any(k in o for k in ("payment", "pay", "bill", "invoice", "transfer")):
+        items += ["Transaction confirmed", "Receipt logged", "Amount verified"]
+
+    if any(k in o for k in ("pr", "pull request", "merge")):
+        items += ["PR description complete", "Review comments addressed", "Merge approved by owner"]
+
+    # Always append PR summary for engineering tasks
+    if any(k in o for k in ("code", "build", "implement", "fix", "debug", "deploy", "refactor")):
+        items.append("PR summary or handoff note generated")
+
+    # Deduplicate preserving order
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+
+
 async def send_communication_if_supported(message: dict):
     if message["approval_status"] != "approved":
         return {"ok": False, "message": "Message is not approved yet."}
@@ -1762,6 +1817,34 @@ async def swarm_run(request: Request):
     objective = body.get("objective", "").strip()
     if not objective:
         raise HTTPException(status_code=400, detail="Missing 'objective' field.")
+
+    # Definition of Done — use provided list or auto-generate
+    raw_dod = body.get("definition_of_done") or []
+    if isinstance(raw_dod, str):
+        raw_dod = [line.strip() for line in raw_dod.splitlines() if line.strip()]
+    definition_of_done: list[str] = raw_dod if raw_dod else generate_definition_of_done(objective)
+
+    # Write a delegation brief so BatonBoard can display DoD immediately
+    brief_slug = objective[:40].replace(" ", "-").replace("/", "-").lower()
+    brief_ts = int(time.time())
+    brief_file = BATON_DIR / f"brief-{brief_ts}-{brief_slug}.json"
+    brief_data = {
+        "file": brief_file.name,
+        "task": objective,
+        "context": f"Delegated from Executive Desk at {now_iso()}",
+        "status": "briefed",
+        "stage": "pending_dispatch",
+        "progress": 0,
+        "definition_of_done": definition_of_done,
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    try:
+        BATON_DIR.mkdir(parents=True, exist_ok=True)
+        brief_file.write_text(json.dumps(brief_data, indent=2), encoding="utf-8")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to write delegation brief: {exc}") from exc
+
     try:
         proc = subprocess.Popen(
             [sys.executable, "scripts/swarm_engine.py", "--mode", "baton", "--objective", objective],
@@ -1769,7 +1852,13 @@ async def swarm_run(request: Request):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        return {"ok": True, "message": f"Mission delegated: {objective}", "pid": proc.pid}
+        return {
+            "ok": True,
+            "message": f"Mission delegated: {objective}",
+            "pid": proc.pid,
+            "definition_of_done": definition_of_done,
+            "brief_file": brief_file.name,
+        }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to launch SwarmEngine: {exc}") from exc
 

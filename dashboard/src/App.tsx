@@ -17,7 +17,8 @@ import {
   ArrowUpRight,
   Brain,
   Zap,
-  TrendingUp
+  TrendingUp,
+  ClipboardList
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
@@ -86,6 +87,7 @@ type Baton = {
     message?: string;
     timestamp?: string;
   }>;
+  definition_of_done?: string[];
 };
 
 type DashboardStatus = {
@@ -138,6 +140,7 @@ type Task = {
   follow_up_state?: string;
   related_communication_id?: string;
   delegated_worker_status?: string;
+  definition_of_done?: string[];
   created_at: string;
   updated_at: string;
 };
@@ -188,6 +191,8 @@ const Dashboard = () => {
   const [missionInput, setMissionInput] = useState('');
   const [missionStatus, setMissionStatus] = useState<string | null>(null);
   const [missionLoading, setMissionLoading] = useState(false);
+  const [missionDod, setMissionDod] = useState('');
+  const [missionDodExpanded, setMissionDodExpanded] = useState(false);
   const [settingsProvider, setSettingsProvider] = useState('openrouter');
   const [settingsKey, setSettingsKey] = useState('');
   const [settingsModel, setSettingsModel] = useState('');
@@ -339,12 +344,22 @@ const Dashboard = () => {
     if (!missionInput.trim()) return;
     setMissionLoading(true);
     setMissionStatus(null);
+    const dodItems = missionDod.split('\n').map(l => l.trim()).filter(Boolean);
     try {
-      const response = await axios.post(`${API_BASE}/swarm/run`, { objective: missionInput }, {
+      const response = await axios.post(`${API_BASE}/swarm/run`, {
+        objective: missionInput,
+        definition_of_done: dodItems,
+      }, {
         headers: { 'Authorization': `Bearer dev-token-123` }
       });
-      setMissionStatus(response.data.message ?? 'Mission started.');
+      const dod: string[] = response.data.definition_of_done || [];
+      setMissionStatus(
+        (response.data.message ?? 'Mission started.') +
+        (dod.length ? `\nDoD: ${dod.length} criteria${dodItems.length === 0 ? ' (auto-generated)' : ''}` : '')
+      );
       setMissionInput('');
+      setMissionDod('');
+      setMissionDodExpanded(false);
     } catch (error) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.detail || error.message
@@ -444,18 +459,28 @@ const Dashboard = () => {
                   />
                 </div>
 
-                <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-6 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Play size={16} className="text-cyan-400" />
-                    <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Delegate Action</h3>
+                <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Play size={16} className="text-cyan-400" />
+                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Delegate Action</h3>
+                    </div>
+                    <button
+                      onClick={() => setMissionDodExpanded(v => !v)}
+                      className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-slate-500 hover:text-cyan-400 transition-colors"
+                    >
+                      <ClipboardList size={12} />
+                      {missionDodExpanded ? 'Hide DoD' : 'Add Definition of Done'}
+                    </button>
                   </div>
+
                   <div className="flex gap-3">
                     <input
                       type="text"
                       value={missionInput}
                       onChange={(e) => setMissionInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleRunMission()}
-                      placeholder='e.g. "Draft an email to the team regarding Q3 goals"'
+                      onKeyDown={(e) => e.key === 'Enter' && !missionDodExpanded && handleRunMission()}
+                      placeholder='e.g. "Build auth module" or "Follow up with recruiter"'
                       className="flex-1 bg-[#0f1115] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/40 transition-colors"
                     />
                     <button
@@ -466,8 +491,35 @@ const Dashboard = () => {
                       {missionLoading ? 'Launching...' : 'Launch'}
                     </button>
                   </div>
+
+                  {missionDodExpanded && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-slate-600 flex items-center gap-1.5">
+                        <ClipboardList size={10} /> Definition of Done <span className="text-slate-700">(one item per line)</span>
+                      </label>
+                      <textarea
+                        value={missionDod}
+                        onChange={(e) => setMissionDod(e.target.value)}
+                        rows={4}
+                        placeholder={`Tests pass\nNo secret leakage\nRollback path documented\nPR summary generated`}
+                        className="w-full bg-[#0f1115] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:border-cyan-500/40 transition-colors resize-none font-mono text-xs leading-relaxed"
+                      />
+                      {!missionDod.trim() && (
+                        <p className="text-[10px] text-violet-400/70 flex items-center gap-1">
+                          <TrendingUp size={10} /> No DoD entered — AJA will auto-generate from the objective.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {!missionDodExpanded && missionInput.trim() && (
+                    <p className="text-[10px] text-slate-700">
+                      No DoD defined — AJA will auto-generate success criteria from the objective.
+                    </p>
+                  )}
+
                   {missionStatus && (
-                    <p className="mt-3 text-xs text-slate-400">{missionStatus}</p>
+                    <p className="mt-1 text-xs text-slate-400 whitespace-pre-line">{missionStatus}</p>
                   )}
                 </div>
 
@@ -873,6 +925,11 @@ const BatonBoard = ({ batons }: { batons: Baton[] }) => {
                 <p className="text-sm text-slate-200 line-clamp-4 whitespace-pre-wrap">{baton.output}</p>
               </div>
             )}
+
+            {/* Definition of Done */}
+            {baton.definition_of_done && baton.definition_of_done.length > 0 && (
+              <DodChecklist items={baton.definition_of_done} completed={baton.status === 'completed'} />
+            )}
           </div>
         );
       })}
@@ -1073,6 +1130,29 @@ const CommunicationBoard = ({ communications, onAction }: { communications: Comm
   );
 };
 
+// ── DodChecklist ─────────────────────────────────────────────────────────────
+const DodChecklist = ({ items, completed = false }: { items: string[]; completed?: boolean }) => (
+  <div className="rounded-2xl border border-cyan-500/10 bg-cyan-500/[0.03] p-4 space-y-2">
+    <p className="text-[9px] uppercase tracking-widest text-cyan-700 flex items-center gap-1.5">
+      <ClipboardList size={10} /> Definition of Done
+    </p>
+    <ul className="space-y-1.5">
+      {items.map((item, i) => (
+        <li key={i} className="flex items-start gap-2">
+          <div className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 border flex items-center justify-center ${
+            completed ? 'bg-emerald-500/30 border-emerald-500/40' : 'border-white/[0.12] bg-white/[0.02]'
+          }`}>
+            {completed && <span className="text-emerald-400 text-[8px] font-bold">✓</span>}
+          </div>
+          <span className={`text-xs leading-tight ${
+            completed ? 'text-slate-500 line-through' : 'text-slate-300'
+          }`}>{item}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
 function taskTone(status?: string, priority?: string): 'allow' | 'ask' | 'deny' | 'neutral' {
   if (status === 'completed' || status === 'archived') return 'allow';
   if (priority === 'urgent' || priority === 'high') return 'deny';
@@ -1212,6 +1292,11 @@ const Top3Panel = ({ priorities }: { priorities: PriorityEngine | null }) => {
               <p className="text-xs text-violet-300/80 italic">{task.urgency_challenge}</p>
             </div>
           )}
+
+          {/* Definition of Done — shown for all ranked tasks */}
+          {task.definition_of_done && task.definition_of_done.length > 0 && (
+            <DodChecklist items={task.definition_of_done} completed={false} />
+          )}
         </div>
       ))}
 
@@ -1295,6 +1380,11 @@ const TaskBoard = ({ tasks, onAction }: { tasks: Task[], onAction: (id: string, 
               </div>
             )}
           </div>
+
+          {/* Definition of Done */}
+          {task.definition_of_done && task.definition_of_done.length > 0 && (
+            <DodChecklist items={task.definition_of_done} completed={task.status === 'completed'} />
+          )}
 
           <div className="flex justify-end gap-2 mt-2">
             <button onClick={() => onAction(task.task_id, 'complete')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs rounded border border-emerald-500/20 transition-colors">
