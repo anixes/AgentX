@@ -36,6 +36,9 @@ AJA drafts, edits, approves, and tracks outbound communication without auto-send
 ### 9. Priority Engine & Executive Reviews
 AJA uses a multi-factor **Judgment Engine** to score tasks by urgency, stakeholder weight, and consequence of delay. It generates morning, night, and weekly executive reviews, challenges false urgency, and suggests tasks that can be safely ignored.
 
+### 10. Controlled Agent Verification & Worker Registry
+AJA manages a registry of specialist workers (Copilot, Gemini, Aider, etc.) and executes delegated missions with strict **Definition of Done (DoD)** enforcement. Every worker output is independently audited by the **Verification Engine** for test integrity, branch isolation, and secret leakage before human merge approval is permitted.
+
 ---
 
 ## Priority Engine
