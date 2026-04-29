@@ -21,6 +21,9 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Messaging Layer**: AJA drafts, manages, approves, and tracks outbound communication without unsafe auto-send behavior.
 - **Scheduler and Executive Reviews**: AJA generates morning, night, and weekly reviews with urgency scoring, snooze, escalation, and Telegram delivery.
 - **Centralized Gateway**: Unified `UnifiedGateway` utilizing a single `providers.json` source of truth. First-class OpenRouter support.
+- **Priority Engine & Decision Layer**: Multi-factor judgment scoring (urgency, stakeholder weight, consequence of delay) that ranks tasks and challenges false urgency.
+- **Definition of Done (DoD) Framework**: Mandatory success criteria for all delegations, with auto-generation support for common engineering and executive tasks.
+- **Executive Desk Dashboard**: Refactored command center focusing on high-level agenda and delegation oversight.
 
 ### User Experience:
 | What you want | What you type |
@@ -36,6 +39,7 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 | Add an obligation | `agentx memory add "follow up with recruiter next Tuesday"` |
 | Draft communication | `agentx message draft "draft recruiter follow-up"` |
 | Run executive review | `agentx review morning` |
+| Ask for priority | `what should I do first` (Telegram) |
 
 ### Security Metrics:
 - **Zero-Trust Input**: All intents are translated and audited before execution.
@@ -45,6 +49,7 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Structured Human Review**: Risky actions default to ASK and must be explainable before approval.
 - **Immutable Approval Audit**: Approval lifecycle events are appended to `.agentx/approval-audit.jsonl`.
 - **Encrypted Persistence**: All secrets are stored using AES-256-GCM.
+- **Execution Constraints**: Mandatory Definition of Done checklists prevent "agent drift" during autonomous missions.
 
 ## Phase 1: Telegram Remote Control
 
@@ -156,12 +161,27 @@ Interfaces:
 - FastAPI: `/scheduler/config`, `/scheduler/review/{kind}`, `/scheduler/run`, `/scheduler/snooze/{task_id}`
 - Telegram: `morning review`, `night review`, `weekly review`, `what am I avoiding today`, `what slipped this week`
 
+## Phase 6: Priority Engine & Definition of Done (DoD)
+
+AJA uses a multi-factor judgment scoring engine to rank tasks and enforces a mandatory Definition of Done (DoD) for all missions.
+
+Capabilities:
+- **Priority Scoring**: Ranks tasks (0-100) based on urgency, stakeholder weight, and consequence.
+- **Urgency Challenge**: AJA questions false urgency to prevent burnout.
+- **DoD Auto-Generation**: Backend keyword matching creates success criteria for delegations.
+- **Executive Desk**: Dashboard refactored to prioritize high-level agenda and oversight.
+
+Interfaces:
+- FastAPI: `/memory/priority`, `/swarm/run` (enforced DoD)
+- Telegram: `what should I do first`, `what actually matters today`, `what can be ignored this week`
+
 ## Documentation Index
 - [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md): Visual mapping of the system and CLI reference.
 - [PHASE_1_2_REMOTE_APPROVALS.md](./PHASE_1_2_REMOTE_APPROVALS.md): Telegram control and structured approval workflow.
 - [PHASE_3_SECRETARY_MEMORY.md](./PHASE_3_SECRETARY_MEMORY.md): SQLite-backed secretary memory.
 - [PHASE_4_MESSAGING_LAYER.md](./PHASE_4_MESSAGING_LAYER.md): Outbound communication drafts and follow-up tracking.
 - [PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md](./PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md): Proactive scheduler and accountability reviews.
+- [PHASE_6_PRIORITY_ENGINE_DOD.md](./PHASE_6_PRIORITY_ENGINE_DOD.md): Judgment engine and mandatory delegation constraints.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.

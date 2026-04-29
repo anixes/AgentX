@@ -18,14 +18,14 @@ A military-grade secret management system. Agents can retrieve deployment tokens
 ### 3. SafeShell (Safety Gate)
 A tiered risk auditing system that intercepts every bash command. It classifies commands as **Allow / Ask / Deny**, pauses risky operations as structured approval requests for CLI, dashboard, or Telegram review, and blocks dangerous patterns like `curl | bash`.
 
-### 4. Visual Command Center
-A premium React + Vite dashboard that now surfaces the live approval queue, lets you approve or deny pending commands, and streams security events, baton task progress, territory health, and runtime diff telemetry over SSE from the shared AgentX Core runtime state.
+### 4. Executive Desk (Dashboard)
+A premium React + Vite command center focused on high-level operator visibility. It prioritizes **Today’s Agenda**, **Pending Approvals**, and **Active Delegations**. Technical swarm telemetry is secondary, ensuring the user stays focused on executive decisions.
 
 ### 5. Telegram Remote Control
 AJA can receive whitelisted phone commands through Telegram, route them through AgentX Core safety checks, and return concise mobile-readable output.
 
 ### 6. Production Approval Workflow
-Risky actions become structured approval objects with request ID, command preview, action type, reason, risk level, rollback path, expiration, requester source, and dry-run summary.
+Risky actions (Shell commands or outbound messages) become structured approval objects with risk levels, rollback paths, and dry-run summaries. Every delegation mission requires a mandatory **Definition of Done (DoD)** before worker dispatch.
 
 ### 7. Structured Secretary Memory
 AJA persists obligations, follow-ups, recurring responsibilities, reminders, and accountability commitments in SQLite so they survive restarts and can be reviewed from CLI, dashboard API, or Telegram.
@@ -33,8 +33,13 @@ AJA persists obligations, follow-ups, recurring responsibilities, reminders, and
 ### 8. Messaging Layer
 AJA drafts, edits, approves, and tracks outbound communication without auto-sending first versions. Recruiter follow-ups, reminders, professional replies, and accountability check-ins are stored in SQLite with follow-up tracking.
 
-### 9. Scheduler and Executive Reviews
-AJA generates morning, night, and weekly executive reviews, escalates stale commitments, supports snooze, scores urgency, and can deliver concise accountability summaries through Telegram.
+### 9. Priority Engine & Executive Reviews
+AJA uses a multi-factor **Judgment Engine** to score tasks by urgency, stakeholder weight, and consequence of delay. It generates morning, night, and weekly executive reviews, challenges false urgency, and suggests tasks that can be safely ignored.
+
+---
+
+## Priority Engine
+The **Priority Engine** is the core logic that prevents "agent drift." It cross-references current tasks against your **Strategic North Star** (a persistent context file). It filters the swarm's activity to prioritize high-leverage outcomes, preventing the system from wasting tokens on low-value optimizations while critical deadlines loom.
 
 ---
 
@@ -94,7 +99,7 @@ Secretary commands: `tasks`, `task review`, `complete <task_id>`, `archive <task
 
 Messaging commands: `draft recruiter follow-up`, `draft professional reply to recruiter`, `remind Rahul about project deadline`, `approve message <message_id>`, `send message <message_id>`, and `check pending unanswered messages`.
 
-Executive review commands: `morning review`, `night review`, `weekly review`, `what am I avoiding today`, `what slipped this week`, and `snooze <task_id> tomorrow`.
+Executive review commands: `morning review`, `night review`, `weekly review`, `what am I avoiding today`, `what slipped this week`, `snooze <task_id> tomorrow`, `what should I do first`, `what actually matters today`, and `what can be ignored this week`.
 
 ### 3. CLI Missions
 Use the CLI for autonomous planning:
