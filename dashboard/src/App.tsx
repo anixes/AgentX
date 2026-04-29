@@ -115,7 +115,6 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'status' | 'files' | 'history' | 'settings'>('status');
   const [data, setData] = useState<DashboardStatus>(emptyStatus);
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
-  const [currentDiff, setCurrentDiff] = useState('// Everything is up to date.');
   const [history, setHistory] = useState<GitCommit[]>([]);
   const [batons, setBatons] = useState<Baton[]>([]);
   const [approvalAction, setApprovalAction] = useState<'approve' | 'deny' | null>(null);
@@ -143,7 +142,6 @@ const Dashboard = () => {
         const snapshot = JSON.parse(event.data) as RuntimeSnapshot;
         setData(snapshot.status ?? emptyStatus);
         setEvents(snapshot.events ?? []);
-        setCurrentDiff(snapshot.diff ?? '// Everything is up to date.');
         setHistory(snapshot.history ?? []);
         setBatons(snapshot.batons ?? []);
         setConnectionState('live');
@@ -230,8 +228,8 @@ const Dashboard = () => {
       <main className="pl-20 min-h-screen flex flex-col">
         <header className="px-12 py-8 flex justify-between items-center bg-[#0f1115]/50 backdrop-blur-xl sticky top-0 z-40 border-b border-white/[0.02]">
           <div>
-            <h1 className="text-lg font-medium text-white tracking-tight">Agent Dashboard</h1>
-            <p className="text-sm text-slate-500 font-normal">Observe runtime, approvals, and workspace telemetry</p>
+            <h1 className="text-lg font-medium text-white tracking-tight">Executive Desk</h1>
+            <p className="text-sm text-slate-500 font-normal">Manage agenda, approvals, and delegations</p>
           </div>
           <div className="flex gap-6 items-center">
             <ConnectionBadge state={connectionState} />
@@ -242,8 +240,8 @@ const Dashboard = () => {
               </div>
             )}
             <HeaderStat label="Files" value={data.total_files} />
-            <HeaderStat label="Batons" value={data.baton_count ?? batons.length} highlight={(data.baton_count ?? batons.length) > 0} />
-            <HeaderStat label="Agents" value={data.active_agents} highlight={data.active_agents > 0} />
+            <HeaderStat label="Delegations" value={data.baton_count ?? batons.length} highlight={(data.baton_count ?? batons.length) > 0} />
+            <HeaderStat label="Workers" value={data.active_agents} highlight={data.active_agents > 0} />
             
             {data.token_stats && (
               <div className="flex gap-4 border-l border-white/[0.05] pl-6 ml-2">
@@ -279,20 +277,30 @@ const Dashboard = () => {
                 className="space-y-10 max-w-7xl"
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {data.territories.map((territory, index) => (
-                    <StatusCard
-                      key={index}
-                      title={territory.name.split('/').pop() ?? territory.name}
-                      status={territory.status}
-                      load={territory.load}
-                    />
-                  ))}
+                  <StatusCard
+                    title="Urgent Tasks"
+                    status="stable"
+                    load="0%"
+                    value="0 Tasks"
+                  />
+                  <StatusCard
+                    title="Pending Approvals"
+                    status={pendingApproval ? 'healing' : 'stable'}
+                    load={pendingApproval ? '100%' : '0%'}
+                    value={pendingApproval ? '1 Pending' : '0 Pending'}
+                  />
+                  <StatusCard
+                    title="Active Delegations"
+                    status={batons.length > 0 ? 'healing' : 'stable'}
+                    load={batons.length > 0 ? '50%' : '0%'}
+                    value={`${batons.length} Active`}
+                  />
                 </div>
 
                 <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                     <Play size={16} className="text-cyan-400" />
-                    <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Run Mission</h3>
+                    <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Delegate Action</h3>
                   </div>
                   <div className="flex gap-3">
                     <input
@@ -300,7 +308,7 @@ const Dashboard = () => {
                       value={missionInput}
                       onChange={(e) => setMissionInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleRunMission()}
-                      placeholder='e.g. "Fix all linting errors in src/"'
+                      placeholder='e.g. "Draft an email to the team regarding Q3 goals"'
                       className="flex-1 bg-[#0f1115] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/40 transition-colors"
                     />
                     <button
@@ -327,19 +335,17 @@ const Dashboard = () => {
                       onDeny={() => handleApprovalAction('deny')}
                     />
 
-                    <SectionTitle icon={<Activity size={16} />} title="Task Board" />
+                    <SectionTitle icon={<Activity size={16} />} title="Delegation Engine" />
                     <BatonBoard batons={batons} />
 
-                    <SectionTitle icon={<FileText size={16} />} title="Runtime Diff" />
+                    <SectionTitle icon={<FileText size={16} />} title="Communication Drafts" />
                     <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-8 shadow-sm">
-                      <pre className="text-sm text-slate-400 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
-                        <code>{currentDiff}</code>
-                      </pre>
+                      <p className="text-sm text-slate-400">No communication drafts awaiting review.</p>
                     </div>
                   </div>
 
                   <div className="col-span-12 xl:col-span-5 space-y-6">
-                    <SectionTitle icon={<MessageSquare size={16} />} title="Security Events" />
+                    <SectionTitle icon={<MessageSquare size={16} />} title="Recent Activity" />
                     <div className="space-y-4 max-h-[720px] overflow-y-auto pr-2 custom-scrollbar">
                       {events.length === 0 && <p className="text-sm text-slate-600">No runtime events recorded yet.</p>}
                       {events.map((event) => (
@@ -358,7 +364,7 @@ const Dashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-8"
               >
-                <SectionTitle icon={<Folder size={16} />} title="Territories" />
+                <SectionTitle icon={<Folder size={16} />} title="System Health (Territories)" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {data.territories.map((territory, index) => (
                     <div
@@ -634,9 +640,9 @@ const BatonBoard = ({ batons }: { batons: Baton[] }) => {
   if (batons.length === 0) {
     return (
       <div className="bg-[#16191f] rounded-[28px] border border-white/[0.03] p-8">
-        <p className="text-white font-medium">No baton tasks are active.</p>
+        <p className="text-white font-medium">No active delegations.</p>
         <p className="text-sm text-slate-500 mt-2">
-          Orchestrated worker tasks will appear here with status, file context, and any failure details.
+          Orchestrated worker tasks will appear here with status, context, and any failure details.
         </p>
       </div>
     );
@@ -761,10 +767,12 @@ const StatusCard = ({
   title,
   status,
   load,
+  value,
 }: {
   title: string;
   status: string;
   load: string;
+  value?: string;
 }) => (
   <div className="bg-[#16191f] p-8 rounded-3xl border border-white/[0.03] flex flex-col space-y-6">
     <div className="flex justify-between items-start">
@@ -772,7 +780,7 @@ const StatusCard = ({
       <div className={`w-2 h-2 rounded-full ${status === 'healing' ? 'bg-amber-400 animate-pulse' : 'bg-cyan-500'}`} />
     </div>
     <div className="space-y-4">
-      <p className="text-2xl font-medium text-white capitalize">{status === 'healing' ? 'Healing' : 'Stable'}</p>
+      <p className="text-2xl font-medium text-white capitalize">{value || (status === 'healing' ? 'Healing' : 'Stable')}</p>
       <div className="h-1 bg-white/[0.02] rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
