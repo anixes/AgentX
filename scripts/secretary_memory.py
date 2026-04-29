@@ -139,6 +139,153 @@ class SecretaryMemory:
                 """
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_scheduler_events_type_created ON scheduler_events(event_type, created_at)")
+            # --- AJA Brain: canonical approval store ---
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS aja_approvals (
+                    approval_id TEXT PRIMARY KEY,
+                    tool TEXT NOT NULL DEFAULT 'bash',
+                    command TEXT,
+                    command_preview TEXT,
+                    action_type TEXT,
+                    root_binary TEXT,
+                    risk_level TEXT NOT NULL DEFAULT 'medium',
+                    level TEXT,
+                    reasons TEXT NOT NULL DEFAULT '[]',
+                    human_reason TEXT,
+                    rollback_path TEXT,
+                    dry_run_summary TEXT,
+                    requester_source TEXT NOT NULL DEFAULT 'CLI',
+                    telegram_meta TEXT NOT NULL DEFAULT '{}',
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    expires_at TEXT,
+                    resolved_at TEXT,
+                    resolution_note TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_aja_approvals_status ON aja_approvals(status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_aja_approvals_created ON aja_approvals(created_at)")
+            # Append-only audit trail for every approval lifecycle transition
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS aja_approval_audit (
+                    audit_id TEXT PRIMARY KEY,
+                    approval_id TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    actor TEXT NOT NULL DEFAULT 'system',
+                    requester_source TEXT,
+                    command TEXT,
+                    risk_level TEXT,
+                    reasons TEXT,
+                    exit_code INTEGER,
+                    note TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (approval_id) REFERENCES aja_approvals(approval_id)
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_aja_approval_audit_id ON aja_approval_audit(approval_id)")
+            # Runtime event feed (rolling window, capped at 500 rows)
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS aja_runtime_events (
+                    event_id TEXT PRIMARY KEY,
+                    event_type TEXT NOT NULL,
+                    tool TEXT,
+                    message TEXT NOT NULL DEFAULT '',
+                    command TEXT,
+                    root_binary TEXT,
+                    level TEXT,
+                    metadata TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_aja_runtime_events_created ON aja_runtime_events(created_at DESC)")
+
+    def create_approval(self, data: dict[str, Any]) -> str:
+        aid = data.get("approval_id") or uuid.uuid4().hex
+        now = utc_now()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO aja_approvals (
+                    approval_id, tool, command, command_preview, action_type, root_binary,
+                    risk_level, level, reasons, human_reason, rollback_path, dry_run_summary,
+                    requester_source, telegram_meta, status, expires_at, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (aid, data.get("tool", "bash"), data.get("command"), data.get("command_preview"),
+                 data.get("action_type"), data.get("root_binary"), data.get("risk_level", "medium"),
+                 data.get("level"), json_dump(data.get("reasons")), data.get("human_reason"),
+                 data.get("rollback_path"), data.get("dry_run_summary"), data.get("requester_source", "CLI"),
+                 json_dump(data.get("telegram_meta")), "pending", data.get("expires_at"), now, now)
+            )
+        return aid
+
+    def get_approval(self, approval_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM aja_approvals WHERE approval_id = ?", (approval_id,)).fetchone()
+            return dict(row) if row else None
+
+    def update_approval(self, approval_id: str, status: str, note: str = "") -> None:
+        with self.connect() as conn:
+            conn.execute(
+                "UPDATE aja_approvals SET status = ?, resolution_note = ?, resolved_at = ?, updated_at = ? WHERE approval_id = ?",
+                (status, note, utc_now(), utc_now(), approval_id)
+            )
+
+    def log_approval_audit(self, data: dict[str, Any]) -> None:
+        with self.connect() as conn:
+            conn.execute(
+                "INSERT INTO aja_approval_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (uuid.uuid4().hex, data["approval_id"], data["action"], data.get("actor", "system"),
+                 data.get("requester_source"), data.get("command"), data.get("risk_level"),
+                 json_dump(data.get("reasons")), data.get("exit_code"), data.get("note"), utc_now())
+            )
+
+    def add_runtime_event(self, data: dict[str, Any]) -> None:
+        with self.connect() as conn:
+            conn.execute(
+                "INSERT INTO aja_runtime_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (uuid.uuid4().hex, data["event_type"], data.get("tool"), data.get("message", ""),
+                 data.get("command"), data.get("root_binary"), data.get("level"),
+                 json_dump(data.get("metadata")), utc_now())
+            )
+            # Maintain rolling window of 500
+            conn.execute(
+                "DELETE FROM aja_runtime_events WHERE event_id IN (SELECT event_id FROM aja_runtime_events ORDER BY created_at DESC LIMIT -1 OFFSET 500)"
+            )
+
+    def get_runtime_events(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute("SELECT * FROM aja_runtime_events ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_active_approval(self) -> dict[str, Any] | None:
+        """Return the single most-recent pending (non-resolved) approval, or None."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM aja_approvals WHERE status = 'pending' ORDER BY created_at DESC LIMIT 1"
+            ).fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            d["reasons"] = json_load(d.get("reasons"), [])
+            d["telegram_meta"] = json_load(d.get("telegram_meta"), {})
+            return d
+
+    def list_approval_audit(self, approval_id: str) -> list[dict[str, Any]]:
+        """Return the full audit trail for a given approval_id, oldest first."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM aja_approval_audit WHERE approval_id = ? ORDER BY created_at ASC",
+                (approval_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def create_task(self, data: dict[str, Any]) -> dict[str, Any]:
         now = utc_now()

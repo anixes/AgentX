@@ -37,13 +37,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-RUNTIME_STATE_PATH = Path(".agentx") / "runtime-state.json"
+RUNTIME_STATE_PATH = Path(".agentx") / "runtime-state.json"  # debug export only
 BATON_DIR = Path("temp_batons")
 API_TOKEN = os.getenv("AGENTX_API_TOKEN", "dev-token-123")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TELEGRAM_HISTORY_PATH = Path(".agentx") / "telegram-history.jsonl"
-TELEGRAM_PENDING_PATH = Path(".agentx") / "telegram-pending.json"
-APPROVAL_AUDIT_PATH = Path(".agentx") / "approval-audit.jsonl"
+TELEGRAM_PENDING_PATH = Path(".agentx") / "telegram-pending.json"  # debug export only
+APPROVAL_AUDIT_PATH = Path(".agentx") / "approval-audit.jsonl"   # debug export only
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_ALLOWED_USER_ID = os.getenv("TELEGRAM_ALLOWED_USER_ID", "")
 TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
@@ -104,45 +104,99 @@ def append_telegram_history(event: dict):
 
 
 def append_approval_audit(event: dict):
-    APPROVAL_AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    record = {"created_at": now_iso(), **event}
-    with APPROVAL_AUDIT_PATH.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+    """Persist an approval audit entry to SQLite (authoritative) and JSONL (debug export)."""
+    get_secretary_memory().log_approval_audit({
+        "approval_id": event.get("id", "unknown"),
+        "action": event.get("action", "unknown"),
+        "requester_source": event.get("requester_source"),
+        "command": event.get("command"),
+        "risk_level": event.get("risk_level"),
+        "reasons": event.get("reasons"),
+        "exit_code": event.get("exit_code"),
+        "note": event.get("note"),
+    })
+    # Debug export to JSONL (optional, non-authoritative)
+    try:
+        APPROVAL_AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        record = {"created_at": now_iso(), **event}
+        with APPROVAL_AUDIT_PATH.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
 
 
 def save_runtime_state(state: dict):
-    RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    """Write a debug snapshot of runtime state to JSON. Not authoritative — SQLite is."""
+    try:
+        RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def add_runtime_event(event: dict):
-    state = load_runtime_state()
-    event = {"id": f"event-{int(time.time() * 1000)}", "createdAt": datetime.utcnow().isoformat() + "Z", **event}
-    state["events"] = [event, *(state.get("events") or [])][:50]
-    save_runtime_state(state)
+    """Append a runtime event to SQLite (authoritative source of truth)."""
+    get_secretary_memory().add_runtime_event({
+        "event_type": event.get("type", "INFO"),
+        "tool": event.get("tool"),
+        "message": event.get("message", ""),
+        "command": event.get("command"),
+        "root_binary": event.get("rootBinary"),
+        "level": event.get("level"),
+        "metadata": {k: v for k, v in event.items() if k not in {"type", "tool", "message", "command", "rootBinary", "level"}},
+    })
 
 
 def set_runtime_pending_approval(approval: dict | None):
-    state = load_runtime_state()
-    state["pendingApproval"] = approval
-    save_runtime_state(state)
+    """Mark pending approval resolved (None) or write a new approval row to SQLite."""
+    if approval is None:
+        # Expire any remaining 'pending' rows (belt-and-suspenders)
+        mem = get_secretary_memory()
+        active = mem.get_active_approval()
+        if active:
+            mem.update_approval(active["approval_id"], "resolved", "Cleared by system.")
+    else:
+        # The canonical write happens in create_approval_in_db; this is a no-op guard.
+        pass
+
+
+def create_approval_in_db(approval: dict) -> str:
+    """Persist a new approval object to SQLite and return the approval_id."""
+    return get_secretary_memory().create_approval({
+        "approval_id": approval.get("id"),
+        "tool": approval.get("tool", "bash"),
+        "command": approval.get("command"),
+        "command_preview": approval.get("commandPreview") or approval.get("command"),
+        "action_type": approval.get("actionType"),
+        "root_binary": approval.get("rootBinary"),
+        "risk_level": approval.get("riskLevel", "medium"),
+        "level": approval.get("level"),
+        "reasons": approval.get("reasons", []),
+        "human_reason": approval.get("humanReason"),
+        "rollback_path": approval.get("rollbackPath"),
+        "dry_run_summary": approval.get("dryRunSummary"),
+        "requester_source": approval.get("requesterSource", "CLI"),
+        "telegram_meta": approval.get("telegram") or {},
+        "expires_at": approval.get("expiresAt"),
+    })
 
 
 def load_telegram_pending():
-    if not TELEGRAM_PENDING_PATH.exists():
+    """Returns active pending approvals keyed by approval_id (read from SQLite)."""
+    active = get_secretary_memory().get_active_approval()
+    if not active:
         return {}
-    try:
-        data = json.loads(TELEGRAM_PENDING_PATH.read_text(encoding="utf-8"))
-        if isinstance(data, dict):
-            return data
-    except Exception:
-        pass
-    return {}
+    return {active["approval_id"]: active}
 
 
 def save_telegram_pending(data: dict):
-    TELEGRAM_PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
-    TELEGRAM_PENDING_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    """No-op: Telegram approvals now live in aja_approvals table."""
+    # Debug export only
+    try:
+        TELEGRAM_PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
+        TELEGRAM_PENDING_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def compact_text(value: str, limit: int = 1800):
@@ -611,11 +665,11 @@ async def run_file_guardian_check(command: str):
 
 
 def get_pending_approval_by_id(request_id: str):
-    pending = (load_runtime_state() or {}).get("pendingApproval")
-    if pending and pending.get("id") == request_id:
-        return pending
-    legacy = load_telegram_pending().get(request_id)
-    return legacy
+    """Look up an approval by ID from SQLite (single source of truth)."""
+    row = get_secretary_memory().get_approval(request_id)
+    if row and row.get("status") == "pending":
+        return row
+    return None
 
 
 def approval_is_expired(approval: dict):
@@ -633,47 +687,53 @@ async def approve_runtime_approval(request_id: str, user_id: int | None = None):
     if not approval:
         return {"ok": False, "message": "No pending approval found for that id."}
     if user_id is not None:
-        telegram_user = (approval.get("telegram") or {}).get("userId") or approval.get("user_id")
+        telegram_meta = approval.get("telegram_meta") or {}
+        telegram_user = telegram_meta.get("userId") or telegram_meta.get("userId") or approval.get("user_id")
         if telegram_user is not None and int(telegram_user) != int(user_id):
             return {"ok": False, "message": "That approval belongs to a different Telegram user."}
     if approval_is_expired(approval):
-        set_runtime_pending_approval(None)
-        append_approval_audit({"id": request_id, "action": "expired", "requester_source": approval.get("requesterSource"), "command": approval.get("command")})
+        mem = get_secretary_memory()
+        mem.update_approval(request_id, "expired", "Expired without action.")
+        mem.log_approval_audit({"approval_id": request_id, "action": "expired",
+                                "requester_source": approval.get("requester_source"),
+                                "command": approval.get("command")})
         return {"ok": False, "message": "Approval expired. Send the command again."}
 
-    command = approval.get("command") or (approval.get("input") or {}).get("command")
+    command = approval.get("command")
     if not command:
         return {"ok": False, "message": "Approval has no executable command."}
 
     file_guardian = await run_file_guardian_check(command)
     classification = analyze_shell_command(command)
     if file_guardian["decision"] == "DENY" or classification["decision"] == "deny":
-        set_runtime_pending_approval(None)
+        mem = get_secretary_memory()
+        mem.update_approval(request_id, "blocked", "Blocked at execution re-check.")
         reasons = classification.get("reasons", [])
         if file_guardian.get("error"):
             reasons.append(file_guardian["error"])
-        append_approval_audit({"id": request_id, "action": "blocked_at_execution", "command": command, "reasons": reasons})
+        mem.log_approval_audit({"approval_id": request_id, "action": "blocked_at_execution",
+                                "command": command, "reasons": reasons})
         return {"ok": False, "message": "Approval blocked at execution re-check: " + "; ".join(reasons or ["FileGuardian denied the command."])}
 
-    append_approval_audit({"id": request_id, "action": "approved", "requester_source": approval.get("requesterSource"), "command": command})
+    mem = get_secretary_memory()
+    mem.log_approval_audit({"approval_id": request_id, "action": "approved",
+                            "requester_source": approval.get("requester_source"), "command": command})
     result = await run_shell_command(command)
-    set_runtime_pending_approval(None)
-    pending = load_telegram_pending()
-    pending.pop(request_id, None)
-    save_telegram_pending(pending)
-    add_runtime_event(
-        {
-            "type": "APPROVED" if result["ok"] else "DENY",
-            "tool": approval.get("tool", "bash"),
-            "message": compact_text(result["output"], 500),
-            "command": command,
-            "rootBinary": approval.get("rootBinary"),
-            "level": approval.get("level"),
-        }
-    )
-    append_approval_audit({"id": request_id, "action": "executed" if result["ok"] else "execution_failed", "exit_code": result["code"], "command": command})
+    mem.update_approval(request_id, "resolved" if result["ok"] else "failed",
+                        compact_text(result["output"], 300))
+    mem.add_runtime_event({
+        "event_type": "APPROVED" if result["ok"] else "DENY",
+        "tool": approval.get("tool", "bash"),
+        "message": compact_text(result["output"], 500),
+        "command": command,
+        "root_binary": approval.get("root_binary"),
+        "level": approval.get("level"),
+    })
+    mem.log_approval_audit({"approval_id": request_id,
+                            "action": "executed" if result["ok"] else "execution_failed",
+                            "exit_code": result["code"], "command": command})
     prefix = "OK" if result["ok"] else f"Failed ({result['code']})"
-    return {"ok": result["ok"], "message": f"{prefix}: {approval.get('actionType', 'action')}\n{result['output']}"}
+    return {"ok": result["ok"], "message": f"{prefix}: {approval.get('action_type', 'action')}\n{result['output']}"}
 
 
 def reject_runtime_approval(request_id: str, user_id: int | None = None):
@@ -681,25 +741,24 @@ def reject_runtime_approval(request_id: str, user_id: int | None = None):
     if not approval:
         return {"ok": False, "message": "No pending approval found for that id."}
     if user_id is not None:
-        telegram_user = (approval.get("telegram") or {}).get("userId") or approval.get("user_id")
+        telegram_meta = approval.get("telegram_meta") or {}
+        telegram_user = telegram_meta.get("userId") or approval.get("user_id")
         if telegram_user is not None and int(telegram_user) != int(user_id):
             return {"ok": False, "message": "That approval belongs to a different Telegram user."}
 
-    set_runtime_pending_approval(None)
-    pending = load_telegram_pending()
-    pending.pop(request_id, None)
-    save_telegram_pending(pending)
-    append_approval_audit({"id": request_id, "action": "rejected", "requester_source": approval.get("requesterSource"), "command": approval.get("command")})
-    add_runtime_event(
-        {
-            "type": "DENIED",
-            "tool": approval.get("tool", "bash"),
-            "message": f"Rejected approval {request_id}.",
-            "command": approval.get("command"),
-            "rootBinary": approval.get("rootBinary"),
-            "level": approval.get("level"),
-        }
-    )
+    mem = get_secretary_memory()
+    mem.update_approval(request_id, "rejected", "Rejected by operator.")
+    mem.log_approval_audit({"approval_id": request_id, "action": "rejected",
+                            "requester_source": approval.get("requester_source"),
+                            "command": approval.get("command")})
+    mem.add_runtime_event({
+        "event_type": "DENIED",
+        "tool": approval.get("tool", "bash"),
+        "message": f"Rejected approval {request_id}.",
+        "command": approval.get("command"),
+        "root_binary": approval.get("root_binary"),
+        "level": approval.get("level"),
+    })
     return {"ok": True, "message": f"Rejected approval {request_id}."}
 
 
@@ -799,20 +858,24 @@ async def execute_telegram_command(text: str, user_id: int, chat_id: int | str):
         if file_guardian["decision"] == "ASK":
             classification["reasons"].append("FileGuardian requested review before execution.")
         approval = build_approval_object(text, command, spec, classification, user_id, chat_id)
-        pending[approval["id"]] = approval
-        save_telegram_pending(pending)
-        set_runtime_pending_approval(approval)
-        add_runtime_event(
-            {
-                "type": "ASK",
-                "tool": "bash",
-                "message": approval["humanReason"],
-                "command": command,
-                "rootBinary": approval.get("rootBinary"),
-                "level": approval.get("level"),
-            }
-        )
-        append_approval_audit({"id": approval["id"], "action": "requested", "requester_source": "Telegram", "command": command, "risk_level": approval["riskLevel"]})
+        # --- AJA Brain: persist approval to SQLite (single source of truth) ---
+        create_approval_in_db(approval)
+        mem = get_secretary_memory()
+        mem.add_runtime_event({
+            "event_type": "ASK",
+            "tool": "bash",
+            "message": approval["humanReason"],
+            "command": command,
+            "root_binary": approval.get("rootBinary"),
+            "level": approval.get("level"),
+        })
+        mem.log_approval_audit({
+            "approval_id": approval["id"],
+            "action": "requested",
+            "requester_source": "Telegram",
+            "command": command,
+            "risk_level": approval["riskLevel"],
+        })
         append_telegram_history({"user_id": user_id, "chat_id": chat_id, "command": text, "mapped_command": command, "decision": "approval_requested", "approval_id": approval["id"], "reasons": approval["reasons"]})
         return format_approval_for_mobile(approval)
 
@@ -846,13 +909,45 @@ def run_runtime_action(action: str):
 
 
 def load_runtime_state():
-    if not RUNTIME_STATE_PATH.exists():
-        return {"pendingApproval": None, "events": []}
-
-    try:
-        return json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return {"pendingApproval": None, "events": []}
+    """Build a legacy-compatible runtime state dict from SQLite (AJA Brain)."""
+    mem = get_secretary_memory()
+    pending_row = mem.get_active_approval()
+    events = mem.get_runtime_events(50)
+    # Convert DB rows to the legacy shape the dashboard and snapshot builder expect
+    pending = None
+    if pending_row:
+        pending = {
+            "id": pending_row.get("approval_id"),
+            "tool": pending_row.get("tool"),
+            "command": pending_row.get("command"),
+            "commandPreview": pending_row.get("command_preview") or pending_row.get("command"),
+            "actionType": pending_row.get("action_type"),
+            "rootBinary": pending_row.get("root_binary"),
+            "riskLevel": pending_row.get("risk_level"),
+            "level": pending_row.get("level"),
+            "reasons": pending_row.get("reasons", []),
+            "humanReason": pending_row.get("human_reason"),
+            "rollbackPath": pending_row.get("rollback_path"),
+            "dryRunSummary": pending_row.get("dry_run_summary"),
+            "requesterSource": pending_row.get("requester_source"),
+            "expiresAt": pending_row.get("expires_at"),
+            "createdAt": pending_row.get("created_at"),
+            "telegram": pending_row.get("telegram_meta") or {},
+        }
+    formatted_events = [
+        {
+            "id": e.get("event_id"),
+            "type": e.get("event_type"),
+            "tool": e.get("tool"),
+            "message": e.get("message"),
+            "command": e.get("command"),
+            "rootBinary": e.get("root_binary"),
+            "level": e.get("level"),
+            "createdAt": e.get("created_at"),
+        }
+        for e in events
+    ]
+    return {"pendingApproval": pending, "events": formatted_events, "tokenStats": None}
 
 
 def build_status_payload(runtime_state=None):
@@ -1335,6 +1430,20 @@ async def deny_pending():
     return run_runtime_action("deny")
 
 
+@app.get("/runtime/approvals/audit/{approval_id}", dependencies=[Depends(verify_token)])
+async def get_approval_audit_trail(approval_id: str):
+    """Return the append-only audit trail for a specific approval from aja_approval_audit."""
+    trail = await asyncio.to_thread(get_secretary_memory().list_approval_audit, approval_id)
+    return {"approval_id": approval_id, "audit": trail}
+
+
+@app.get("/runtime/events/db", dependencies=[Depends(verify_token)])
+async def get_runtime_events_from_db(limit: int = 50):
+    """Return recent runtime events from aja_runtime_events (authoritative SQLite source)."""
+    events = await asyncio.to_thread(get_secretary_memory().get_runtime_events, min(limit, 200))
+    return {"events": events}
+
+
 @app.post("/swarm/run", dependencies=[Depends(verify_token)])
 async def swarm_run(request: Request):
     """Trigger a SwarmEngine mission from the dashboard."""
@@ -1342,7 +1451,6 @@ async def swarm_run(request: Request):
     objective = body.get("objective", "").strip()
     if not objective:
         raise HTTPException(status_code=400, detail="Missing 'objective' field.")
-
     try:
         proc = subprocess.Popen(
             [sys.executable, "scripts/swarm_engine.py", "--mode", "baton", "--objective", objective],
