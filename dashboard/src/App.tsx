@@ -10,7 +10,14 @@ import {
   Settings,
   Shield,
   ShieldAlert,
-  Timer
+  Timer,
+  CheckCircle,
+  Clock,
+  Archive,
+  ArrowUpRight,
+  Brain,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import axios from 'axios';
@@ -103,6 +110,61 @@ type RuntimeSnapshot = {
   batons: Baton[];
 };
 
+type Communication = {
+  message_id: string;
+  recipient: string;
+  channel: string;
+  subject: string;
+  draft_content: string;
+  tone_profile: string;
+  approval_status: string;
+  delivery_status: string;
+  follow_up_required: boolean;
+  follow_up_due?: string;
+  related_task_id?: string;
+  updated_at: string;
+  created_at: string;
+};
+
+type Task = {
+  task_id: string;
+  title: string;
+  description?: string;
+  priority: string;
+  urgency_score?: number;
+  status: string;
+  due_date?: string;
+  escalation_level?: number;
+  follow_up_state?: string;
+  related_communication_id?: string;
+  delegated_worker_status?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type PrioritizedTask = Task & {
+  priority_score: number;
+  urgency_tier: 'critical' | 'high' | 'medium' | 'low';
+  urgency_pts: number;
+  stakeholder_pts: number;
+  consequence_pts: number;
+  intent_pts: number;
+  decision_recommendation: string;
+  escalation_recommendation: string;
+  can_ignore: boolean;
+  ignore_reason?: string;
+  approval_recommendation: string;
+  urgency_challenge?: string;
+  days_until_due?: number;
+};
+
+type PriorityEngine = {
+  top3: PrioritizedTask[];
+  all_scored: PrioritizedTask[];
+  ignore_candidates: PrioritizedTask[];
+  total_tasks: number;
+};
+
 const emptyStatus: DashboardStatus = {
   territories: [],
   total_files: 0,
@@ -117,6 +179,9 @@ const Dashboard = () => {
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [history, setHistory] = useState<GitCommit[]>([]);
   const [batons, setBatons] = useState<Baton[]>([]);
+  const [communications, setCommunications] = useState<Communication[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [priorities, setPriorities] = useState<PriorityEngine | null>(null);
   const [approvalAction, setApprovalAction] = useState<'approve' | 'deny' | null>(null);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<'connecting' | 'live' | 'offline'>('connecting');
@@ -166,6 +231,88 @@ const Dashboard = () => {
       setSettingsKeySet(res.data.api_key_set || false);
     }).catch(() => {});
   }, []);
+
+  const fetchCommunications = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/communications`, {
+        headers: { 'Authorization': `Bearer dev-token-123` }
+      });
+      setCommunications(res.data.messages || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/memory/tasks?status=pending,active,blocked,escalated`, {
+        headers: { 'Authorization': `Bearer dev-token-123` }
+      });
+      // Sort tasks by priority/urgency
+      const fetchedTasks = res.data.tasks || [];
+      fetchedTasks.sort((a: Task, b: Task) => (b.urgency_score || 0) - (a.urgency_score || 0));
+      setTasks(fetchedTasks);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchPriorities = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/priority/engine`, {
+        headers: { 'Authorization': `Bearer dev-token-123` }
+      });
+      setPriorities(res.data);
+    } catch (e) {
+      console.error('Priority engine fetch failed', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCommunications();
+    fetchTasks();
+    fetchPriorities();
+    const interval = setInterval(() => {
+      fetchCommunications();
+      fetchTasks();
+      fetchPriorities();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleCommAction = async (id: string, action: 'approve' | 'reject' | 'send') => {
+    try {
+      await axios.post(`${API_BASE}/communications/${id}/${action}`, {}, {
+        headers: { 'Authorization': `Bearer dev-token-123` }
+      });
+      fetchCommunications();
+    } catch (error) {
+      console.error(`Failed to ${action} communication`, error);
+    }
+  };
+
+  const handleTaskAction = async (id: string, action: 'complete' | 'archive' | 'snooze' | 'escalate') => {
+    try {
+      if (action === 'snooze') {
+        await axios.post(`${API_BASE}/scheduler/snooze/${id}`, { until: 'tomorrow' }, {
+          headers: { 'Authorization': `Bearer dev-token-123` }
+        });
+      } else if (action === 'escalate') {
+        const task = tasks.find(t => t.task_id === id);
+        const newLevel = (task?.escalation_level || 0) + 1;
+        await axios.patch(`${API_BASE}/memory/tasks/${id}`, { escalation_level: newLevel }, {
+          headers: { 'Authorization': `Bearer dev-token-123` }
+        });
+      } else {
+        await axios.post(`${API_BASE}/memory/tasks/${id}/${action}`, {}, {
+          headers: { 'Authorization': `Bearer dev-token-123` }
+        });
+      }
+      fetchTasks();
+    } catch (error) {
+      console.error(`Failed to ${action} task`, error);
+    }
+  };
 
   const handleApprovalAction = async (action: 'approve' | 'deny') => {
     setApprovalAction(action);
@@ -279,9 +426,9 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <StatusCard
                     title="Urgent Tasks"
-                    status="stable"
-                    load="0%"
-                    value="0 Tasks"
+                    status={tasks.length > 0 ? 'healing' : 'stable'}
+                    load={tasks.length > 0 ? '60%' : '0%'}
+                    value={`${tasks.length} Tasks`}
                   />
                   <StatusCard
                     title="Pending Approvals"
@@ -290,10 +437,10 @@ const Dashboard = () => {
                     value={pendingApproval ? '1 Pending' : '0 Pending'}
                   />
                   <StatusCard
-                    title="Active Delegations"
-                    status={batons.length > 0 ? 'healing' : 'stable'}
-                    load={batons.length > 0 ? '50%' : '0%'}
-                    value={`${batons.length} Active`}
+                    title="Priority Score"
+                    status={priorities && priorities.top3[0]?.urgency_tier === 'critical' ? 'healing' : 'stable'}
+                    load={priorities ? `${Math.round((priorities.top3[0]?.priority_score ?? 0))}%` : '0%'}
+                    value={priorities ? `${priorities.total_tasks} Scored` : 'Loading...'}
                   />
                 </div>
 
@@ -338,10 +485,14 @@ const Dashboard = () => {
                     <SectionTitle icon={<Activity size={16} />} title="Delegation Engine" />
                     <BatonBoard batons={batons} />
 
+                    <SectionTitle icon={<Brain size={16} />} title="Top 3 Priorities Today" />
+                    <Top3Panel priorities={priorities} />
+
+                    <SectionTitle icon={<CheckCircle size={16} />} title="Urgent Tasks" />
+                    <TaskBoard tasks={tasks} onAction={handleTaskAction} />
+
                     <SectionTitle icon={<FileText size={16} />} title="Communication Drafts" />
-                    <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-8 shadow-sm">
-                      <p className="text-sm text-slate-400">No communication drafts awaiting review.</p>
-                    </div>
+                    <CommunicationBoard communications={communications} onAction={handleCommAction} />
                   </div>
 
                   <div className="col-span-12 xl:col-span-5 space-y-6">
@@ -855,6 +1006,314 @@ function batonTone(status?: string): 'allow' | 'ask' | 'deny' | 'neutral' {
   return 'neutral';
 }
 
+function commTone(status?: string): 'allow' | 'ask' | 'deny' | 'neutral' {
+  if (!status) return 'neutral';
+  const normalized = status.toLowerCase();
+  if (normalized === 'approved' || normalized === 'sent' || normalized === 'ready') return 'allow';
+  if (normalized === 'rejected' || normalized === 'failed' || normalized === 'cancelled') return 'deny';
+  if (normalized === 'pending' || normalized === 'draft') return 'ask';
+  return 'neutral';
+}
 
+const CommunicationBoard = ({ communications, onAction }: { communications: Communication[], onAction: (id: string, action: 'approve' | 'reject' | 'send') => void }) => {
+  if (!communications || communications.length === 0) {
+    return (
+      <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-8 shadow-sm">
+        <p className="text-sm text-slate-400">No communication drafts awaiting review.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {communications.map(comm => (
+        <div key={comm.message_id} className="bg-[#16191f] p-6 rounded-3xl border border-white/[0.03] flex flex-col space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-white mb-1">To: {comm.recipient} <span className="text-slate-500 ml-2">({comm.channel})</span></h3>
+              <p className="text-xs text-slate-400 font-semibold">{comm.subject}</p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <RiskPill tone={commTone(comm.approval_status)}>Approval: {comm.approval_status}</RiskPill>
+              <RiskPill tone={commTone(comm.delivery_status)}>Delivery: {comm.delivery_status}</RiskPill>
+            </div>
+          </div>
+          
+          <div className="bg-[#0f1115] p-4 rounded-xl border border-white/[0.02]">
+            <p className="text-sm text-slate-300 whitespace-pre-wrap font-mono text-xs">{comm.draft_content}</p>
+          </div>
+
+          <div className="flex justify-between items-center mt-2">
+            <div className="text-xs text-slate-500">
+              {comm.follow_up_required && <span className="mr-3 text-amber-500/80">Follow-up: {comm.follow_up_due || 'ASAP'}</span>}
+              <span>Tone: {comm.tone_profile}</span>
+            </div>
+            
+            <div className="flex gap-2">
+              {comm.approval_status === 'pending' && (
+                <>
+                  <button onClick={() => onAction(comm.message_id, 'approve')} className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs rounded border border-emerald-500/20 transition-colors">
+                    Approve
+                  </button>
+                  <button onClick={() => onAction(comm.message_id, 'reject')} className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded border border-red-500/20 transition-colors">
+                    Reject
+                  </button>
+                </>
+              )}
+              {comm.approval_status === 'approved' && comm.delivery_status === 'ready' && (
+                <button onClick={() => onAction(comm.message_id, 'send')} className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs rounded border border-cyan-500/20 transition-colors">
+                  Send Now
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+function taskTone(status?: string, priority?: string): 'allow' | 'ask' | 'deny' | 'neutral' {
+  if (status === 'completed' || status === 'archived') return 'allow';
+  if (priority === 'urgent' || priority === 'high') return 'deny';
+  if (status === 'pending' || status === 'escalated') return 'ask';
+  return 'neutral';
+}
+
+function tierTone(tier?: string): 'allow' | 'ask' | 'deny' | 'neutral' {
+  if (tier === 'critical') return 'deny';
+  if (tier === 'high') return 'ask';
+  if (tier === 'medium') return 'allow';
+  return 'neutral';
+}
+
+const Top3Panel = ({ priorities }: { priorities: PriorityEngine | null }) => {
+  if (!priorities) {
+    return (
+      <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-8 shadow-sm">
+        <p className="text-sm text-slate-500">Calculating priorities from AJA Brain…</p>
+      </div>
+    );
+  }
+
+  const { top3, ignore_candidates, total_tasks } = priorities;
+
+  if (top3.length === 0) {
+    return (
+      <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-8 shadow-sm">
+        <p className="text-sm text-slate-400">No active tasks. You're clear for now.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Top 3 cards */}
+      {top3.map((task, idx) => (
+        <div
+          key={task.task_id}
+          className={`relative bg-[#16191f] rounded-3xl border p-6 space-y-4 transition-all hover:border-white/[0.08] overflow-hidden ${
+            idx === 0
+              ? 'border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.04)]'
+              : 'border-white/[0.03]'
+          }`}
+        >
+          {/* Rank watermark */}
+          <span className="absolute top-4 right-5 text-[56px] font-black text-white/[0.03] select-none leading-none">#{idx + 1}</span>
+
+          {/* Header row */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                {idx === 0 && <Zap size={14} className="text-amber-400 shrink-0" />}
+                <h3 className="text-sm font-semibold text-white truncate">{task.title}</h3>
+              </div>
+              {task.description && (
+                <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <RiskPill tone={tierTone(task.urgency_tier)}>{task.urgency_tier.toUpperCase()}</RiskPill>
+              <span className="text-xs font-mono font-bold text-slate-300">{task.priority_score}/100</span>
+            </div>
+          </div>
+
+          {/* Score breakdown bar */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[10px] text-slate-600 uppercase tracking-widest">
+              <span>Score Breakdown</span>
+              <span className="text-slate-500 font-mono">{task.priority_score} pts</span>
+            </div>
+            <div className="flex gap-0.5 h-1.5 rounded-full overflow-hidden bg-white/[0.02]">
+              {/* Urgency */}
+              <div
+                title={`Urgency: ${task.urgency_pts}pts`}
+                className="h-full bg-red-500/70 transition-all"
+                style={{ width: `${(task.urgency_pts / 40) * 40}%` }}
+              />
+              {/* Stakeholder */}
+              <div
+                title={`Stakeholder: ${task.stakeholder_pts}pts`}
+                className="h-full bg-amber-400/70 transition-all"
+                style={{ width: `${(task.stakeholder_pts / 30) * 30}%` }}
+              />
+              {/* Consequence */}
+              <div
+                title={`Consequence: ${task.consequence_pts}pts`}
+                className="h-full bg-cyan-500/70 transition-all"
+                style={{ width: `${(task.consequence_pts / 20) * 20}%` }}
+              />
+              {/* Intent */}
+              <div
+                title={`Intent: ${task.intent_pts}pts`}
+                className="h-full bg-violet-500/70 transition-all"
+                style={{ width: `${(task.intent_pts / 10) * 10}%` }}
+              />
+            </div>
+            <div className="flex gap-3 text-[9px] text-slate-600">
+              <span><span className="text-red-400">■</span> Urgency {task.urgency_pts}</span>
+              <span><span className="text-amber-400">■</span> Stakeholder {task.stakeholder_pts}</span>
+              <span><span className="text-cyan-400">■</span> Consequence {task.consequence_pts}</span>
+              <span><span className="text-violet-400">■</span> Intent {task.intent_pts}</span>
+            </div>
+          </div>
+
+          {/* Decision layer */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-[#0f1115] rounded-2xl p-3 border border-white/[0.03]">
+              <p className="text-[9px] uppercase tracking-widest text-slate-600 mb-1">AJA Recommends</p>
+              <p className="text-xs text-cyan-300 font-medium">{task.decision_recommendation}</p>
+            </div>
+            <div className="bg-[#0f1115] rounded-2xl p-3 border border-white/[0.03]">
+              <p className="text-[9px] uppercase tracking-widest text-slate-600 mb-1">Escalation</p>
+              <p className="text-xs text-slate-300">{task.escalation_recommendation}</p>
+            </div>
+          </div>
+
+          {/* Approval + days */}
+          <div className="flex flex-wrap items-center gap-3 text-[11px]">
+            <RiskPill tone="neutral">{task.approval_recommendation}</RiskPill>
+            {task.days_until_due !== undefined && task.days_until_due !== null && (
+              <span className={`font-mono ${
+                task.days_until_due < 0 ? 'text-red-400' :
+                task.days_until_due < 1 ? 'text-amber-400' : 'text-slate-500'
+              }`}>
+                {task.days_until_due < 0
+                  ? `${Math.abs(task.days_until_due).toFixed(1)}d overdue`
+                  : `${task.days_until_due.toFixed(1)}d left`}
+              </span>
+            )}
+          </div>
+
+          {/* Urgency challenge — anti-inflation message */}
+          {task.urgency_challenge && (
+            <div className="flex items-start gap-2 bg-violet-500/5 border border-violet-500/15 rounded-2xl p-3">
+              <TrendingUp size={12} className="text-violet-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-violet-300/80 italic">{task.urgency_challenge}</p>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Ignore candidates summary */}
+      {ignore_candidates.length > 0 && (
+        <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-5 flex gap-4 items-start">
+          <Archive size={16} className="text-slate-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-slate-400 mb-2">
+              {ignore_candidates.length} task{ignore_candidates.length !== 1 ? 's' : ''} safe to defer this week
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {ignore_candidates.slice(0, 5).map(t => (
+                <span key={t.task_id} className="text-[10px] text-slate-600 bg-white/[0.02] border border-white/[0.04] rounded-full px-3 py-1">
+                  {t.title}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <p className="text-[10px] text-slate-700 text-right">
+        {total_tasks} tasks scored · Updated every 8s
+      </p>
+    </div>
+  );
+};
+
+const TaskBoard = ({ tasks, onAction }: { tasks: Task[], onAction: (id: string, action: 'complete' | 'archive' | 'snooze' | 'escalate') => void }) => {
+  if (!tasks || tasks.length === 0) {
+    return (
+      <div className="bg-[#16191f] rounded-3xl border border-white/[0.03] p-8 shadow-sm">
+        <p className="text-sm text-slate-400">No urgent tasks requiring attention.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {tasks.map(task => (
+        <div key={task.task_id} className="bg-[#16191f] p-6 rounded-3xl border border-white/[0.03] flex flex-col space-y-4 transition-all hover:border-white/[0.08]">
+          <div className="flex justify-between items-start">
+            <div className="flex flex-col">
+              <h3 className="text-sm font-medium text-white mb-1 flex items-center gap-2">
+                {task.title}
+                {(task.urgency_score ?? 0) > 70 && (
+                  <span className="flex items-center gap-1 bg-red-500/20 text-red-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                    <ShieldAlert size={10} /> Urgent
+                  </span>
+                )}
+              </h3>
+              {task.description && <p className="text-xs text-slate-400 mt-1">{task.description}</p>}
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <RiskPill tone={taskTone(task.status, task.priority)}>Status: {task.status}</RiskPill>
+              {task.delegated_worker_status && (
+                 <RiskPill tone="neutral">Worker: {task.delegated_worker_status}</RiskPill>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 text-[11px] text-slate-500 bg-[#0f1115] p-3 rounded-xl border border-white/[0.02]">
+            <div className="flex flex-col">
+              <span className="uppercase tracking-wider font-semibold mb-0.5 text-slate-600">Due Date</span>
+              <span className="text-slate-300">{task.due_date || 'No due date'}</span>
+            </div>
+            <div className="flex flex-col border-l border-white/[0.05] pl-4">
+              <span className="uppercase tracking-wider font-semibold mb-0.5 text-slate-600">Priority</span>
+              <span className={task.priority === 'urgent' ? 'text-red-400' : 'text-amber-400'}>{task.priority}</span>
+            </div>
+            <div className="flex flex-col border-l border-white/[0.05] pl-4">
+              <span className="uppercase tracking-wider font-semibold mb-0.5 text-slate-600">Escalation</span>
+              <span className="text-slate-300">Level {task.escalation_level || 0}</span>
+            </div>
+            {(task.follow_up_state || task.related_communication_id) && (
+              <div className="flex flex-col border-l border-white/[0.05] pl-4">
+                <span className="uppercase tracking-wider font-semibold mb-0.5 text-slate-600">Context</span>
+                <span className="text-cyan-400">{task.follow_up_state || 'Comm Linked'}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-2">
+            <button onClick={() => onAction(task.task_id, 'complete')} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs rounded border border-emerald-500/20 transition-colors">
+              <CheckCircle size={14} /> Complete
+            </button>
+            <button onClick={() => onAction(task.task_id, 'snooze')} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs rounded border border-amber-500/20 transition-colors">
+              <Clock size={14} /> Snooze
+            </button>
+            <button onClick={() => onAction(task.task_id, 'escalate')} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded border border-red-500/20 transition-colors">
+              <ArrowUpRight size={14} /> Escalate
+            </button>
+            <button onClick={() => onAction(task.task_id, 'archive')} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 text-xs rounded border border-slate-500/20 transition-colors">
+              <Archive size={14} /> Archive
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default Dashboard;
