@@ -193,9 +193,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unified Swarm Engine")
     parser.add_argument("--mode", choices=["background", "parallel", "baton"], required=True)
     parser.add_argument("--task", type=str, help="Main task description (for parallel/baton)")
+    parser.add_argument("--objective", type=str, help="Alias for task")
     parser.add_argument("--items", type=str, help="Comma-separated items (for parallel)")
     parser.add_argument("--providers", type=str, default="nvidia,groq", help="Comma-separated providers (for parallel)")
+    parser.add_argument("--worker", type=str, help="Assigned worker ID", default="swarm-maintenance")
     args = parser.parse_args()
+
+    task_input = args.task or args.objective
 
     provider = os.getenv("AI_PROVIDER", "nvidia")
     key = os.getenv("AI_KEY", "dummy")
@@ -206,15 +210,15 @@ if __name__ == "__main__":
     if args.mode == "background":
         engine.deploy_background_swarm()
     elif args.mode == "parallel":
-        if not args.task or not args.items:
+        if not task_input or not args.items:
             print("Error: --task and --items required for parallel mode.")
             sys.exit(1)
         items = args.items.split(",")
         providers = args.providers.split(",")
-        sub_tasks = [f"{args.task} for item: {item}" for item in items]
-        engine.launch_parallel_swarm(args.task, sub_tasks, providers)
+        sub_tasks = [f"{task_input} for item: {item}" for item in items]
+        engine.launch_parallel_swarm(task_input, sub_tasks, providers)
     elif args.mode == "baton":
-        if not args.task:
-            print("Error: --task required for baton mode.")
+        if not task_input:
+            print("Error: --task or --objective required for baton mode.")
             sys.exit(1)
-        asyncio.run(engine.plan_and_execute_batons(args.task))
+        asyncio.run(engine.plan_and_execute_batons(task_input))

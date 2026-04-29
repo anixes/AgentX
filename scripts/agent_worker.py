@@ -51,27 +51,52 @@ async def work(baton_path: str):
         "Execute this task and provide a detailed report of the work completed."
     )
 
+    from scripts.dispatch_adapters import dispatch_worker
+
     try:
         baton["status"] = "executing"
         baton["stage"] = "working"
-        append_baton_history(baton, "working", "Worker started execution.")
+        append_baton_history(baton, "working", f"Worker {baton.get('delegated_worker', 'unknown')} started execution.")
         save_baton(path, baton)
 
-        if gateway.api_key != "dummy":
-            output = gateway.chat(model, prompt)
-        else:
-            output = f"Simulated success for task: {baton['task']}"
-
+        workspace_dir = str(Path(__file__).resolve().parent.parent)
+        worker_id = baton.get("delegated_worker", "swarm-maintenance")
+        
+        # Execute via specialized dispatch adapter
+        adapter_result = dispatch_worker(worker_id, baton, workspace_dir)
+        
         baton["stage"] = "verifying"
-        append_baton_history(baton, "verifying", "Worker completed execution and is finalizing the baton.")
+        append_baton_history(baton, "verifying", "Worker completed execution. Gathering validation and diffs.")
         save_baton(path, baton)
 
-        baton["status"] = "completed"
-        baton["stage"] = "worker_complete"
-        baton["output"] = output
-        append_baton_history(baton, "worker_complete", "Worker wrote the final task output.")
+        if adapter_result.get("status") == "completed":
+            baton["output"] = adapter_result.get("output", "")
+            baton["diff"] = adapter_result.get("diff", "")
+            baton["tests_output"] = adapter_result.get("tests", "")
+            baton["rollback_path"] = adapter_result.get("rollback_path", "")
+            
+            from scripts.verification_engine import run_verification
+            verif = run_verification(baton, workspace_dir)
+            baton["verification"] = verif
+            
+            if not verif["passed"]:
+                baton["status"] = "verification_failed"
+                baton["stage"] = "verification_failed"
+                append_baton_history(baton, "verification_failed", "Worker completed but independent verification failed.")
+            else:
+                baton["status"] = "completed"
+                baton["stage"] = "worker_complete"
+                append_baton_history(baton, "worker_complete", "Worker finished and passed verification.")
+        else:
+            baton["status"] = "failed"
+            baton["stage"] = "worker_failed"
+            baton["error"] = adapter_result.get("error", "Unknown error in adapter")
+            baton["output"] = adapter_result.get("output", "")
+            baton["rollback_path"] = adapter_result.get("rollback_path", "")
+            append_baton_history(baton, "worker_failed", f"Worker failed: {baton['error']}")
+
         save_baton(path, baton)
-        print(f"DONE: Worker {baton['id']} finished.")
+        print(f"DONE: Worker {baton['id']} finished with status: {baton['status']}.")
 
     except Exception as e:
         baton["status"] = "failed"

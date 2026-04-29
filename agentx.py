@@ -10,6 +10,7 @@ Usage:
   agentx memory       → Manage AJA secretary memory
   agentx message      → Manage AJA outbound drafts
   agentx review       → Run executive reviews
+  agentx worker       → Manage worker registry & get recommendations
   agentx help         → Show this help message
 """
 
@@ -337,6 +338,158 @@ def cmd_review(*args):
     print(memory.generate_executive_review(kind, escalate=True)["summary"])
 
 
+def cmd_worker(*args):
+    """Manage the Worker Capability Registry."""
+    memory = SecretaryMemory(SECRETARY_DB)
+
+    if not args or args[0] in {"list", "ls"}:
+        workers = memory.list_workers()
+        if not workers:
+            print("\n[!] No workers registered. Run 'agentx worker seed' to populate defaults.")
+            _show_worker_help()
+            return
+        print("\n+" + "-" * 70 + "+")
+        print("|" + "  Worker Capability Registry".ljust(70) + "|")
+        print("+" + "-" * 70 + "+")
+        print(f"| {'ID':<22} | {'Name':<20} | {'Status':<12} | {'Speed':<7} | {'Rel':>4} |")
+        print("+" + "-" * 70 + "+")
+        for w in workers:
+            sid = w['worker_id'][:20]
+            name = w['worker_name'][:18]
+            status = w['availability_status'][:10]
+            speed = w['execution_speed'][:6]
+            rel = f"{int(w['reliability_score'] * 100)}%"
+            print(f"| {sid:<22} | {name:<20} | {status:<12} | {speed:<7} | {rel:>4} |")
+        print("+" + "-" * 70 + "+")
+        print(f"  {len(workers)} worker(s) total")
+        _show_worker_help()
+        return
+
+    command = args[0].lower()
+
+    if command == "get" and len(args) >= 2:
+        worker = memory.get_worker(args[1])
+        if not worker:
+            print(f"[X] Worker not found: {args[1]}")
+            return
+        print(f"\n--- Worker: {worker['worker_name']} ---")
+        print(f"  ID            : {worker['worker_id']}")
+        print(f"  Type          : {worker['worker_type']}")
+        print(f"  Status        : {worker['availability_status']}")
+        print(f"  Speed         : {worker['execution_speed']}")
+        print(f"  Reliability   : {int(worker['reliability_score'] * 100)}%")
+        print(f"  Cost          : {worker['cost_profile']}")
+        print(f"  Strengths     : {', '.join(worker['primary_strengths'])}")
+        if worker['weak_areas']:
+            print(f"  Weak areas    : {', '.join(worker['weak_areas'])}")
+        print(f"  Task types    : {', '.join(worker['preferred_task_types'])}")
+        if worker['blocked_task_types']:
+            print(f"  Blocked       : {', '.join(worker['blocked_task_types'])}")
+        caps = []
+        if worker['supports_tests']: caps.append('tests')
+        if worker['supports_git_operations']: caps.append('git')
+        if worker['supports_deployment']: caps.append('deploy')
+        if worker['supports_plan_mode']: caps.append('plan_mode')
+        print(f"  Capabilities  : {', '.join(caps) or '(none)'}")
+        if worker['total_tasks_executed'] > 0:
+            print(f"  Executed      : {worker['total_tasks_executed']} tasks ({worker['historical_success_rate']}% success)")
+        if worker['recommended_use_cases']:
+            print(f"  Use cases     :")
+            for uc in worker['recommended_use_cases']:
+                print(f"                  - {uc}")
+
+    elif command == "seed":
+        seeded = memory.seed_default_workers()
+        print(f"[OK] Seeded {len(seeded)} new worker(s).")
+        if seeded:
+            for w in seeded:
+                print(f"  + {w['worker_name']} ({w['worker_id']})")
+        else:
+            print("  (All defaults already exist.)")
+
+    elif command in {"recommend", "rec"} and len(args) >= 2:
+        objective = " ".join(args[1:])
+        from scripts.api_bridge import recommend_workers_for_task
+        result = recommend_workers_for_task(memory, objective)
+        recs = result.get("recommended", [])
+        analysis = result.get("analysis", {})
+        cautions = result.get("cautions", [])
+
+        print(f"\n--- Worker Recommendation ---")
+        print(f"  Objective    : {analysis.get('objective', objective)}")
+        print(f"  Inferred     : {', '.join(analysis.get('inferred_types', []))}")
+        print(f"  Risk Level   : {analysis.get('risk_level', '?')}")
+        print(f"  Speed Need   : {analysis.get('speed_need', '?')}")
+
+        if cautions:
+            print(f"\n  Cautions:")
+            for c in cautions:
+                print(f"    [!] {c}")
+
+        if not recs:
+            print("\n  No workers available for this task. Run 'agentx worker seed' first.")
+            return
+
+        print(f"\n  Ranked Recommendations ({len(recs)}):")
+        print(f"  {'#':>3}  {'Score':>5}  {'Worker':<22}  {'Speed':<8}  {'Cost':<14}  Reasons")
+        print(f"  {'---':>3}  {'-----':>5}  {'------':<22}  {'-----':<8}  {'----':<14}  -------")
+        for i, rec in enumerate(recs, 1):
+            marker = " *" if i == 1 else "  "
+            reasons_str = "; ".join(rec.get('reasons', [])[:2])
+            print(f"{marker}{i:>2}  {rec['recommendation_score']:>5.0f}  {rec['worker_name']:<22}  {rec['execution_speed']:<8}  {rec['cost_profile']:<14}  {reasons_str}")
+            if rec.get('cautions'):
+                for c in rec['cautions']:
+                    print(f"        {'':>5}  {'':>22}  [!] {c}")
+
+    elif command == "log" and len(args) >= 3:
+        worker_id = args[1]
+        outcome = args[2] if args[2] in {"success", "failure"} else "success"
+        task_type = args[3] if len(args) > 3 else "general"
+        desc = " ".join(args[4:]) if len(args) > 4 else ""
+        result = memory.log_worker_execution({
+            "worker_id": worker_id,
+            "outcome": outcome,
+            "task_type": task_type,
+            "task_description": desc,
+        })
+        print(f"[OK] Logged {outcome} for {worker_id} ({result['log_id']})")
+
+    elif command in {"remove", "delete", "rm"} and len(args) >= 2:
+        worker_id = args[1]
+        existing = memory.get_worker(worker_id)
+        if not existing:
+            print(f"[X] Worker not found: {worker_id}")
+            return
+        memory.delete_worker(worker_id)
+        print(f"[OK] Removed worker: {existing['worker_name']} ({worker_id})")
+
+    elif command == "history" and len(args) >= 2:
+        worker_id = args[1]
+        hist = memory.get_worker_execution_history(worker_id, limit=20)
+        if not hist:
+            print(f"  No execution history for {worker_id}.")
+            return
+        print(f"\n--- Execution History: {worker_id} ---")
+        for h in hist:
+            outcome_mark = "[OK]" if h.get('outcome') == 'success' else "[FAIL]"
+            print(f"  {outcome_mark} {h.get('task_type', '?')}: {h.get('task_description', '(no desc)')[:50]}  ({h.get('created_at', '')})")
+
+    else:
+        print("[X] Invalid worker command.")
+        _show_worker_help()
+
+
+def _show_worker_help():
+    print("\nUsage:")
+    print("  agentx worker list                            -- List all workers")
+    print("  agentx worker get <worker_id>                 -- Show worker details")
+    print("  agentx worker seed                            -- Seed default profiles")
+    print('  agentx worker recommend "fix login bug"        -- Get AJA recommendations')
+    print("  agentx worker log <id> success|failure <type> -- Log execution outcome")
+    print("  agentx worker history <id>                    -- Show execution history")
+    print("  agentx worker remove <id>                     -- Remove a worker")
+
+
 CONFIG_PATH = PROJECT_ROOT / ".agentx" / "config.json"
 
 
@@ -426,6 +579,7 @@ def show_help():
 |  agentx memory       Manage AJA secretary memory          |
 |  agentx message      Manage outbound communication drafts |
 |  agentx review       Run morning/night/weekly reviews     |
+|  agentx worker       Worker registry & recommendations    |
 |  agentx help         Show this help message               |
 |                                                           |
 +-----------------------------------------------------------+
@@ -471,6 +625,8 @@ def main():
         cmd_message(*args[1:])
     elif command == "review":
         cmd_review(*args[1:])
+    elif command == "worker":
+        cmd_worker(*args[1:])
     elif command == "ui":
         cmd_ui()
     else:

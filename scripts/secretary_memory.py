@@ -205,6 +205,264 @@ class SecretaryMemory:
                 """
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_aja_runtime_events_created ON aja_runtime_events(created_at DESC)")
+            # --- Phase 6.1: Worker Capability Registry ---
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS worker_registry (
+                    worker_id TEXT PRIMARY KEY,
+                    worker_name TEXT NOT NULL,
+                    worker_type TEXT NOT NULL DEFAULT 'cli_agent',
+                    availability_status TEXT NOT NULL DEFAULT 'available',
+                    primary_strengths TEXT NOT NULL DEFAULT '[]',
+                    weak_areas TEXT NOT NULL DEFAULT '[]',
+                    preferred_task_types TEXT NOT NULL DEFAULT '[]',
+                    blocked_task_types TEXT NOT NULL DEFAULT '[]',
+                    execution_speed TEXT NOT NULL DEFAULT 'medium',
+                    reliability_score REAL NOT NULL DEFAULT 0.8,
+                    cost_profile TEXT NOT NULL DEFAULT 'subscription',
+                    approval_risk_level TEXT NOT NULL DEFAULT 'medium',
+                    supports_tests INTEGER NOT NULL DEFAULT 0,
+                    supports_git_operations INTEGER NOT NULL DEFAULT 0,
+                    supports_deployment INTEGER NOT NULL DEFAULT 0,
+                    supports_plan_mode INTEGER NOT NULL DEFAULT 0,
+                    requires_manual_review INTEGER NOT NULL DEFAULT 1,
+                    historical_success_rate REAL NOT NULL DEFAULT 0.0,
+                    total_tasks_executed INTEGER NOT NULL DEFAULT 0,
+                    total_tasks_failed INTEGER NOT NULL DEFAULT 0,
+                    recommended_use_cases TEXT NOT NULL DEFAULT '[]',
+                    known_failure_patterns TEXT NOT NULL DEFAULT '[]',
+                    recent_failures TEXT NOT NULL DEFAULT '[]',
+                    metadata TEXT NOT NULL DEFAULT '{}',
+                    last_reviewed_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_worker_registry_status ON worker_registry(availability_status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_worker_registry_type ON worker_registry(worker_type)")
+            # Worker execution history for trend tracking
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS worker_execution_log (
+                    log_id TEXT PRIMARY KEY,
+                    worker_id TEXT NOT NULL,
+                    task_type TEXT,
+                    task_description TEXT,
+                    outcome TEXT NOT NULL DEFAULT 'unknown',
+                    duration_seconds INTEGER,
+                    error_summary TEXT,
+                    notes TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (worker_id) REFERENCES worker_registry(worker_id)
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_worker_exec_log_worker ON worker_execution_log(worker_id, created_at DESC)")
+
+    # ─── Worker Registry Methods ──────────────────────────────────────────────
+
+    def create_worker(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Register a new worker in the capability registry."""
+        now = utc_now()
+        worker = {
+            "worker_id": data.get("worker_id") or f"worker-{uuid.uuid4().hex[:12]}",
+            "worker_name": str(data.get("worker_name") or "").strip(),
+            "worker_type": str(data.get("worker_type") or "cli_agent").strip(),
+            "availability_status": str(data.get("availability_status") or "available").strip(),
+            "primary_strengths": data.get("primary_strengths") or [],
+            "weak_areas": data.get("weak_areas") or [],
+            "preferred_task_types": data.get("preferred_task_types") or [],
+            "blocked_task_types": data.get("blocked_task_types") or [],
+            "execution_speed": str(data.get("execution_speed") or "medium").strip(),
+            "reliability_score": float(data.get("reliability_score", 0.8)),
+            "cost_profile": str(data.get("cost_profile") or "subscription").strip(),
+            "approval_risk_level": str(data.get("approval_risk_level") or "medium").strip(),
+            "supports_tests": bool(data.get("supports_tests", False)),
+            "supports_git_operations": bool(data.get("supports_git_operations", False)),
+            "supports_deployment": bool(data.get("supports_deployment", False)),
+            "supports_plan_mode": bool(data.get("supports_plan_mode", False)),
+            "requires_manual_review": bool(data.get("requires_manual_review", True)),
+            "historical_success_rate": float(data.get("historical_success_rate", 0.0)),
+            "total_tasks_executed": int(data.get("total_tasks_executed", 0)),
+            "total_tasks_failed": int(data.get("total_tasks_failed", 0)),
+            "recommended_use_cases": data.get("recommended_use_cases") or [],
+            "known_failure_patterns": data.get("known_failure_patterns") or [],
+            "recent_failures": data.get("recent_failures") or [],
+            "metadata": data.get("metadata") or {},
+            "last_reviewed_at": data.get("last_reviewed_at"),
+            "created_at": data.get("created_at") or now,
+            "updated_at": now,
+        }
+        if not worker["worker_name"]:
+            raise ValueError("Worker name is required.")
+
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO worker_registry (
+                    worker_id, worker_name, worker_type, availability_status,
+                    primary_strengths, weak_areas, preferred_task_types, blocked_task_types,
+                    execution_speed, reliability_score, cost_profile, approval_risk_level,
+                    supports_tests, supports_git_operations, supports_deployment, supports_plan_mode,
+                    requires_manual_review, historical_success_rate, total_tasks_executed, total_tasks_failed,
+                    recommended_use_cases, known_failure_patterns, recent_failures, metadata,
+                    last_reviewed_at, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    worker["worker_id"], worker["worker_name"], worker["worker_type"],
+                    worker["availability_status"],
+                    json_dump(worker["primary_strengths"]), json_dump(worker["weak_areas"]),
+                    json_dump(worker["preferred_task_types"]), json_dump(worker["blocked_task_types"]),
+                    worker["execution_speed"], worker["reliability_score"],
+                    worker["cost_profile"], worker["approval_risk_level"],
+                    1 if worker["supports_tests"] else 0,
+                    1 if worker["supports_git_operations"] else 0,
+                    1 if worker["supports_deployment"] else 0,
+                    1 if worker["supports_plan_mode"] else 0,
+                    1 if worker["requires_manual_review"] else 0,
+                    worker["historical_success_rate"],
+                    worker["total_tasks_executed"], worker["total_tasks_failed"],
+                    json_dump(worker["recommended_use_cases"]),
+                    json_dump(worker["known_failure_patterns"]),
+                    json_dump(worker["recent_failures"]),
+                    json_dump(worker["metadata"]),
+                    worker["last_reviewed_at"], worker["created_at"], worker["updated_at"],
+                ),
+            )
+        return worker
+
+    def get_worker(self, worker_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM worker_registry WHERE worker_id = ?", (worker_id,)).fetchone()
+        return _row_to_worker(row) if row else None
+
+    def list_workers(self, status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if status:
+            clauses.append("availability_status = ?")
+            params.append(status)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = f"""
+            SELECT * FROM worker_registry
+            {where}
+            ORDER BY reliability_score DESC, worker_name ASC
+            LIMIT ?
+        """
+        params.append(max(1, min(int(limit), 100)))
+        with self.connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [_row_to_worker(row) for row in rows]
+
+    def update_worker(self, worker_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        existing = self.get_worker(worker_id)
+        if not existing:
+            raise KeyError(f"Worker not found: {worker_id}")
+
+        allowed = {
+            "worker_name", "worker_type", "availability_status",
+            "primary_strengths", "weak_areas", "preferred_task_types", "blocked_task_types",
+            "execution_speed", "reliability_score", "cost_profile", "approval_risk_level",
+            "supports_tests", "supports_git_operations", "supports_deployment", "supports_plan_mode",
+            "requires_manual_review", "historical_success_rate",
+            "total_tasks_executed", "total_tasks_failed",
+            "recommended_use_cases", "known_failure_patterns", "recent_failures",
+            "metadata", "last_reviewed_at",
+        }
+        changed: dict[str, Any] = {}
+        for key, value in updates.items():
+            if key not in allowed:
+                continue
+            changed[key] = value
+
+        if not changed:
+            return existing
+        changed["updated_at"] = utc_now()
+
+        assignments = []
+        params = []
+        for key, value in changed.items():
+            assignments.append(f"{key} = ?")
+            if key in {"primary_strengths", "weak_areas", "preferred_task_types", "blocked_task_types",
+                        "recommended_use_cases", "known_failure_patterns", "recent_failures", "metadata"}:
+                value = json_dump(value)
+            elif key in {"supports_tests", "supports_git_operations", "supports_deployment",
+                         "supports_plan_mode", "requires_manual_review"}:
+                value = 1 if value else 0
+            params.append(value)
+        params.append(worker_id)
+
+        with self.connect() as conn:
+            conn.execute(f"UPDATE worker_registry SET {', '.join(assignments)} WHERE worker_id = ?", params)
+        return self.get_worker(worker_id) or existing
+
+    def delete_worker(self, worker_id: str) -> bool:
+        with self.connect() as conn:
+            cursor = conn.execute("DELETE FROM worker_registry WHERE worker_id = ?", (worker_id,))
+            return cursor.rowcount > 0
+
+    def log_worker_execution(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Log a worker execution outcome and update aggregate stats."""
+        now = utc_now()
+        log_id = f"wlog-{uuid.uuid4().hex[:12]}"
+        worker_id = data["worker_id"]
+        outcome = data.get("outcome", "unknown")
+
+        with self.connect() as conn:
+            conn.execute(
+                "INSERT INTO worker_execution_log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (log_id, worker_id, data.get("task_type"), data.get("task_description"),
+                 outcome, data.get("duration_seconds"), data.get("error_summary"),
+                 data.get("notes"), now),
+            )
+            # Update aggregate stats inline (single connection to avoid locking)
+            row = conn.execute("SELECT * FROM worker_registry WHERE worker_id = ?", (worker_id,)).fetchone()
+            if row:
+                worker = _row_to_worker(row)
+                total_exec = worker["total_tasks_executed"] + 1
+                total_fail = worker["total_tasks_failed"] + (1 if outcome == "failure" else 0)
+                success_rate = ((total_exec - total_fail) / total_exec) * 100 if total_exec > 0 else 0
+                recent = worker["recent_failures"]
+                if outcome == "failure":
+                    recent = ([{
+                        "task_type": data.get("task_type"),
+                        "error": data.get("error_summary", ""),
+                        "at": now,
+                    }] + recent)[:10]
+                conn.execute(
+                    """UPDATE worker_registry SET
+                        total_tasks_executed = ?,
+                        total_tasks_failed = ?,
+                        historical_success_rate = ?,
+                        recent_failures = ?,
+                        last_reviewed_at = ?,
+                        updated_at = ?
+                    WHERE worker_id = ?""",
+                    (total_exec, total_fail, round(success_rate, 1),
+                     json_dump(recent), now, now, worker_id),
+                )
+        return {"log_id": log_id, "worker_id": worker_id, "outcome": outcome, "created_at": now}
+
+    def get_worker_execution_history(self, worker_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM worker_execution_log WHERE worker_id = ? ORDER BY created_at DESC LIMIT ?",
+                (worker_id, min(limit, 100)),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def seed_default_workers(self) -> list[dict[str, Any]]:
+        """Seed the registry with known worker profiles if they don't already exist."""
+        defaults = _default_worker_profiles()
+        seeded = []
+        for profile in defaults:
+            existing = self.get_worker(profile["worker_id"])
+            if not existing:
+                worker = self.create_worker(profile)
+                seeded.append(worker)
+        return seeded
 
     def create_approval(self, data: dict[str, Any]) -> str:
         aid = data.get("approval_id") or uuid.uuid4().hex
@@ -1507,3 +1765,181 @@ def format_tasks_for_mobile(tasks: list[dict[str, Any]], review: dict[str, Any] 
             f"{escalation_text}\n  id: {task.get('task_id')}"
         )
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Worker Registry helpers
+# ---------------------------------------------------------------------------
+
+def _row_to_worker(row: Any) -> dict[str, Any]:
+    """Convert a sqlite3.Row from worker_registry to a typed dict."""
+    d = dict(row)
+    for key in ("primary_strengths", "weak_areas", "preferred_task_types", "blocked_task_types",
+                "recommended_use_cases", "known_failure_patterns", "recent_failures"):
+        d[key] = json_load(d.get(key), [])
+    d["metadata"] = json_load(d.get("metadata"), {})
+    for bool_key in ("supports_tests", "supports_git_operations", "supports_deployment",
+                     "supports_plan_mode", "requires_manual_review"):
+        d[bool_key] = bool(d.get(bool_key))
+    return d
+
+
+def _default_worker_profiles() -> list[dict[str, Any]]:
+    """Return the 7 initial worker profiles for seeding the registry."""
+    return [
+        {
+            "worker_id": "github-copilot-cli",
+            "worker_name": "GitHub Copilot CLI",
+            "worker_type": "cli_agent",
+            "availability_status": "available",
+            "primary_strengths": ["code generation", "inline completion", "plan mode", "git operations", "PR creation", "code review"],
+            "weak_areas": ["long-running autonomous tasks", "multi-file refactoring without context"],
+            "preferred_task_types": ["code", "fix", "refactor", "test", "review", "git", "pr"],
+            "blocked_task_types": [],
+            "execution_speed": "fast",
+            "reliability_score": 0.88,
+            "cost_profile": "subscription",
+            "approval_risk_level": "low",
+            "supports_tests": True,
+            "supports_git_operations": True,
+            "supports_deployment": False,
+            "supports_plan_mode": True,
+            "requires_manual_review": True,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Quick code fixes", "PR generation", "Test writing", "Code review assist", "Plan-mode debugging"],
+            "known_failure_patterns": ["May hallucinate file paths in unfamiliar repos", "Context window overflow on large codebases"],
+        },
+        {
+            "worker_id": "gemini-cli",
+            "worker_name": "Gemini CLI",
+            "worker_type": "cli_agent",
+            "availability_status": "available",
+            "primary_strengths": ["large context window", "multimodal understanding", "research", "documentation", "code generation", "analysis"],
+            "weak_areas": ["shell command execution safety", "production deployment experience"],
+            "preferred_task_types": ["code", "research", "documentation", "analysis", "refactor", "test", "review"],
+            "blocked_task_types": [],
+            "execution_speed": "medium",
+            "reliability_score": 0.85,
+            "cost_profile": "subscription",
+            "approval_risk_level": "medium",
+            "supports_tests": True,
+            "supports_git_operations": True,
+            "supports_deployment": False,
+            "supports_plan_mode": True,
+            "requires_manual_review": True,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Deep analysis", "Large-file refactoring", "Documentation generation", "Research tasks", "Complex debugging"],
+            "known_failure_patterns": ["May over-generate when task scope is vague", "Occasional formatting inconsistencies"],
+        },
+        {
+            "worker_id": "claude-code",
+            "worker_name": "Claude Code",
+            "worker_type": "cli_agent",
+            "availability_status": "unavailable",
+            "primary_strengths": ["autonomous multi-step execution", "plan mode", "test-driven development", "git operations", "code review"],
+            "weak_areas": ["requires API key or subscription", "cost per token can be high"],
+            "preferred_task_types": ["code", "fix", "refactor", "test", "deploy", "research", "review", "pr"],
+            "blocked_task_types": [],
+            "execution_speed": "medium",
+            "reliability_score": 0.90,
+            "cost_profile": "pay_per_use",
+            "approval_risk_level": "medium",
+            "supports_tests": True,
+            "supports_git_operations": True,
+            "supports_deployment": True,
+            "supports_plan_mode": True,
+            "requires_manual_review": True,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Complex multi-file features", "End-to-end debugging", "TDD workflows", "Deployment automation"],
+            "known_failure_patterns": ["Token cost escalation on large tasks", "May need explicit permission grants"],
+        },
+        {
+            "worker_id": "aider",
+            "worker_name": "Aider",
+            "worker_type": "cli_agent",
+            "availability_status": "unavailable",
+            "primary_strengths": ["git-native editing", "pair programming", "incremental changes", "multi-model support"],
+            "weak_areas": ["no plan mode", "limited autonomous operation", "requires model API key"],
+            "preferred_task_types": ["code", "fix", "refactor"],
+            "blocked_task_types": ["deploy", "research"],
+            "execution_speed": "fast",
+            "reliability_score": 0.82,
+            "cost_profile": "pay_per_use",
+            "approval_risk_level": "low",
+            "supports_tests": True,
+            "supports_git_operations": True,
+            "supports_deployment": False,
+            "supports_plan_mode": False,
+            "requires_manual_review": True,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Pair programming sessions", "Small targeted fixes", "Git-native refactors"],
+            "known_failure_patterns": ["Struggles with large architectural changes", "Can loop on ambiguous instructions"],
+        },
+        {
+            "worker_id": "codex-cli",
+            "worker_name": "Codex CLI",
+            "worker_type": "cli_agent",
+            "availability_status": "unavailable",
+            "primary_strengths": ["sandboxed execution", "autonomous task completion", "safety-first design"],
+            "weak_areas": ["limited model selection", "OpenAI API dependency", "newer tool with less community validation"],
+            "preferred_task_types": ["code", "fix", "test", "research"],
+            "blocked_task_types": [],
+            "execution_speed": "medium",
+            "reliability_score": 0.78,
+            "cost_profile": "pay_per_use",
+            "approval_risk_level": "low",
+            "supports_tests": True,
+            "supports_git_operations": True,
+            "supports_deployment": False,
+            "supports_plan_mode": False,
+            "requires_manual_review": True,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Safe exploratory coding", "Sandboxed experiments", "Quick prototyping"],
+            "known_failure_patterns": ["Sandbox limitations may block certain file operations", "Model availability constraints"],
+        },
+        {
+            "worker_id": "opencode",
+            "worker_name": "OpenCode",
+            "worker_type": "cli_agent",
+            "availability_status": "unavailable",
+            "primary_strengths": ["TUI-based interaction", "multi-provider support", "LSP integration"],
+            "weak_areas": ["newer tool", "smaller community", "limited autonomous mode"],
+            "preferred_task_types": ["code", "fix", "refactor"],
+            "blocked_task_types": ["deploy"],
+            "execution_speed": "medium",
+            "reliability_score": 0.75,
+            "cost_profile": "pay_per_use",
+            "approval_risk_level": "low",
+            "supports_tests": True,
+            "supports_git_operations": True,
+            "supports_deployment": False,
+            "supports_plan_mode": False,
+            "requires_manual_review": True,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Interactive code editing", "Multi-provider experimentation"],
+            "known_failure_patterns": ["May require manual TUI interaction", "Provider-specific quirks"],
+        },
+        {
+            "worker_id": "swarm-maintenance",
+            "worker_name": "Swarm Maintenance Worker",
+            "worker_type": "internal_agent",
+            "availability_status": "available",
+            "primary_strengths": ["self-healing", "background monitoring", "codebase health", "parallel execution"],
+            "weak_areas": ["no creative coding", "no deployment authority", "limited to predefined repair patterns"],
+            "preferred_task_types": ["maintenance", "health_check", "monitoring", "repair"],
+            "blocked_task_types": ["deploy", "pr", "research"],
+            "execution_speed": "fast",
+            "reliability_score": 0.92,
+            "cost_profile": "free",
+            "approval_risk_level": "low",
+            "supports_tests": False,
+            "supports_git_operations": False,
+            "supports_deployment": False,
+            "supports_plan_mode": False,
+            "requires_manual_review": False,
+            "historical_success_rate": 0.0,
+            "recommended_use_cases": ["Background codebase health", "Automated repairs", "Resource monitoring"],
+            "known_failure_patterns": ["Cannot handle novel/creative tasks", "Limited to pattern-based repairs"],
+        },
+    ]
+
