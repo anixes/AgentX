@@ -12,3 +12,10 @@ graphify-out/
 .agentx/approval-audit.jsonl
 .agentx/aja_secretary.sqlite3
 .agentx/aja_secretary.sqlite3-*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
