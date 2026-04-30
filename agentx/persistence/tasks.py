@@ -46,6 +46,18 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS scheduled_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_payload TEXT NOT NULL,
+                next_run_at TIMESTAMP NOT NULL,
+                interval_seconds INTEGER,
+                created_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_scheduled_next ON scheduled_tasks (next_run_at)")
+
 def is_logical_task_completed(logical_task_id: str) -> bool:
     if not logical_task_id: return False
     try:
@@ -144,3 +156,61 @@ def cleanup_old_tasks(ttl_days: int = 30) -> int:
     except Exception as e:
         print(f"[Tasks] cleanup_old_tasks() error: {e}")
         return 0
+
+def fetch_pending_tasks(limit: int = 10) -> list:
+    """Fetch tasks for the agent loop: INTERRUPTED first, then PENDING, then FAILED (retryable)."""
+    init_db()
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT * FROM tasks 
+                WHERE status IN ('INTERRUPTED', 'PENDING', 'FAILED')
+                ORDER BY 
+                    CASE status
+                        WHEN 'INTERRUPTED' THEN 1
+                        WHEN 'PENDING' THEN 2
+                        WHEN 'FAILED' THEN 3
+                    END,
+                    updated_at ASC
+                LIMIT ?
+                """,
+                (limit,)
+            ).fetchall()
+            return [dict(r) for r in rows]
+    except Exception as e:
+        print(f"[Tasks] fetch_pending_tasks error: {e}")
+        return []
+
+def enqueue_scheduled_tasks():
+    """Check scheduled_tasks and enqueue them into tasks if due."""
+    init_db()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            due_tasks = conn.execute(
+                "SELECT * FROM scheduled_tasks WHERE next_run_at <= ?",
+                (now,)
+            ).fetchall()
+            
+            for st in due_tasks:
+                payload_str = st["task_payload"]
+                
+                # enqueue task
+                cursor = conn.execute(
+                    "INSERT INTO tasks (input, status, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                    (payload_str, "PENDING", now, now)
+                )
+                
+                # Update next_run_at if it's recurring, else delete
+                if st["interval_seconds"]:
+                    import datetime as dt
+                    next_run = (datetime.now(timezone.utc) + dt.timedelta(seconds=st["interval_seconds"])).isoformat()
+                    conn.execute("UPDATE scheduled_tasks SET next_run_at=?, updated_at=? WHERE id=?", (next_run, now, st["id"]))
+                else:
+                    conn.execute("DELETE FROM scheduled_tasks WHERE id=?", (st["id"],))
+                    
+    except Exception as e:
+        print(f"[Tasks] enqueue_scheduled_tasks error: {e}")

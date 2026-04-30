@@ -172,6 +172,25 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
                     "risk_level":  _matched_skill.get("risk_level", "LOW"),
                     "confidence":  _matched_skill.get("confidence_score", 0),
                 })
+            
+            try:
+                from agentx.presence.notifier import send_notification
+                from agentx.presence.approval import request_approval
+                if _matched_skill.get("risk_level") == "HIGH":
+                    if tasks:
+                        tasks.update_task_status(task_id, "PENDING_APPROVAL")
+                    
+                    appr_result = request_approval(task_id, objective, _matched_skill)
+                    if appr_result["status"] == "rejected":
+                        print(f"[AgentX] Task {task_id} REJECTED by human.")
+                        if tasks:
+                            tasks.update_task_status(task_id, "REJECTED")
+                        return
+                        
+                    if tasks:
+                        tasks.update_task_status(task_id, "RUNNING")
+            except ImportError:
+                pass
             _skill_succeeded = _execute_skill(
                 skill      = _matched_skill,
                 task_id    = task_id,
@@ -219,6 +238,11 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             if tracker:
                 tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
                 tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "background_started" if not _skill_succeeded else "skill_completed"})
+            try:
+                from agentx.presence.notifier import send_notification
+                send_notification("TASK_COMPLETED", {"task_id": task_id, "objective": objective})
+            except ImportError:
+                pass
             if tasks:
                 tasks.update_task_status(task_id, "COMPLETED")
                 tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
@@ -236,6 +260,11 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             if tracker:
                 tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
                 tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "success" if not _skill_succeeded else "skill_completed"})
+            try:
+                from agentx.presence.notifier import send_notification
+                send_notification("TASK_COMPLETED", {"task_id": task_id, "objective": objective})
+            except ImportError:
+                pass
             if tasks:
                 tasks.update_task_status(task_id, "COMPLETED")
                 tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
@@ -252,6 +281,11 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         if tracker:
             tracker.log_event("CHECKPOINT", {"objective": objective, "step": "exception"})
             tracker.log_event("TASK_FAILED", {"objective": objective, "error": error_str, "error_type": error_type})
+        try:
+            from agentx.presence.notifier import send_notification
+            send_notification("TASK_FAILED", {"task_id": task_id, "objective": objective, "error": error_str})
+        except ImportError:
+            pass
         if tasks:
             tasks.update_task_error(task_id, error_str, error_type=error_type)
         raise e
@@ -266,9 +300,39 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
 
 def cmd_status():
     """Print a concise dashboard of swarm health."""
+    try:
+        from agentx.presence.state import get_system_state
+        try:
+            from agentx.persistence.tracker import log_event
+        except ImportError:
+            def log_event(e, p): pass
+            
+        log_event("SYSTEM_STATE_QUERIED", {})
+        
+        state = get_system_state()
+        print("\n=== Agent Loop State ===")
+        print(f"Health:      {'✅ HEALTHY' if state['is_healthy'] else '❌ UNHEALTHY'}")
+        print(f"Loop Status: {state['loop_status']}")
+        print(f"Load Level:  {state['load_level']}")
+        print(f"Queue Size:  {state['pending_tasks']} Pending | {state['active_tasks']} Active")
+        print(f"Triggers:    {state['trigger_count']} Active")
+        
+        if not state['is_healthy']:
+            print("\n[!] ALERTS:")
+            if state['circuit_breaker_triggered']:
+                print("  - Circuit Breaker is TRIGGERED")
+            if state['stalled_tasks_exist']:
+                print("  - Stalled tasks detected")
+            if state['recent_failures'] >= 5:
+                print(f"  - High failure rate ({state['recent_failures']} recent)")
+        print("========================\n")
+        
+    except ImportError:
+        pass
+
     # 1. Territories
     territories = ["src/prod", "src/vault", "src/tools"]
-    print("\n+--------------------+----------+----------+")
+    print("+--------------------+----------+----------+")
     print("|          AgentX Swarm Status             |")
     print("+--------------------+----------+----------+")
     print("| Territory          | Status   | Load     |")
@@ -744,6 +808,13 @@ def show_help():
 |  agentx              Start the interactive SafeShell TUI  |
 |  agentx dash         Launch Dashboard + API Bridge        |
 |  agentx run [--bg]   Run a SwarmEngine mission            |
+|  agentx run-loop     Start the continuous agent execution |
+|  agentx trigger      Manage agent loop triggers           |
+|  agentx approve      Approve a high risk task             |
+|  agentx reject       Reject a high risk task              |
+|  agentx pause-loop   Pause the agent loop                 |
+|  agentx resume-loop  Resume the agent loop                |
+|  agentx kill-task    Kill a running/pending task          |
 |  agentx status       Show swarm health & active batons    |
 |  agentx setup        Configure AI provider & API key      |
 |  agentx doctor       Run system health diagnostics        |
@@ -755,6 +826,73 @@ def show_help():
 |                                                           |
 +-----------------------------------------------------------+
     """)
+
+
+def cmd_trigger(*args):
+    try:
+        from agentx.persistence.triggers import add_trigger, list_triggers, disable_trigger, delete_trigger
+        import json
+    except ImportError as e:
+        print(f"[X] Triggers module missing: {e}")
+        return
+
+    if not args:
+        print("[X] Usage: agentx trigger <add|list|disable|delete> [args]")
+        return
+        
+    subcmd = args[0].lower()
+    
+    if subcmd == "add":
+        if len(args) < 4:
+            print("Usage: agentx trigger add <type> '<condition_json>' '<action_json>' [cooldown_secs]")
+            print("Types: TIME, TASK_STATE, FILE_FLAG")
+            print("Example (TIME): agentx trigger add TIME '{\"interval_seconds\": 600}' '{\"objective\": \"Run health check\"}' 60")
+            print("Example (TASK_STATE): agentx trigger add TASK_STATE '{\"status\": \"FAILED\"}' '{\"objective\": \"Retry failed\"}' 300")
+            print("Example (FILE_FLAG): agentx trigger add FILE_FLAG '{\"path\": \".agentx/trigger.txt\"}' '{\"objective\": \"Process file\"}' 60")
+            return
+            
+        t_type = args[1].upper()
+        try:
+            cond = json.loads(args[2])
+            action = json.loads(args[3])
+        except json.JSONDecodeError as e:
+            print(f"[X] Invalid JSON: {e}")
+            return
+            
+        cooldown = int(args[4]) if len(args) > 4 else 60
+        
+        t_id = add_trigger(t_type, cond, action, cooldown)
+        print(f"[+] Added trigger {t_id}")
+        
+    elif subcmd == "list":
+        triggers = list_triggers()
+        if not triggers:
+            print("No triggers found.")
+            return
+        for t in triggers:
+            status = "ACTIVE" if t["is_active"] else "DISABLED"
+            print(f"[{status}] ID: {t['id']}")
+            print(f"    Type: {t['trigger_type']} | Cooldown: {t['cooldown_seconds']}s")
+            print(f"    Condition: {t['condition_payload']}")
+            print(f"    Action: {t['action_payload']}")
+            print(f"    Last Fired: {t['last_triggered_at']}")
+            print("-" * 40)
+            
+    elif subcmd == "disable":
+        if len(args) < 2:
+            print("Usage: agentx trigger disable <trigger_id>")
+            return
+        disable_trigger(args[1])
+        print(f"[*] Disabled trigger {args[1]}")
+        
+    elif subcmd == "delete":
+        if len(args) < 2:
+            print("Usage: agentx trigger delete <trigger_id>")
+            return
+        delete_trigger(args[1])
+        print(f"[-] Deleted trigger {args[1]}")
+    else:
+        print(f"[X] Unknown trigger command: {subcmd}")
 
 
 # ---------------------------------------------------------------------------
@@ -804,6 +942,13 @@ def main():
             print(f"[X] Usage: agentx run [--bg] \"your objective here\"")
             sys.exit(1)
         cmd_run(" ".join(args[1:]), background=bg)
+    elif command == "run-loop":
+        try:
+            from agentx.presence.agent_loop import run_loop
+            run_loop()
+        except ImportError as e:
+            print(f"[X] Could not import agent_loop: {e}")
+            sys.exit(1)
     elif command == "status":
         cmd_status()
     elif command == "setup":
@@ -818,6 +963,35 @@ def main():
         cmd_review(*args[1:])
     elif command == "worker":
         cmd_worker(*args[1:])
+    elif command == "trigger":
+        cmd_trigger(*args[1:])
+    elif command in ("approve", "reject"):
+        if len(args) < 2:
+            print(f"Usage: agentx {command} <task_id> [modified_payload.json]")
+            sys.exit(1)
+        from agentx.presence.approval import set_approval_status
+        task_id = int(args[1])
+        payload_path = args[2] if len(args) > 2 else None
+        status_value = "approved" if command == "approve" else "rejected"
+        set_approval_status(task_id, status_value, payload_path)
+    elif command == "pause-loop":
+        with open(".agentx/stop_loop", "w") as f:
+            f.write("Manually paused via CLI")
+        print("[AgentX] Agent loop paused (stop_loop flag created).")
+    elif command == "resume-loop":
+        if os.path.exists(".agentx/stop_loop"):
+            os.remove(".agentx/stop_loop")
+        print("[AgentX] Agent loop resumed (stop_loop flag removed).")
+    elif command == "kill-task":
+        if len(args) < 2:
+            print("Usage: agentx kill-task <task_id>")
+            sys.exit(1)
+        from agentx.persistence.tasks import update_task_status
+        try:
+            update_task_status(int(args[1]), "FAILED_PERMANENT")
+            print(f"[AgentX] Task {args[1]} marked as FAILED_PERMANENT.")
+        except Exception as e:
+            print(f"[AgentX] Failed to kill task: {e}")
     elif command == "ui":
         cmd_ui()
     else:

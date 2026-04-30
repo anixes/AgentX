@@ -25,6 +25,7 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Definition of Done (DoD) Framework**: Mandatory success criteria for all delegations, with auto-generation support for common engineering and executive tasks.
 - **Executive Desk Dashboard**: Refactored command center focusing on high-level agenda and delegation oversight.
 - **Resilient Recovery Layer**: SQLite-backed authoritative task tracking, boot-time crash recovery, and atomic tool idempotency guards.
+- **Persistent Presence Loop**: Continuous agent loop with triggers, guardrails, health dashboard, and remote human-in-the-loop approvals.
 
 ### User Experience:
 | What you want | What you type |
@@ -215,6 +216,23 @@ Interfaces:
 - [PHASE_6_PRIORITY_ENGINE_DOD.md](./PHASE_6_PRIORITY_ENGINE_DOD.md): Judgment engine and mandatory delegation constraints.
 - [PHASE_7_RESILIENT_RECOVERY.md](./PHASE_7_RESILIENT_RECOVERY.md): Crash survival and tool-level idempotency.
 - [PHASE_8_RESILIENT_SKILLS.md](./PHASE_8_RESILIENT_SKILLS.md): Autonomous skill capture, verification, and composition.
+- [PHASE_9_RESILIENT_LOOP.md](./PHASE_9_RESILIENT_LOOP.md): Persistent agent loop, triggers, guardrails, and human-in-the-loop approvals.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.
+
+## Phase 9: Resilient Loop & Presence
+
+Transitioned from one-off command execution to a robust, continuous agentic runtime.
+
+- **Persistent Agent Loop**: A non-blocking execution engine with task prioritization (`INTERRUPTED > PENDING > FAILED`).
+- **Execution Guardrails**: Integrated rate limiting, duplicate task detection, retry storm protection, no-progress stalling, and a circuit breaker that hard-stops the loop on catastrophic failure.
+- **Trigger Engine**: Event-driven task enqueuing supporting `TIME` (intervals), `TASK_STATE` (cascading workflows), and `FILE_FLAG` (external synchronization) with chronos-safe filtering.
+- **Real-time Awareness**: Added `agentx status` dashboard featuring system health indicators, load level scoring, and recent telemetry alerts.
+- **Alerting & Notifications**: Telegram/CLI alerting for task completion, failures, stalls, and circuit breaker events with automated rate-limiting and duplicate collapse.
+- **Human Approval Layer**: Implementation of a pause-and-wait workflow for `HIGH` risk tasks, allowing remote `approve`/`reject`/`modify` actions and emergency CLI loop controls (`pause-loop`, `resume-loop`, `kill-task`).
+
+Interfaces:
+- CLI: `agentx run-loop`, `agentx trigger`, `agentx status`, `agentx approve/reject`, `agentx pause-loop/resume-loop`
+- Logic: `agentx/presence/agent_loop.py`, `agentx/presence/trigger_engine.py`, `agentx/presence/state.py`, `agentx/presence/notifier.py`, `agentx/presence/approval.py`
+
