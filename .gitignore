@@ -7,11 +7,9 @@ vault_data.json
 temp_batons/
 
 # Graphify
-graphify-out/*
-!graphify-out/GRAPH_REPORT.md
-!graphify-out/graph.json
-!graphify-out/index.html
-!graphify-out/communities/
+graphify-out/
+plan_graph.json
+scratch/
 
 *.log
 .agentx/*.sqlite3

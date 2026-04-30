@@ -38,6 +38,8 @@ AJA uses a multi-factor **Judgment Engine** to score tasks by urgency, stakehold
 
 ### 10. Controlled Agent Verification & Worker Registry
 AJA manages a registry of specialist workers (Copilot, Gemini, Aider, etc.) and executes delegated missions with strict **Definition of Done (DoD)** enforcement. Every worker output is independently audited by the **Verification Engine** for test integrity, branch isolation, and secret leakage before human merge approval is permitted.
+### 11. Parallel Plan Serializability & Verification
+AJA implements a conflict-aware scheduler that decomposes complex objectives into parallel "waves" of execution. The **Serializability Verification Layer** ensures that concurrent execution is mathematically equivalent to a safe sequential baseline, preventing race conditions and state corruption during high-throughput autonomous missions.
 
 ---
 
