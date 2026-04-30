@@ -201,6 +201,8 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             rule_override = check_rules(objective, _context_for_decide)
             if rule_override:
                 _decision = rule_override
+                if "evidence" not in _decision: _decision["evidence"] = []
+                _decision["evidence"].append("Rule Engine triggered override")
         except Exception as e:
             print(f"[Decision] Failed to check rules: {e}")
 
@@ -216,6 +218,8 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             v_status = validate_decision(_decision, v_context)
             if v_status != "VALID":
                 print(f"[Decision] {v_status}: {_decision.get('reason')}")
+                if "evidence" not in _decision: _decision["evidence"] = []
+                _decision["evidence"].append(f"Validation overridden: {v_status}")
             
             if tracker:
                 tracker.log_event(f"DECISION_{v_status}", {
@@ -226,14 +230,32 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         except Exception as e:
             print(f"[Decision] Validation error: {e}")
         
+        # Ensure evidence list exists for logging
+        if "evidence" not in _decision:
+            _decision["evidence"] = []
+            
         if tracker:
-            tracker.log_event("DECISION_MADE", {
+            tracker.log_event("DECISION_EXPLAINED", {
                 "objective": objective,
                 "type": _decision.get("type", "NEW"),
                 "confidence": _decision.get("confidence", 0),
-                "reason": _decision.get("reason", "")
+                "reason": _decision.get("reason", ""),
+                "evidence": _decision.get("evidence", [])
             })
-        print(f"[Decision] Mode: {_decision.get('type', 'NEW')} (Conf: {_decision.get('confidence', 0)}) - {_decision.get('reason', '')}")
+            
+        print("\n[Decision]")
+        print(f"Type:       {_decision.get('type', 'NEW')}")
+        print(f"Confidence: {_decision.get('confidence', 0)}")
+        print(f"Reason:     {_decision.get('reason', '')}")
+        print(f"Evidence:")
+        for ev in _decision.get("evidence", []):
+            print(f"  * {ev}")
+        print()
+
+        # Save decision trace to metadata if tasks module is available
+        if tasks and task_id >= 0:
+            import json
+            tasks.set_execution_metadata(task_id, execution_key=json.dumps(_decision))
 
     except Exception as e:
         print(f"[Decision] Engine error: {e}")

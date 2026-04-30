@@ -27,7 +27,8 @@ class DecisionEngine:
     {
       "type": "SKILL | COMPOSE | NEW | ASK | REJECT",
       "confidence": float (0.0 to 1.0),
-      "reason": "short explanation of why this path was chosen"
+      "reason": "short explanation of why this path was chosen",
+      "evidence": ["list of factual reasons for this decision"]
     }
     """
 
@@ -72,21 +73,25 @@ class DecisionEngine:
             )
             
             decision = self._parse_and_validate(raw_response, context)
+            if "evidence" not in decision:
+                decision["evidence"] = []
+
+            # Add context signals to evidence
+            if context.get("top_skills"):
+                decision["evidence"].append(f"Matched {len(context['top_skills'])} skills")
 
             # --- Apply Biasing Logic ---
             if feedback_stats and decision["type"] in feedback_stats:
                 stats = feedback_stats[decision["type"]]
-                # IF same decision_type failed ≥ 2 times: penalize confidence
                 if stats["FAILURE"] >= 2:
                     old_conf = decision["confidence"]
                     decision["confidence"] = max(0.0, decision["confidence"] - 0.3)
                     decision["reason"] += f" (Penalized from {old_conf} due to repeated failure)"
-                    print(f"[Decision] BIAS APPLIED: Penalized {decision['type']} due to {stats['FAILURE']} failures.")
+                    decision["evidence"].append(f"Penalized {decision['type']} due to {stats['FAILURE']} failures on exact match")
                 
-                # IF same decision_type succeeded: boost confidence
                 if stats["SUCCESS"] > 0:
                     decision["confidence"] = min(1.0, decision["confidence"] + 0.1)
-                    print(f"[Decision] BIAS APPLIED: Boosted {decision['type']} due to prior success.")
+                    decision["evidence"].append(f"Boosted {decision['type']} due to prior success on exact match")
 
             # --- Apply Long-term Memory Biasing ---
             if similar_decisions:
@@ -94,31 +99,27 @@ class DecisionEngine:
                 sim_success = sum(1 for s in similar_decisions if s["decision_type"] == decision["type"] and s["outcome"] == "SUCCESS")
                 
                 if sim_fails >= 2:
-                    print(f"[Decision] DECISION_PATTERN_DETECTED: Repeated similar failures for {decision['type']}.")
                     decision["confidence"] = max(0.0, decision["confidence"] - 0.2)
+                    decision["evidence"].append(f"Repeated similar failures for {decision['type']} ({sim_fails} times)")
                 elif sim_success > 0:
-                    print(f"[Decision] DECISION_PATTERN_DETECTED: Repeated similar success for {decision['type']}.")
                     decision["confidence"] = min(1.0, decision["confidence"] + 0.1)
+                    decision["evidence"].append(f"Repeated similar success for {decision['type']} ({sim_success} times)")
 
             # --- Apply System State Biasing ---
             state = context.get("system_state", {})
             if state:
-                print(f"[Decision] DECISION_STATE_AWARE: Current load={state.get('load_level', 'UNKNOWN')}, health={state.get('is_healthy', True)}")
                 if state.get('load_level') == 'HIGH' and decision['type'] == 'COMPOSE':
                     decision['confidence'] = max(0.0, decision['confidence'] - 0.3)
-                    decision['reason'] += " (Discouraged COMPOSE due to HIGH system load)"
-                    print("[Decision] DECISION_STATE_BIAS_APPLIED: Discouraged COMPOSE due to load")
+                    decision['evidence'].append("Discouraged COMPOSE due to HIGH system load")
                 
                 if state.get('failed_tasks', 0) > 3 and decision['type'] == 'SKILL':
                     decision['confidence'] = max(0.0, decision['confidence'] - 0.2)
-                    decision['reason'] += " (Discouraged SKILL due to high recent failure rate)"
-                    print("[Decision] DECISION_STATE_BIAS_APPLIED: Discouraged SKILL due to failure rate")
+                    decision['evidence'].append("Discouraged SKILL due to high recent failure rate")
                 
                 if not state.get('is_healthy', True):
                     if decision['type'] not in ['ASK', 'NEW', 'REJECT']:
                         decision['confidence'] = max(0.0, decision['confidence'] - 0.4)
-                        decision['reason'] += " (Penalized complex task due to UNHEALTHY system state)"
-                        print("[Decision] DECISION_STATE_BIAS_APPLIED: Biased toward NEW/ASK due to UNHEALTHY system")
+                        decision['evidence'].append("Penalized complex task due to UNHEALTHY system state")
 
             return decision
         except Exception as e:
