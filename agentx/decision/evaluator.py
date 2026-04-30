@@ -53,4 +53,51 @@ def evaluate_task(task_id: int, result: str, context: Dict[str, Any]) -> str:
             logger.warning(f"[Evaluator] Task {task_id} result contains contradictory term '{term}'. FALSE_SUCCESS.")
             return "FALSE_SUCCESS"
 
+    # 4. Semantic Evaluation (LLM)
+    objective = context.get("objective", "")
+    if objective and result_str:
+        sem_status = evaluate_semantic(objective, result_str)
+        if sem_status == "INCORRECT":
+            logger.warning(f"[Evaluator] Task {task_id} failed semantic evaluation. FALSE_SUCCESS.")
+            return "FALSE_SUCCESS"
+        elif sem_status == "PARTIAL":
+            logger.warning(f"[Evaluator] Task {task_id} partially succeeded semantic evaluation. PARTIAL_SUCCESS.")
+            return "PARTIAL_SUCCESS"
+
     return "TRUE_SUCCESS"
+
+def evaluate_semantic(objective: str, result: str) -> str:
+    """
+    Use an LLM to evaluate if the execution result genuinely matches the objective.
+    Returns: "CORRECT" | "PARTIAL" | "INCORRECT"
+    """
+    try:
+        from scripts.core.gateway import UnifiedGateway
+        gateway = UnifiedGateway()
+        
+        prompt = f"Objective:\n{objective}\n\nExecution Result:\n{result}\n\nDoes the execution result successfully fulfill the objective?"
+        system = (
+            "You are an evaluator.\n"
+            "Given:\n* objective\n* result\n"
+            "Return EXACTLY ONE WORD from the following list:\n"
+            "* CORRECT\n* PARTIAL\n* INCORRECT\n"
+            "Be strict. Do not assume success unless the result explicitly provides what was asked."
+        )
+        
+        response = gateway.chat(
+            model="gpt-4o-mini",
+            prompt=prompt,
+            system=system
+        )
+        
+        cleaned = response.strip().upper()
+        if "INCORRECT" in cleaned:
+            return "INCORRECT"
+        elif "PARTIAL" in cleaned:
+            return "PARTIAL"
+        elif "CORRECT" in cleaned:
+            return "CORRECT"
+    except Exception as e:
+        logger.error(f"[Evaluator] Semantic evaluation failed: {e}")
+        
+    return "CORRECT" # Fallback to deterministic results if LLM fails

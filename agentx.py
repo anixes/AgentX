@@ -422,7 +422,7 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
                 _outcome = "FALLBACK"
             elif _outcome == "SUCCESS":
                 # Evaluate TRUE_SUCCESS vs FALSE_SUCCESS
-                _context = {}
+                _context = {"objective": objective}
                 if _decision.get("type") == "SKILL" and _top_skills:
                     _context["skill"] = _top_skills[0]
                 
