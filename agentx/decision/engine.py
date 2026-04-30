@@ -130,23 +130,6 @@ class DecisionEngine:
             if not all(k in data for k in required):
                 raise ValueError("Missing required fields in JSON")
             
-            # 2. Validate Type
-            valid_types = ["SKILL", "COMPOSE", "NEW", "ASK", "REJECT"]
-            if data["type"] not in valid_types:
-                logger.warning(f"Invalid decision type: {data['type']}. Falling back to NEW.")
-                data["type"] = "NEW"
-            
-            # 3. Hard Constraint: HIGH Risk -> ASK or REJECT
-            risk = context.get("risk_level", "LOW")
-            if risk == "HIGH" and data["type"] not in ["ASK", "REJECT"]:
-                data["type"] = "ASK"
-                data["reason"] = f"[REDACTED] Forced to ASK due to HIGH risk (Original decision: {data['type']})"
-            
-            # 4. Hard Constraint: Low Confidence -> NEW
-            if float(data["confidence"]) < 0.6 and data["type"] != "NEW":
-                data["type"] = "NEW"
-                data["reason"] = f"Confidence {data['confidence']} too low, falling back to NEW (Original decision: {data['type']})"
-                
             return data
         except Exception as e:
             logger.error(f"Failed to parse LLM decision: {str(e)}")

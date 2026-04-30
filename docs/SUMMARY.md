@@ -250,8 +250,10 @@ Added an LLM-assisted strategy layer to autonomously determine the optimal execu
 - **Composition Routing**: Automatically routes multi-step objectives through the `SkillComposer` when composition is the optimal strategy.
 - **Decision Feedback Loop**: Self-improving persistence layer that tracks outcomes (`SUCCESS`, `FAILURE`, `FALLBACK`) and applies confidence biasing to future decisions based on historical performance.
 - **Outcome-Aware Prompting**: Injecting previous decision results directly into the LLM prompt to improve contextual reasoning for recurring objectives.
+- **Deterministic Validation Layer**: A strict, code-only safety module that validates LLM decisions against hard system constraints (existence checks, risk gating, and minimum confidence) before dispatch.
+- **Strategic Overrides**: Automatic correction of unsafe decisions (e.g., forcing `ASK` for high-risk tasks or falling back to `NEW` for low-confidence skill matches).
 
 Interfaces:
 - Core: Integrated into `agentx run` / `cmd_run` entry point.
-- Logic: `agentx/decision/engine.py`, `agentx/decision/feedback.py`
+- Logic: `agentx/decision/engine.py`, `agentx/decision/feedback.py`, `agentx/decision/validator.py`
 

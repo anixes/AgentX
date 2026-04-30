@@ -184,6 +184,28 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             "risk_level": _risk_level,
             "task_history": _history
         })
+
+        # --- Decision Validation (Phase 10 Deterministic) ---
+        try:
+            from agentx.decision.validator import validate_decision
+            v_context = {
+                "objective": objective,
+                "top_skills": _top_skills,
+                "risk_level": _risk_level,
+                "confidence_threshold": 0.6
+            }
+            v_status = validate_decision(_decision, v_context)
+            if v_status != "VALID":
+                print(f"[Decision] {v_status}: {_decision.get('reason')}")
+            
+            if tracker:
+                tracker.log_event(f"DECISION_{v_status}", {
+                    "objective": objective,
+                    "type": _decision.get("type"),
+                    "reason": _decision.get("reason")
+                })
+        except Exception as e:
+            print(f"[Decision] Validation error: {e}")
         
         if tracker:
             tracker.log_event("DECISION_MADE", {
