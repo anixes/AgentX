@@ -179,10 +179,18 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             except Exception:
                 pass
 
+        _sys_state = {}
+        try:
+            from agentx.presence.state import get_system_state
+            _sys_state = get_system_state()
+        except ImportError:
+            pass
+
         _decision = _decide(objective, {
             "top_skills": _top_skills,
             "risk_level": _risk_level,
-            "task_history": _history
+            "task_history": _history,
+            "system_state": _sys_state
         })
 
         # --- Decision Validation (Phase 10 Deterministic) ---

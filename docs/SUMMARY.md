@@ -251,6 +251,7 @@ Added an LLM-assisted strategy layer to autonomously determine the optimal execu
 - **Decision Feedback Loop**: Self-improving persistence layer that tracks outcomes (`SUCCESS`, `FAILURE`, `FALLBACK`) and applies confidence biasing to future decisions based on historical performance.
 - **Evaluation Layer**: Analyzes execution results to distinguish between `TRUE_SUCCESS` and `FALSE_SUCCESS` (e.g. malformed outputs, contradictions, or failed postconditions), preventing blind trust in simple 'COMPLETED' statuses.
 - **Long-Term Decision Memory**: Extracts tags from objectives to detect patterns across similar past tasks. Automatically upgrades or downgrades decision priority if repeated successes or failures are detected for similar intents.
+- **System State Awareness**: Injects loop health, load levels, and failure rates into the LLM context. Applies non-blocking decision bias (e.g., discouraging `COMPOSE` during high load or favoring `ASK` when the system is unhealthy).
 - **Outcome-Aware Prompting**: Injecting previous decision results (exact and similar matches) directly into the LLM prompt to improve contextual reasoning for recurring objectives.
 - **Deterministic Validation Layer**: A strict, code-only safety module that validates LLM decisions against hard system constraints (existence checks, risk gating, and minimum confidence) before dispatch.
 - **Strategic Overrides**: Automatic correction of unsafe decisions (e.g., forcing `ASK` for high-risk tasks or falling back to `NEW` for low-confidence skill matches).

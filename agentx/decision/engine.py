@@ -100,6 +100,26 @@ class DecisionEngine:
                     print(f"[Decision] DECISION_PATTERN_DETECTED: Repeated similar success for {decision['type']}.")
                     decision["confidence"] = min(1.0, decision["confidence"] + 0.1)
 
+            # --- Apply System State Biasing ---
+            state = context.get("system_state", {})
+            if state:
+                print(f"[Decision] DECISION_STATE_AWARE: Current load={state.get('load_level', 'UNKNOWN')}, health={state.get('is_healthy', True)}")
+                if state.get('load_level') == 'HIGH' and decision['type'] == 'COMPOSE':
+                    decision['confidence'] = max(0.0, decision['confidence'] - 0.3)
+                    decision['reason'] += " (Discouraged COMPOSE due to HIGH system load)"
+                    print("[Decision] DECISION_STATE_BIAS_APPLIED: Discouraged COMPOSE due to load")
+                
+                if state.get('failed_tasks', 0) > 3 and decision['type'] == 'SKILL':
+                    decision['confidence'] = max(0.0, decision['confidence'] - 0.2)
+                    decision['reason'] += " (Discouraged SKILL due to high recent failure rate)"
+                    print("[Decision] DECISION_STATE_BIAS_APPLIED: Discouraged SKILL due to failure rate")
+                
+                if not state.get('is_healthy', True):
+                    if decision['type'] not in ['ASK', 'NEW', 'REJECT']:
+                        decision['confidence'] = max(0.0, decision['confidence'] - 0.4)
+                        decision['reason'] += " (Penalized complex task due to UNHEALTHY system state)"
+                        print("[Decision] DECISION_STATE_BIAS_APPLIED: Biased toward NEW/ASK due to UNHEALTHY system")
+
             return decision
         except Exception as e:
             logger.error(f"Decision engine failure: {str(e)}")
@@ -138,6 +158,14 @@ class DecisionEngine:
             for t in history:
                 prompt += f"- {t.get('input')} -> {t.get('status')}\n"
                 
+        state = context.get("system_state", {})
+        if state:
+            prompt += f"\nSystem State:\n"
+            prompt += f"* Load: {state.get('load_level', 'UNKNOWN')}\n"
+            prompt += f"* Recent Failures: {state.get('failed_tasks', 0)}\n"
+            prompt += f"* Stalled Tasks: {state.get('pending_tasks', 0)} pending (potential stall)\n"
+            prompt += f"* Health: {'HEALTHY' if state.get('is_healthy', True) else 'UNHEALTHY'}\n"
+
         return prompt
 
     def _parse_and_validate(self, response: str, context: Dict[str, Any]) -> Dict[str, Any]:
