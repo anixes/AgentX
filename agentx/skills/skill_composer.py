@@ -204,6 +204,64 @@ def _log_skill_status(run_id: str, skill_id: str, status: str,
 
 
 # ---------------------------------------------------------------------------
+# Chain Validation (Phase 10)
+# ---------------------------------------------------------------------------
+
+def validate_chain(chain: list, max_steps: int = 10, simulate: bool = False) -> tuple:
+    """
+    Validate a multi-step execution chain before any execution begins.
+
+    Checks:
+      1. max_steps limit
+      2. Tool existence (unless simulate=True)
+      3. Environment prerequisites
+
+    Returns (ok: bool, failures: list[str])
+    """
+    if not chain:
+        return False, ["Empty chain"]
+
+    if len(chain) > max_steps:
+        return False, [f"Chain length ({len(chain)}) exceeds max_steps ({max_steps})"]
+
+    import importlib
+    import json
+    from agentx.skills.skill_executor import check_environment
+
+    failures = []
+
+    for i, (skill, _) in enumerate(chain):
+        skill_name = skill.get("name", skill.get("id", f"step_{i}"))
+
+        # 1. Environment prerequisites
+        env_ok, env_failures = check_environment(skill)
+        if not env_ok:
+            failures.append(f"[{skill_name}] Env failures: {', '.join(env_failures)}")
+
+        # 2. Tool existence
+        try:
+            tool_sequence = json.loads(skill.get("tool_sequence") or "[]")
+        except Exception:
+            tool_sequence = []
+
+        for step in tool_sequence:
+            tool_name = step.get("tool_name")
+            if not tool_name:
+                continue
+            
+            module_path = f"agentx.tools.{tool_name}"
+            try:
+                importlib.import_module(module_path)
+            except ModuleNotFoundError:
+                if not simulate:
+                    failures.append(f"[{skill_name}] Tool '{tool_name}' not found")
+                else:
+                    print(f"[Composer][SIM] Tool '{tool_name}' not found, allowing in simulate mode.")
+
+    return len(failures) == 0, failures
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -262,6 +320,15 @@ def compose_skills(
                 pass
 
     try:
+        # ── Pre-execution validation gate ─────────────────────────────────────
+        valid_chain, val_failures = validate_chain(chain)
+        if not valid_chain:
+            _emit("COMPOSITION_REJECTED", {"failures": val_failures})
+            _emit("COMPOSITION_FALLBACK")
+            return False
+            
+        _emit("COMPOSITION_VALIDATED", {"chain_size": total})
+
         # ── Single risk gate (max across all skills) ──────────────────────────
         chain_risk = _max_risk(chain)
         if chain_risk == "HIGH":

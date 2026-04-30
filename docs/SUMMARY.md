@@ -247,7 +247,7 @@ Added an LLM-assisted strategy layer to autonomously determine the optimal execu
 - **Gated LLM Interaction**: Enforces strict JSON schema validation and hard constraints: `HIGH` risk tasks must result in human intervention (`ASK`) or `REJECT`.
 - **System-Aware Context**: Decision logic incorporates top-skill candidates, risk levels, and recent task history to improve reasoning quality.
 - **Fail-Safe Fallbacks**: Low-confidence LLM outputs (<0.6) automatically fall back to the standard deterministic pipeline (`NEW`).
-- **Composition Routing**: Automatically routes multi-step objectives through the `SkillComposer` when composition is the optimal strategy.
+- **Composition Routing**: Automatically routes multi-step objectives through the `SkillComposer` when composition is the optimal strategy. Includes a pre-execution validation gate (`validate_chain`) that verifies tool existence, environment prerequisites, and chain length limits before any execution occurs.
 - **Decision Feedback Loop**: Self-improving persistence layer that tracks outcomes (`SUCCESS`, `FAILURE`, `FALLBACK`) and applies confidence biasing to future decisions based on historical performance.
 - **Outcome-Aware Prompting**: Injecting previous decision results directly into the LLM prompt to improve contextual reasoning for recurring objectives.
 - **Deterministic Validation Layer**: A strict, code-only safety module that validates LLM decisions against hard system constraints (existence checks, risk gating, and minimum confidence) before dispatch.

@@ -226,9 +226,9 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L429",
-      "id": "agentx_rationale_429",
       "community": 7,
-      "norm_label": "print a concise dashboard of swarm health."
+      "norm_label": "print a concise dashboard of swarm health.",
+      "id": "agentx_rationale_429"
     },
     {
       "label": "Manage the Worker Capability Registry.",
@@ -244,45 +244,45 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L594",
-      "id": "agentx_rationale_594",
       "community": 7,
-      "norm_label": "manage aja's structured secretary memory."
+      "norm_label": "manage aja's structured secretary memory.",
+      "id": "agentx_rationale_594"
     },
     {
       "label": "Manage AJA outbound communication drafts.",
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L649",
-      "id": "agentx_rationale_649",
       "community": 7,
-      "norm_label": "manage aja outbound communication drafts."
+      "norm_label": "manage aja outbound communication drafts.",
+      "id": "agentx_rationale_649"
     },
     {
       "label": "Run AJA executive reviews.",
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L694",
-      "id": "agentx_rationale_694",
       "community": 7,
-      "norm_label": "run aja executive reviews."
+      "norm_label": "run aja executive reviews.",
+      "id": "agentx_rationale_694"
     },
     {
       "label": "Manage the Worker Capability Registry.",
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L704",
-      "id": "agentx_rationale_704",
       "community": 7,
-      "norm_label": "manage the worker capability registry."
+      "norm_label": "manage the worker capability registry.",
+      "id": "agentx_rationale_704"
     },
     {
       "label": "Interactive wizard to configure AI provider, key, and model.",
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L873",
-      "id": "agentx_rationale_873",
       "community": 7,
-      "norm_label": "interactive wizard to configure ai provider, key, and model."
+      "norm_label": "interactive wizard to configure ai provider, key, and model.",
+      "id": "agentx_rationale_873"
     },
     {
       "label": "test_case.py",
@@ -415,9 +415,9 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L139",
-      "id": "engine_rationale_139",
       "community": 3,
-      "norm_label": "standalone wrapper for the decision engine."
+      "norm_label": "standalone wrapper for the decision engine.",
+      "id": "engine_rationale_139"
     },
     {
       "label": "feedback.py",
@@ -550,18 +550,18 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\validator.py",
       "source_location": "L1",
-      "id": "validator_rationale_1",
       "community": 39,
-      "norm_label": "agentx/decision/validator.py =========================== phase 10 \u2014 deterministi"
+      "norm_label": "agentx/decision/validator.py =========================== phase 10 \u2014 deterministi",
+      "id": "validator_rationale_1"
     },
     {
       "label": "Validate an LLM-assisted decision against system rules.     Returns: \"VALID\" | \"",
       "file_type": "rationale",
       "source_file": "agentx\\decision\\validator.py",
       "source_location": "L16",
-      "id": "validator_rationale_16",
       "community": 39,
-      "norm_label": "validate an llm-assisted decision against system rules.     returns: \"valid\" | \""
+      "norm_label": "validate an llm-assisted decision against system rules.     returns: \"valid\" | \"",
+      "id": "validator_rationale_16"
     },
     {
       "label": "recovery.py",
@@ -1374,10 +1374,19 @@
       "norm_label": "_log_skill_status()"
     },
     {
-      "label": "compose_skills()",
+      "label": "validate_chain()",
       "file_type": "code",
       "source_file": "agentx\\skills\\skill_composer.py",
       "source_location": "L210",
+      "id": "skill_composer_validate_chain",
+      "community": 13,
+      "norm_label": "validate_chain()"
+    },
+    {
+      "label": "compose_skills()",
+      "file_type": "code",
+      "source_file": "agentx\\skills\\skill_composer.py",
+      "source_location": "L268",
       "id": "skill_composer_compose_skills",
       "community": 13,
       "norm_label": "compose_skills()"
@@ -1446,13 +1455,22 @@
       "id": "skill_composer_rationale_178"
     },
     {
+      "label": "Validate a multi-step execution chain before any execution begins.      Checks:",
+      "file_type": "rationale",
+      "source_file": "agentx\\skills\\skill_composer.py",
+      "source_location": "L211",
+      "id": "skill_composer_rationale_211",
+      "community": 13,
+      "norm_label": "validate a multi-step execution chain before any execution begins.      checks:"
+    },
+    {
       "label": "Execute a chain of skills sequentially with shared context.      Parameters",
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_composer.py",
-      "source_location": "L218",
+      "source_location": "L276",
+      "id": "skill_composer_rationale_276",
       "community": 13,
-      "norm_label": "execute a chain of skills sequentially with shared context.      parameters",
-      "id": "skill_composer_rationale_218"
+      "norm_label": "execute a chain of skills sequentially with shared context.      parameters"
     },
     {
       "label": "skill_executor.py",
@@ -7556,11 +7574,20 @@
       "id": "system_tests_rationale_158"
     },
     {
+      "label": "Execute a chain of skills sequentially with shared context.      Parameters",
+      "file_type": "rationale",
+      "source_file": "agentx\\skills\\skill_composer.py",
+      "source_location": "L218",
+      "community": 87,
+      "norm_label": "execute a chain of skills sequentially with shared context.      parameters",
+      "id": "skill_composer_rationale_218"
+    },
+    {
       "label": "Print a concise dashboard of swarm health.",
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L407",
-      "community": 87,
+      "community": 88,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_407"
     },
@@ -7569,7 +7596,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L491",
-      "community": 88,
+      "community": 89,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_491"
     },
@@ -7578,7 +7605,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L572",
-      "community": 89,
+      "community": 90,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_572"
     },
@@ -7587,7 +7614,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L627",
-      "community": 90,
+      "community": 91,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_627"
     },
@@ -7596,7 +7623,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L672",
-      "community": 91,
+      "community": 92,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_672"
     },
@@ -7605,7 +7632,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L682",
-      "community": 92,
+      "community": 93,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_682"
     },
@@ -7614,7 +7641,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L851",
-      "community": 93,
+      "community": 94,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_851"
     },
@@ -7632,7 +7659,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L375",
-      "community": 94,
+      "community": 95,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_375"
     },
@@ -7641,7 +7668,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L459",
-      "community": 95,
+      "community": 96,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_459"
     },
@@ -7650,7 +7677,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L540",
-      "community": 96,
+      "community": 97,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_540"
     },
@@ -7659,7 +7686,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L595",
-      "community": 97,
+      "community": 98,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_595"
     },
@@ -7668,7 +7695,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L640",
-      "community": 98,
+      "community": 99,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_640"
     },
@@ -7677,7 +7704,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L650",
-      "community": 99,
+      "community": 100,
       "norm_label": "manage the worker capability registry.",
       "id": "agentx_rationale_650"
     },
@@ -7686,7 +7713,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L819",
-      "community": 100,
+      "community": 101,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_819"
     },
@@ -7704,7 +7731,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L302",
-      "community": 101,
+      "community": 102,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_302"
     },
@@ -7713,7 +7740,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L386",
-      "community": 102,
+      "community": 103,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_386"
     },
@@ -7722,7 +7749,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L467",
-      "community": 103,
+      "community": 104,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_467"
     },
@@ -7731,7 +7758,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L522",
-      "community": 104,
+      "community": 105,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_522"
     },
@@ -7740,7 +7767,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L567",
-      "community": 105,
+      "community": 106,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_567"
     },
@@ -7749,7 +7776,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L577",
-      "community": 106,
+      "community": 107,
       "norm_label": "manage the worker capability registry.",
       "id": "agentx_rationale_577"
     },
@@ -7758,7 +7785,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L746",
-      "community": 107,
+      "community": 108,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_746"
     },
@@ -7767,7 +7794,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L268",
-      "community": 108,
+      "community": 109,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_268"
     },
@@ -7776,7 +7803,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L322",
-      "community": 109,
+      "community": 110,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_322"
     },
@@ -7785,7 +7812,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L403",
-      "community": 110,
+      "community": 111,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_403"
     },
@@ -7794,7 +7821,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L458",
-      "community": 111,
+      "community": 112,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_458"
     },
@@ -7803,7 +7830,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L503",
-      "community": 112,
+      "community": 113,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_503"
     },
@@ -7812,7 +7839,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L109",
-      "community": 113,
+      "community": 114,
       "norm_label": "record error details on a task and set its status.     error_type: 'retryable' o",
       "id": "tasks_rationale_109"
     },
@@ -7821,7 +7848,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L131",
-      "community": 114,
+      "community": 115,
       "norm_label": "delete completed / failed_permanent tasks older than ttl_days. returns rows dele",
       "id": "tasks_rationale_131"
     },
@@ -7830,7 +7857,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\proxy_server.py",
       "source_location": "L34",
-      "community": 115,
+      "community": 116,
       "norm_label": "claude logic: auto-detect provider or use override.",
       "id": "proxy_server_rationale_34"
     },
@@ -7839,7 +7866,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\proxy_server.py",
       "source_location": "L53",
-      "community": 116,
+      "community": 117,
       "norm_label": "enhanced proxy with claude-inspired fail-open and auto-routing.",
       "id": "proxy_server_rationale_53"
     },
@@ -7914,7 +7941,7 @@
       "label": "Project Capabilities",
       "file_type": "document",
       "source_file": "docs/CAPABILITIES.md",
-      "community": 117,
+      "community": 118,
       "norm_label": "project capabilities",
       "id": "doc_capabilities"
     },
@@ -7922,7 +7949,7 @@
       "label": "External AI Providers",
       "file_type": "document",
       "source_file": "docs/EXTERNAL_MODEL_PROVIDERS.md",
-      "community": 118,
+      "community": 119,
       "norm_label": "external ai providers",
       "id": "doc_external_providers"
     },
@@ -7946,7 +7973,7 @@
       "label": "Project Post-Mortem",
       "file_type": "document",
       "source_file": "docs/POST_MORTEM.md",
-      "community": 119,
+      "community": 120,
       "norm_label": "project post-mortem",
       "id": "doc_post_mortem"
     },
@@ -7962,7 +7989,7 @@
       "label": "Sandbox Environment",
       "file_type": "document",
       "source_file": "docs/SANDBOX_ENVIRONMENT.md",
-      "community": 120,
+      "community": 121,
       "norm_label": "sandbox environment",
       "id": "doc_sandbox"
     },
@@ -8712,9 +8739,9 @@
       "weight": 0.8,
       "_src": "engine_rationale_139",
       "_tgt": "gateway_unifiedgateway",
+      "confidence_score": 0.5,
       "source": "engine_rationale_139",
-      "target": "gateway_unifiedgateway",
-      "confidence_score": 0.5
+      "target": "gateway_unifiedgateway"
     },
     {
       "relation": "contains",
@@ -10427,6 +10454,18 @@
       "source_location": "L210",
       "weight": 1.0,
       "_src": "agentx_skills_skill_composer_py",
+      "_tgt": "skill_composer_validate_chain",
+      "source": "agentx_skills_skill_composer_py",
+      "target": "skill_composer_validate_chain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\skills\\skill_composer.py",
+      "source_location": "L268",
+      "weight": 1.0,
+      "_src": "agentx_skills_skill_composer_py",
       "_tgt": "skill_composer_compose_skills",
       "source": "agentx_skills_skill_composer_py",
       "target": "skill_composer_compose_skills",
@@ -10448,7 +10487,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\skills\\skill_composer.py",
-      "source_location": "L266",
+      "source_location": "L333",
       "weight": 1.0,
       "_src": "skill_composer_compose_skills",
       "_tgt": "skill_composer_max_risk",
@@ -10472,7 +10511,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\skills\\skill_composer.py",
-      "source_location": "L318",
+      "source_location": "L385",
       "weight": 1.0,
       "_src": "skill_composer_compose_skills",
       "_tgt": "skill_composer_inject_context",
@@ -10532,7 +10571,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\skills\\skill_composer.py",
-      "source_location": "L302",
+      "source_location": "L369",
       "weight": 1.0,
       "_src": "skill_composer_compose_skills",
       "_tgt": "skill_composer_skill_done",
@@ -10556,7 +10595,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\skills\\skill_composer.py",
-      "source_location": "L345",
+      "source_location": "L412",
       "weight": 1.0,
       "_src": "skill_composer_compose_skills",
       "_tgt": "skill_composer_log_skill_status",
@@ -10577,15 +10616,39 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\skills\\skill_composer.py",
+      "source_location": "L324",
+      "weight": 1.0,
+      "_src": "skill_composer_compose_skills",
+      "_tgt": "skill_composer_validate_chain",
+      "source": "skill_composer_validate_chain",
+      "target": "skill_composer_compose_skills",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\skills\\skill_composer.py",
-      "source_location": "L218",
+      "source_location": "L211",
       "weight": 1.0,
-      "_src": "skill_composer_rationale_218",
+      "_src": "skill_composer_rationale_211",
+      "_tgt": "skill_composer_validate_chain",
+      "source": "skill_composer_validate_chain",
+      "target": "skill_composer_rationale_211",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\skills\\skill_composer.py",
+      "source_location": "L276",
+      "weight": 1.0,
+      "_src": "skill_composer_rationale_276",
       "_tgt": "skill_composer_compose_skills",
       "source": "skill_composer_compose_skills",
-      "target": "skill_composer_rationale_218",
+      "target": "skill_composer_rationale_276",
       "confidence_score": 1.0
     },
     {
@@ -17821,8 +17884,8 @@
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L5",
       "weight": 0.8,
-      "_src": "engine_rationale_156",
-      "_tgt": "gateway_unifiedgateway",
+      "_src": "gateway_unifiedgateway",
+      "_tgt": "engine_rationale_156",
       "confidence_score": 0.5,
       "source": "gateway_unifiedgateway",
       "target": "engine_rationale_156"
