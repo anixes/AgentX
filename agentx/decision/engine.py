@@ -45,6 +45,15 @@ class DecisionEngine:
             logger.warning("No LLM gateway available. Falling back to NEW.")
             return {"type": "NEW", "confidence": 1.0, "reason": "No LLM gateway configured."}
 
+        # --- Decision Feedback (Phase 10 Self-Improvement) ---
+        feedback_stats = {}
+        try:
+            from agentx.decision.feedback import get_feedback_stats
+            feedback_stats = get_feedback_stats(objective)
+            context["feedback_stats"] = feedback_stats
+        except ImportError:
+            pass
+
         prompt = self._build_prompt(objective, context)
         
         try:
@@ -56,6 +65,22 @@ class DecisionEngine:
             )
             
             decision = self._parse_and_validate(raw_response, context)
+
+            # --- Apply Biasing Logic ---
+            if feedback_stats and decision["type"] in feedback_stats:
+                stats = feedback_stats[decision["type"]]
+                # IF same decision_type failed ≥ 2 times: penalize confidence
+                if stats["FAILURE"] >= 2:
+                    old_conf = decision["confidence"]
+                    decision["confidence"] = max(0.0, decision["confidence"] - 0.3)
+                    decision["reason"] += f" (Penalized from {old_conf} due to repeated failure)"
+                    print(f"[Decision] BIAS APPLIED: Penalized {decision['type']} due to {stats['FAILURE']} failures.")
+                
+                # IF same decision_type succeeded: boost confidence
+                if stats["SUCCESS"] > 0:
+                    decision["confidence"] = min(1.0, decision["confidence"] + 0.1)
+                    print(f"[Decision] BIAS APPLIED: Boosted {decision['type']} due to prior success.")
+
             return decision
         except Exception as e:
             logger.error(f"Decision engine failure: {str(e)}")
@@ -65,10 +90,17 @@ class DecisionEngine:
         skills = context.get("top_skills", [])
         history = context.get("task_history", [])
         risk = context.get("risk_level", "LOW")
+        feedback = context.get("feedback_stats", {})
         
         prompt = f"Objective: {objective}\n"
         prompt += f"Risk Level: {risk}\n\n"
         
+        if feedback:
+            prompt += "Previous Decision Outcomes for this objective:\n"
+            for dtype, stats in feedback.items():
+                prompt += f"- {dtype}: {stats['SUCCESS']} successes, {stats['FAILURE']} failures, {stats['FALLBACK']} fallbacks\n"
+            prompt += "\n"
+
         if skills:
             prompt += "Matching Skills:\n"
             for s in skills:
@@ -76,7 +108,7 @@ class DecisionEngine:
                 prompt += f"- {s.get('name')} (id: {s.get('id')[:8]}, Conf: {s.get('confidence_score')}, Risk: {s.get('risk_level')})\n"
         
         if history:
-            prompt += "\nRecent Task History:\n"
+            prompt += "\nRecent Global Task History:\n"
             for t in history:
                 prompt += f"- {t.get('input')} -> {t.get('status')}\n"
                 

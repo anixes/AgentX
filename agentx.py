@@ -346,6 +346,24 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
                     _capture_skill(task_id)
                 except Exception:
                     pass
+
+        # --- Decision Feedback Hook (Phase 10) ---
+        try:
+            from agentx.decision.feedback import log_decision_outcome
+            _outcome = "SUCCESS"
+            # If a specialized path (SKILL/COMPOSE) was chosen but failed, it's a FALLBACK to NEW
+            if not _skill_succeeded and _decision.get("type") in ("SKILL", "COMPOSE"):
+                _outcome = "FALLBACK"
+            
+            log_decision_outcome(
+                objective=objective,
+                decision_type=_decision.get("type", "NEW"),
+                confidence=_decision.get("confidence", 0),
+                outcome=_outcome,
+                task_id=task_id
+            )
+        except Exception:
+            pass
     except Exception as e:
         error_str = str(e)
         # Classify the error: SubprocessError / CalledProcessError = RETRYABLE; others may be PERMANENT
@@ -361,6 +379,20 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             pass
         if tasks:
             tasks.update_task_error(task_id, error_str, error_type=error_type)
+        
+        # --- Decision Feedback Hook (Phase 10) ---
+        try:
+            from agentx.decision.feedback import log_decision_outcome
+            log_decision_outcome(
+                objective=objective,
+                decision_type=_decision.get("type", "NEW"),
+                confidence=_decision.get("confidence", 0),
+                outcome="FAILURE",
+                task_id=task_id
+            )
+        except Exception:
+            pass
+
         raise e
     finally:
         # Always release the task lock
