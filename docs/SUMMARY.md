@@ -24,6 +24,7 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Priority Engine & Decision Layer**: Multi-factor judgment scoring (urgency, stakeholder weight, consequence of delay) that ranks tasks and challenges false urgency.
 - **Definition of Done (DoD) Framework**: Mandatory success criteria for all delegations, with auto-generation support for common engineering and executive tasks.
 - **Executive Desk Dashboard**: Refactored command center focusing on high-level agenda and delegation oversight.
+- **Resilient Recovery Layer**: SQLite-backed authoritative task tracking, boot-time crash recovery, and atomic tool idempotency guards.
 
 ### User Experience:
 | What you want | What you type |
@@ -50,6 +51,8 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Immutable Approval Audit**: Approval lifecycle events are appended to `.agentx/approval-audit.jsonl`.
 - **Encrypted Persistence**: All secrets are stored using AES-256-GCM.
 - **Execution Constraints**: Mandatory Definition of Done checklists prevent "agent drift" during autonomous missions.
+- **Atomic Tool Idempotency**: `ToolGuard` prevents duplicate side-effects (payments, emails) using database-level reservation locks.
+- **Crash Recovery**: Auto-detection and re-queuing of interrupted tasks ensures no mission is lost to process failures.
 
 ## Phase 1: Telegram Remote Control
 
@@ -175,6 +178,20 @@ Interfaces:
 - FastAPI: `/memory/priority`, `/swarm/run` (enforced DoD)
 - Telegram: `what should I do first`, `what actually matters today`, `what can be ignored this week`
 
+## Phase 7: Resilient Recovery Layer
+
+Transforming execution from ephemeral scripts into a state-aware platform.
+
+- **Authoritative Task Tracking**: Every mission is persisted with a `logical_task_id` and `run_id`.
+- **Atomic Tool Guard**: `INSERT OR IGNORE` reservation system for production-grade idempotency.
+- **Execution Coalescing**: Duplicate or retried tool calls return cached results instead of re-executing.
+- **Boot-time Recovery**: `agentx` automatically scans for crashed tasks on startup and resumes them.
+- **Concurrent Safety**: Task-level locking prevents parallel execution collisions on the same objective.
+
+Interfaces:
+- CLI: `agentx status` (authoritative), `agentx run` (tracked)
+- Persistence: `agentx/persistence/tasks.py`, `agentx/persistence/tools.py`, `agentx/persistence/recovery.py`
+
 ## Documentation Index
 - [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md): Visual mapping of the system and CLI reference.
 - [PHASE_1_2_REMOTE_APPROVALS.md](./PHASE_1_2_REMOTE_APPROVALS.md): Telegram control and structured approval workflow.
@@ -182,6 +199,7 @@ Interfaces:
 - [PHASE_4_MESSAGING_LAYER.md](./PHASE_4_MESSAGING_LAYER.md): Outbound communication drafts and follow-up tracking.
 - [PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md](./PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md): Proactive scheduler and accountability reviews.
 - [PHASE_6_PRIORITY_ENGINE_DOD.md](./PHASE_6_PRIORITY_ENGINE_DOD.md): Judgment engine and mandatory delegation constraints.
+- [PHASE_7_RESILIENT_RECOVERY.md](./PHASE_7_RESILIENT_RECOVERY.md): Crash survival and tool-level idempotency.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.

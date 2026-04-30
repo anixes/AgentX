@@ -103,7 +103,7 @@ class SwarmEngine:
         return results
 
     # --- MODE 3: BATON ORCHESTRATOR ---
-    async def plan_and_execute_batons(self, objective: str):
+    async def plan_and_execute_batons(self, objective: str, run_id: str = None):
         print(f"Orchestrating Objective: {objective}")
         if self.gateway.api_key == "dummy":
             plan = [
@@ -136,6 +136,7 @@ class SwarmEngine:
                 "created_at": now_iso(),
                 "updated_at": now_iso(),
                 "history": [],
+                "run_id": run_id,
             }
             append_baton_history(baton_data, "queued", "Baton created by orchestrator.")
             write_baton(baton_path, baton_data)
@@ -197,6 +198,7 @@ if __name__ == "__main__":
     parser.add_argument("--items", type=str, help="Comma-separated items (for parallel)")
     parser.add_argument("--providers", type=str, default="nvidia,groq", help="Comma-separated providers (for parallel)")
     parser.add_argument("--worker", type=str, help="Assigned worker ID", default="swarm-maintenance")
+    parser.add_argument("--run-id", type=str, help="Run ID for idempotency")
     args = parser.parse_args()
 
     task_input = args.task or args.objective
@@ -221,4 +223,4 @@ if __name__ == "__main__":
         if not task_input:
             print("Error: --task or --objective required for baton mode.")
             sys.exit(1)
-        asyncio.run(engine.plan_and_execute_batons(task_input))
+        asyncio.run(engine.plan_and_execute_batons(task_input, run_id=args.run_id))

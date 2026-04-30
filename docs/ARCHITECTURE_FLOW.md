@@ -29,8 +29,10 @@ graph TD
     Watcher -->|Update| Graph[Knowledge Graph]
     
     Worker -->|Runtime State| State[.agentx/runtime-state.json]
+    Worker -->|Execution History + Idempotency| Recovery[(Authoritative Recovery Memory)]
     AJA -->|Obligations + Follow-ups| Secretary[(SQLite Secretary Memory)]
     AJA -->|Outbound Drafts| Comms[(SQLite Communication Records)]
+    Recovery -->|Task State + Tool Locks| API
     Telegram -->|Secretary Commands| Secretary
     Telegram -->|Draft / Approve / Send Message| Comms
     API -->|/memory/*| Secretary
@@ -121,3 +123,13 @@ Supported reviews: Morning, Night, and Weekly.
 The **Priority Engine** computes a 0-100 score for every task using urgency, stakeholder weight, and consequence. It surfaces a "Top 3" agenda on the dashboard and challenges the user with "Urgency Challenges."
 
 The **Definition of Done (DoD)** framework enforces mandatory success criteria for every delegated mission. Criteria are auto-generated from keywords (e.g., "code", "auth", "deploy") if not manually specified, ensuring worker agents remain aligned with executive expectations.
+
+## Phase 7: Resilient Recovery Layer
+
+The **Resilient Recovery Layer** provides AgentX with crash survival and tool-level idempotency. 
+
+- **Authoritative Task Layer**: All missions are tracked in SQLite (PENDING -> RUNNING -> COMPLETED).
+- **Recovery Engine**: Automatically detects and re-queues interrupted tasks on boot.
+- **ToolGuard**: Atomic reservation and result caching prevent duplicate side-effects (e.g., sending the same email twice).
+- **Task Locking**: Prevents race conditions between concurrent agents working on the same logical task.
+- **TTL Cleanup**: Automatically prunes execution logs older than 30 days.

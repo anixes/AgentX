@@ -70,27 +70,136 @@ def cmd_dash():
         print("\n[OK] Shutdown complete.")
 
 
-def cmd_run(objective: str, background: bool = False):
+def cmd_run(objective: str = "", background: bool = False, task: dict = None):
     """Delegate an objective to the SwarmEngine (auto-picks mode)."""
-    print(f'[>] Delegating mission to SwarmEngine: "{objective}"')
+    import hashlib
+    import uuid
     
+    try:
+        import agentx.persistence.tracker as tracker
+    except ImportError:
+        tracker = None
+
+    try:
+        import agentx.persistence.tasks as tasks
+    except ImportError:
+        tasks = None
+
+    task_id = -1
+    MAX_RETRIES = 3
+    run_id = str(uuid.uuid4())
+
+    if task:
+        task_id = task["id"]
+        try:
+            parsed_input = json.loads(task["input"])
+            objective = parsed_input.get("input", objective)
+        except Exception:
+            pass
+            
+        retry_count = task.get("retry_count", 0)
+        logical_task_id = task.get("logical_task_id") or hashlib.sha256(objective.encode()).hexdigest()
+
+        if retry_count >= MAX_RETRIES:
+            print(f"[!] Task {task_id} exceeded retry limit ({retry_count}/{MAX_RETRIES}).")
+            if tasks:
+                tasks.update_task_status(task_id, "FAILED_PERMANENT")
+            return
+            
+        print(f'[>] Recovering task {task_id} (retry {retry_count}): "{objective}"')
+    else:
+        print(f'[>] Delegating mission to SwarmEngine: "{objective}"')
+        logical_task_id = hashlib.sha256(objective.encode()).hexdigest()
+        if tasks:
+            task_id = tasks.create_task({"input": objective, "source": "cmd_run"})
+
+    execution_key = f"{run_id}:cmd_run:{logical_task_id}"
+    
+    if tasks and tasks.is_logical_task_completed(logical_task_id):
+        print(f"[!] Logical task already completed (id: {logical_task_id}). Coalescing execution with previous result.")
+        if tracker:
+            tracker.log_event("TASK_COALESCED", {"objective": objective, "logical_task_id": logical_task_id})
+        if task_id >= 0:
+            tasks.update_task_status(task_id, "SKIPPED_DUPLICATE")
+        return
+        
+    if tasks and task_id >= 0:
+        tasks.set_execution_metadata(task_id, execution_key=execution_key, run_id=run_id, logical_task_id=logical_task_id)
+
+    # ── Step 4: Acquire task-level lock (prevents parallel collision) ──
+    try:
+        from agentx.persistence.tools import acquire_task_lock, release_task_lock
+        _lock_acquired = acquire_task_lock(logical_task_id, lock_holder=run_id)
+        if not _lock_acquired:
+            print(f"[!] Task {logical_task_id} is locked by another execution. Skipping to avoid collision.")
+            if tracker:
+                tracker.log_event("TASK_LOCK_COLLISION", {"objective": objective, "logical_task_id": logical_task_id})
+            if task_id >= 0 and tasks:
+                tasks.update_task_status(task_id, "SKIPPED_DUPLICATE")
+            return
+    except ImportError:
+        _lock_acquired = False
+        release_task_lock = None
+
     cmd = [
         PYTHON,
         str(PROJECT_ROOT / "scripts" / "swarm_engine.py"),
         "--mode", "baton",
         "--objective", objective,
+        "--run-id", run_id
     ]
-    
-    if background:
-        print("[*] Running in background mode...")
-        log_file = PROJECT_ROOT / ".agentx" / "bg_run.log"
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(f"\\n--- New Run: {time.ctime()} ---\\n")
-            subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
-        print(f"[OK] Background task started. Logs: {log_file.relative_to(PROJECT_ROOT) if PROJECT_ROOT in log_file.parents else log_file}")
-    else:
-        subprocess.run(cmd)
+
+    if tracker:
+        tracker.log_event("CHECKPOINT", {"objective": objective, "step": "pre_execution"})
+        tracker.log_event("TASK_STARTED", {"objective": objective, "background": background, "recovered": bool(task)})
+
+    try:
+        now_str = datetime.now(timezone.utc).isoformat()
+        if tasks:
+            tasks.update_task_status(task_id, "RUNNING")
+            tasks.set_execution_metadata(task_id, started_at=now_str)
+            
+        if background:
+            print("[*] Running in background mode...")
+            log_file = PROJECT_ROOT / ".agentx" / "bg_run.log"
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"\\n--- New Run: {time.ctime()} ---\\n")
+                subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+            print(f"[OK] Background task started. Logs: {log_file.relative_to(PROJECT_ROOT) if PROJECT_ROOT in log_file.parents else log_file}")
+            
+            if tracker:
+                tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
+                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "background_started"})
+            if tasks:
+                tasks.update_task_status(task_id, "COMPLETED")
+                tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
+        else:
+            subprocess.run(cmd, check=True)
+            if tracker:
+                tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
+                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "success"})
+            if tasks:
+                tasks.update_task_status(task_id, "COMPLETED")
+                tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
+    except Exception as e:
+        error_str = str(e)
+        # Classify the error: SubprocessError / CalledProcessError = RETRYABLE; others may be PERMANENT
+        from subprocess import CalledProcessError
+        error_type = "RETRYABLE" if isinstance(e, (CalledProcessError, OSError, TimeoutError)) else "PERMANENT"
+        if tracker:
+            tracker.log_event("CHECKPOINT", {"objective": objective, "step": "exception"})
+            tracker.log_event("TASK_FAILED", {"objective": objective, "error": error_str, "error_type": error_type})
+        if tasks:
+            tasks.update_task_error(task_id, error_str, error_type=error_type)
+        raise e
+    finally:
+        # Always release the task lock
+        if _lock_acquired:
+            try:
+                release_task_lock(logical_task_id, lock_holder=run_id)
+            except Exception:
+                pass
 
 
 def cmd_status():
@@ -591,6 +700,26 @@ def show_help():
 # ---------------------------------------------------------------------------
 
 def main():
+    try:
+        import agentx.persistence.recovery as recovery
+        recovered_tasks = recovery.recover_tasks()
+        if recovered_tasks:
+            print(f"\n[!] Automatically resuming {len(recovered_tasks)} recovered tasks...\n")
+            for task in recovered_tasks:
+                # Defaulting to background so we don't block the main shell execution
+                cmd_run(background=True, task=task)
+
+        # TTL cleanup — prune stale records silently on each startup
+        try:
+            from agentx.persistence.tasks import cleanup_old_tasks
+            from agentx.persistence.tools import cleanup_old_entries
+            cleanup_old_tasks()
+            cleanup_old_entries()
+        except Exception:
+            pass
+    except Exception as e:
+        pass
+
     args = sys.argv[1:]
 
     if not args:
