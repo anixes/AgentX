@@ -14,9 +14,57 @@ def dispatch_worker(worker_id: str, baton: dict, workspace_dir: str) -> dict:
         "aider-worker": AiderAdapter(),
         "codex-cli": CodexAdapter(),
         "swarm-maintenance": SwarmMaintenanceAdapter(),
+        "test-worker": TestAdapter(),
     }
     
+    
     adapter = adapters.get(worker_id)
+    if not adapter:
+        # Fallback to SwarmMaintenanceAdapter if unknown
+        adapter = SwarmMaintenanceAdapter()
+        
+    return adapter.run(baton, workspace_dir)
+class TestAdapter(BaseAdapter):
+    def run(self, baton: dict, workspace_dir: str) -> dict:
+        task = baton.get("task", "")
+        run_id = baton.get("run_id", "test-run")
+        
+        # Parse task for action (simple "test: <action>")
+        action = "success"
+        if "test:" in task:
+            action = task.split("test:")[1].strip()
+            
+        print(f"[TestAdapter] Dispatching to test_idempotent_tool with action: {action}")
+        
+        PYTHON = sys.executable
+        cmd = [
+            PYTHON, 
+            os.path.join(workspace_dir, "scripts", "test_idempotent_tool.py"),
+            run_id,
+            action
+        ]
+        
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode == 0:
+                return {
+                    "status": "completed",
+                    "output": res.stdout,
+                    "diff": "",
+                    "tests": "",
+                    "rollback_path": ""
+                }
+            else:
+                return {
+                    "status": "failed",
+                    "error": res.stderr or res.stdout,
+                    "output": res.stdout
+                }
+        except Exception as e:
+            return {
+                "status": "failed",
+                "error": str(e)
+            }
     if not adapter:
         # Fallback to SwarmMaintenanceAdapter if unknown
         adapter = SwarmMaintenanceAdapter()

@@ -192,6 +192,20 @@ Interfaces:
 - CLI: `agentx status` (authoritative), `agentx run` (tracked)
 - Persistence: `agentx/persistence/tasks.py`, `agentx/persistence/tools.py`, `agentx/persistence/recovery.py`
 
+## Phase 8: Resilient Skill System
+
+Shifting from ephemeral task execution to a production-grade library of reusable, verifiable behaviors.
+
+- **Autonomous Skill Capture**: Successful missions are "crystallized" into versioned skill records in SQLite.
+- **Verifiable Correctness**: Post-execution assertions (postconditions) ensure results satisfy semantic requirements (e.g., file existence, specific JSON keys).
+- **Multi-Skill Composition**: Heuristic splitting of complex objectives into chains with context-aware variable injection (`{{key}}`).
+- **Safe Replay Engine**: Step-level recovery via checkpoints, environment prerequisite validation, and unified risk-gating.
+- **Explainability & Ambiguity Resolution**: Introspection interface for skill diffs and score-proximity gating for near-identical matches.
+
+Interfaces:
+- CLI: `agentx` (pre-execution recommendation), `agentx status` (skill usage tracking)
+- Logic: `agentx/skills/skill_store.py`, `agentx/skills/skill_executor.py`, `agentx/skills/skill_composer.py`
+
 ## Documentation Index
 - [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md): Visual mapping of the system and CLI reference.
 - [PHASE_1_2_REMOTE_APPROVALS.md](./PHASE_1_2_REMOTE_APPROVALS.md): Telegram control and structured approval workflow.
@@ -200,6 +214,7 @@ Interfaces:
 - [PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md](./PHASE_5_SCHEDULER_EXECUTIVE_REVIEW.md): Proactive scheduler and accountability reviews.
 - [PHASE_6_PRIORITY_ENGINE_DOD.md](./PHASE_6_PRIORITY_ENGINE_DOD.md): Judgment engine and mandatory delegation constraints.
 - [PHASE_7_RESILIENT_RECOVERY.md](./PHASE_7_RESILIENT_RECOVERY.md): Crash survival and tool-level idempotency.
+- [PHASE_8_RESILIENT_SKILLS.md](./PHASE_8_RESILIENT_SKILLS.md): Autonomous skill capture, verification, and composition.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.

@@ -49,4 +49,24 @@ To prevent the SQLite database from growing indefinitely, AgentX runs a silent c
 > **Runtime** = Reliable Controller  
 > **DB** = Source of Truth  
 
-By decoupling planning from execution state, AgentX can now manage long-running, autonomous missions with production-grade reliability.
+## Validation & Invariants
+
+The system has been empirically validated against the following 7 critical invariants:
+
+| Invariant | Guarantee | Status |
+| :--- | :--- | :--- |
+| **1. At-Most-Once Task** | A `logical_task_id` executes side-effects at most once. | ✅ **VERIFIED** |
+| **2. Tool Idempotency** | A tool `idempotency_key` never executes more than once. | ✅ **VERIFIED** |
+| **3. State Integrity** | A task in `COMPLETED` never reverts to `RUNNING`. | ✅ **VERIFIED** |
+| **4. Lock Safety** | Locks prevent parallel collisions and are released on finish. | ✅ **VERIFIED** |
+| **5. Retry Ceiling** | `retry_count` never exceeds `MAX_RETRIES`. | ✅ **VERIFIED** |
+| **6. Recovery Integrity** | Recovery resumes crashed tasks without creating duplicates. | ✅ **VERIFIED** |
+| **7. Result Coalescing** | Duplicate requests return cached results instead of re-executing. | ✅ **VERIFIED** |
+
+### Test Harness
+A dedicated test suite is available in `tests/system_tests.py`. It uses a simulated side-effect tool (`scripts/test_idempotent_tool.py`) to verify behavior under crashes, concurrency, and failures.
+
+To run the validation:
+```bash
+$env:AI_PROVIDER="openai"; $env:AI_KEY="dummy"; python tests/system_tests.py
+```

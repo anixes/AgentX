@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 import os
 
-DB_PATH = os.path.join(".agentx", "aja_secretary.sqlite3")
+DB_PATH = os.environ.get("AGENTX_DB_PATH", os.path.join(".agentx", "aja_secretary.sqlite3"))
 
 def recover_tasks() -> list:
     """
@@ -47,6 +47,8 @@ def recover_tasks() -> list:
                 # Check for safe replay constraints
                 if task_dict["status"] == "INTERRUPTED":
                     if task_dict.get("retry_count", 0) >= MAX_RETRIES:
+                        conn.execute("UPDATE tasks SET status = 'FAILED_PERMANENT' WHERE id = ?", (task_dict["id"],))
+                        print(f"[Recovery][{task_dict['id']}] Exceeded retry limit ({task_dict['retry_count']}/{MAX_RETRIES}), marking FAILED_PERMANENT.")
                         continue
                     
                     logical_task_id = task_dict.get("logical_task_id")

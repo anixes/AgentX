@@ -19,6 +19,7 @@ import os
 import json
 import subprocess
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from scripts.secretary_memory import (
     SecretaryMemory,
@@ -85,6 +86,18 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
     except ImportError:
         tasks = None
 
+    try:
+        from agentx.skills.skill_store import create_skill_from_task as _capture_skill
+    except ImportError:
+        _capture_skill = None
+
+    try:
+        from agentx.skills.skill_store   import recommend_skill   as _recommend_skill
+        from agentx.skills.skill_executor import execute_skill     as _execute_skill
+    except ImportError:
+        _recommend_skill = None
+        _execute_skill   = None
+
     task_id = -1
     MAX_RETRIES = 3
     run_id = str(uuid.uuid4())
@@ -141,6 +154,39 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         _lock_acquired = False
         release_task_lock = None
 
+    # ── Step 1: Skill probe — attempt to reuse a captured skill ──────────
+    # ALWAYS falls back to normal execution; never skips task creation or locking.
+    _skill_succeeded = False
+    if _recommend_skill and _execute_skill and objective:
+        try:
+            _matched_skill = _recommend_skill(objective)
+        except Exception:
+            _matched_skill = None
+
+        if _matched_skill:
+            if tracker:
+                tracker.log_event("SKILL_SELECTED", {
+                    "objective":   objective,
+                    "skill_id":    _matched_skill.get("id"),
+                    "skill_name":  _matched_skill.get("name"),
+                    "risk_level":  _matched_skill.get("risk_level", "LOW"),
+                    "confidence":  _matched_skill.get("confidence_score", 0),
+                })
+            _skill_succeeded = _execute_skill(
+                skill      = _matched_skill,
+                task_id    = task_id,
+                run_id     = run_id,
+                objective  = objective,
+                tracker    = tracker,
+                # confirm_fn=None → falls back to CLI input() for HIGH-risk
+            )
+            if not _skill_succeeded and tracker:
+                tracker.log_event("SKILL_FALLBACK", {
+                    "objective":  objective,
+                    "skill_id":   _matched_skill.get("id"),
+                })
+        # If no skill matched or skill failed → fall through to normal pipeline
+
     cmd = [
         PYTHON,
         str(PROJECT_ROOT / "scripts" / "swarm_engine.py"),
@@ -165,23 +211,39 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             log_file.parent.mkdir(parents=True, exist_ok=True)
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write(f"\\n--- New Run: {time.ctime()} ---\\n")
-                subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
-            print(f"[OK] Background task started. Logs: {log_file.relative_to(PROJECT_ROOT) if PROJECT_ROOT in log_file.parents else log_file}")
-            
+                if not _skill_succeeded:
+                    # Normal pipeline: only launch SwarmEngine when skill did not complete
+                    subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+                else:
+                    print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
             if tracker:
                 tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
-                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "background_started"})
+                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "background_started" if not _skill_succeeded else "skill_completed"})
             if tasks:
                 tasks.update_task_status(task_id, "COMPLETED")
                 tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
+            if _capture_skill:
+                try:
+                    _capture_skill(task_id)
+                except Exception:
+                    pass
         else:
-            subprocess.run(cmd, check=True)
+            if not _skill_succeeded:
+                # Normal pipeline only when skill did not complete the work
+                subprocess.run(cmd, check=True)
+            else:
+                print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
             if tracker:
                 tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
-                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "success"})
+                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "success" if not _skill_succeeded else "skill_completed"})
             if tasks:
                 tasks.update_task_status(task_id, "COMPLETED")
                 tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
+            if _capture_skill:
+                try:
+                    _capture_skill(task_id)
+                except Exception:
+                    pass
     except Exception as e:
         error_str = str(e)
         # Classify the error: SubprocessError / CalledProcessError = RETRYABLE; others may be PERMANENT

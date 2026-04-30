@@ -30,7 +30,7 @@ import sqlite3
 from datetime import datetime, timezone, timedelta
 import os
 
-DB_PATH = os.path.join(".agentx", "aja_secretary.sqlite3")
+DB_PATH = os.environ.get("AGENTX_DB_PATH", os.path.join(".agentx", "aja_secretary.sqlite3"))
 _CLEANUP_TTL_DAYS = 30  # entries older than this are pruned
 
 
@@ -268,7 +268,9 @@ def cleanup_old_entries(ttl_days: int = _CLEANUP_TTL_DAYS) -> int:
     """
     cutoff = (datetime.now(timezone.utc) - timedelta(days=ttl_days)).isoformat()
     try:
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         with sqlite3.connect(DB_PATH) as conn:
+            _init_tool_db(conn)
             cursor = conn.execute(
                 "DELETE FROM tool_executions WHERE created_at < ?", (cutoff,)
             )

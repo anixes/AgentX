@@ -105,7 +105,11 @@ class SwarmEngine:
     # --- MODE 3: BATON ORCHESTRATOR ---
     async def plan_and_execute_batons(self, objective: str, run_id: str = None):
         print(f"Orchestrating Objective: {objective}")
-        if self.gateway.api_key == "dummy":
+        if objective.startswith("test:"):
+            plan = [
+                {"id": 1, "task": objective, "delegated_worker": "test-worker"}
+            ]
+        elif self.gateway.api_key == "dummy":
             plan = [
                 {"id": 1, "task": "Review security docs", "file_context": "docs/SAFE_SHELL.md"},
                 {"id": 2, "task": "Propose TUI enhancement", "file_context": "scripts/tui_shell.py"},

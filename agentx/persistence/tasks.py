@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 import os
 
-DB_PATH = os.path.join(".agentx", "aja_secretary.sqlite3")
+DB_PATH = os.environ.get("AGENTX_DB_PATH", os.path.join(".agentx", "aja_secretary.sqlite3"))
 
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
