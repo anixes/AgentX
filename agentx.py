@@ -154,16 +154,95 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         _lock_acquired = False
         release_task_lock = None
 
-    # ── Step 1: Skill probe — attempt to reuse a captured skill ──────────
-    # ALWAYS falls back to normal execution; never skips task creation or locking.
+    # ── Step 1: Decision Engine (Phase 10) ──────────
     _skill_succeeded = False
-    if _recommend_skill and _execute_skill and objective:
-        try:
-            _matched_skill = _recommend_skill(objective)
-        except Exception:
-            _matched_skill = None
+    _decision = {"type": "NEW", "confidence": 1.0, "reason": "Default NEW execution"}
 
-        if _matched_skill:
+    try:
+        from agentx.decision.engine import decide as _decide
+        from agentx.skills.skill_store import search_skills as _search_skills
+        import sqlite3
+
+        # Gather context for decision
+        _top_skills = _search_skills(objective, limit=3) if _search_skills else []
+        _risk_level = "LOW"
+        if _top_skills:
+            _risk_level = _top_skills[0].get("risk_level", "LOW")
+            
+        _history = []
+        if tasks:
+            try:
+                with sqlite3.connect(SECRETARY_DB) as conn:
+                    conn.row_factory = sqlite3.Row
+                    _rows = conn.execute("SELECT input, status FROM tasks ORDER BY id DESC LIMIT 5").fetchall()
+                    _history = [dict(r) for r in _rows]
+            except Exception:
+                pass
+
+        _decision = _decide(objective, {
+            "top_skills": _top_skills,
+            "risk_level": _risk_level,
+            "task_history": _history
+        })
+        
+        if tracker:
+            tracker.log_event("DECISION_MADE", {
+                "objective": objective,
+                "type": _decision.get("type", "NEW"),
+                "confidence": _decision.get("confidence", 0),
+                "reason": _decision.get("reason", "")
+            })
+        print(f"[Decision] Mode: {_decision.get('type', 'NEW')} (Conf: {_decision.get('confidence', 0)}) - {_decision.get('reason', '')}")
+
+    except Exception as e:
+        print(f"[Decision] Engine error: {e}")
+
+    # ── Step 2: Decision Dispatch ──────────
+    if _decision.get("type") == "REJECT":
+        print(f"[!] Objective REJECTED by decision engine: {_decision.get('reason')}")
+        if tasks:
+            tasks.update_task_status(task_id, "REJECTED")
+        return
+
+    if _decision.get("type") == "ASK":
+        print(f"[*] Clarification required: {_decision.get('reason')}")
+        try:
+            from agentx.presence.approval import request_approval
+            if tasks:
+                tasks.update_task_status(task_id, "PENDING_APPROVAL")
+            _appr = request_approval(task_id, f"DECISION ENGINE ASKS: {_decision.get('reason')}\n\nObjective: {objective}", {"risk_level": "LOW"})
+            if _appr["status"] == "rejected":
+                if tasks:
+                    tasks.update_task_status(task_id, "REJECTED")
+                return
+            # If approved, we fall through to NEW (SwarmEngine)
+            _decision["type"] = "NEW" 
+        except ImportError:
+            pass
+
+    if _decision.get("type") == "COMPOSE":
+        try:
+            from agentx.skills.skill_composer import build_chain, compose_skills
+            print(f"[*] Composing skills for objective...")
+            _chain = build_chain(objective)
+            if _chain:
+                _skill_succeeded = compose_skills(
+                    chain=_chain,
+                    task_id=task_id,
+                    run_id=run_id,
+                    objective=objective,
+                    tracker=tracker
+                )
+            else:
+                print("[Decision] No suitable chain found, falling back to NEW")
+                _decision["type"] = "NEW"
+        except ImportError:
+            print("[Decision] skill_composer not available, falling back to NEW")
+            _decision["type"] = "NEW"
+
+    if _decision.get("type") == "SKILL":
+        if _execute_skill and _top_skills:
+            _matched_skill = _top_skills[0]
             if tracker:
                 tracker.log_event("SKILL_SELECTED", {
                     "objective":   objective,
@@ -174,37 +253,31 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
                 })
             
             try:
-                from agentx.presence.notifier import send_notification
                 from agentx.presence.approval import request_approval
                 if _matched_skill.get("risk_level") == "HIGH":
                     if tasks:
                         tasks.update_task_status(task_id, "PENDING_APPROVAL")
-                    
                     appr_result = request_approval(task_id, objective, _matched_skill)
                     if appr_result["status"] == "rejected":
                         print(f"[AgentX] Task {task_id} REJECTED by human.")
                         if tasks:
                             tasks.update_task_status(task_id, "REJECTED")
                         return
-                        
                     if tasks:
                         tasks.update_task_status(task_id, "RUNNING")
             except ImportError:
                 pass
+
             _skill_succeeded = _execute_skill(
                 skill      = _matched_skill,
                 task_id    = task_id,
                 run_id     = run_id,
                 objective  = objective,
                 tracker    = tracker,
-                # confirm_fn=None → falls back to CLI input() for HIGH-risk
             )
             if not _skill_succeeded and tracker:
-                tracker.log_event("SKILL_FALLBACK", {
-                    "objective":  objective,
-                    "skill_id":   _matched_skill.get("id"),
-                })
-        # If no skill matched or skill failed → fall through to normal pipeline
+                tracker.log_event("SKILL_FALLBACK", {"objective": objective, "skill_id": _matched_skill.get("id")})
+
 
     cmd = [
         PYTHON,

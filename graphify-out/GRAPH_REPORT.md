@@ -1,12 +1,12 @@
 # Graph Report - .  (2026-04-30)
 
 ## Corpus Check
-- 109 files · ~84,489 words
+- 110 files · ~86,166 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 839 nodes · 1251 edges · 100 communities detected
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.52)
+- 856 nodes · 1267 edges · 107 communities detected
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 68 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -110,6 +110,13 @@
 - [[_COMMUNITY_Community 97|Community 97]]
 - [[_COMMUNITY_Community 98|Community 98]]
 - [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `get_secretary_memory()` - 48 edges
@@ -119,9 +126,9 @@
 5. `execute_telegram_command()` - 18 edges
 6. `create_skill_from_task()` - 17 edges
 7. `ModelRouter` - 16 edges
-8. `main()` - 13 edges
-9. `CostModeManager` - 12 edges
-10. `approve_runtime_approval()` - 11 edges
+8. `UnifiedGateway` - 14 edges
+9. `main()` - 13 edges
+10. `CostModeManager` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Proxy Server` --explains--> `Unified Gateway Guide`  [INFERRED]
@@ -130,10 +137,10 @@
   scripts/safe_shell.py → docs/SAFE_SHELL.md
 - `Textual TUI Dashboard` --explains--> `Safe Shell Documentation`  [INFERRED]
   scripts/tui_shell.py → docs/SAFE_SHELL.md
-- `An integrated 'Safe Shell' that inspects commands using Claude-style stripping` --uses--> `CommandStripper`  [INFERRED]
-  scripts\safe_shell.py → scripts\core\stripper.py
-- `A panel to display AI Risk Analysis.` --uses--> `CommandStripper`  [INFERRED]
-  scripts\tui_shell.py → scripts\core\stripper.py
+- `CommandStripper` --uses--> `An integrated 'Safe Shell' that inspects commands using Claude-style stripping`  [INFERRED]
+  scripts\core\stripper.py → scripts\safe_shell.py
+- `CommandStripper` --uses--> `A panel to display AI Risk Analysis.`  [INFERRED]
+  scripts\core\stripper.py → scripts\tui_shell.py
 
 ## Hyperedges (group relationships)
 - **Agent Execution Stack** — src_query_engine, src_tool_manager, src_bash_tool [INFERRED 0.90]
@@ -155,15 +162,15 @@ Nodes (36): _bootstrap_executor_tables(), _check_db_available(), check_environme
 
 ### Community 3 - "Community 3"
 Cohesion: 0.07
-Nodes (10): checkModePermission(), isFileSafeForAutoEdit(), explainCommand(), findTarget(), isFileAutonomousSafe(), loadCustomSafePaths(), fixCommand(), getFileErrors() (+2 more)
+Nodes (23): append_baton_history(), now_iso(), The worker entry point.     Reads a baton file, executes the assigned task, and, save_baton(), work(), decide(), DecisionEngine, LLM-assisted decision engine for AgentX.     Determines the best execution path (+15 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.1
-Nodes (11): detectCalls(), detectLanguage(), hashContent(), lineOf(), parseFile(), parseJSON(), parsePython(), parseTSJS() (+3 more)
+Cohesion: 0.07
+Nodes (10): checkModePermission(), isFileSafeForAutoEdit(), explainCommand(), findTarget(), isFileAutonomousSafe(), loadCustomSafePaths(), fixCommand(), getFileErrors() (+2 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.09
-Nodes (18): append_baton_history(), now_iso(), The worker entry point.     Reads a baton file, executes the assigned task, and, save_baton(), work(), load_config(), Load saved config from .agentx/config.json., A unified client for multiple AI model providers.     Supports NVIDIA, Groq, To (+10 more)
+Cohesion: 0.11
+Nodes (11): Indexer, detectCalls(), detectLanguage(), hashContent(), lineOf(), parseFile(), parseJSON(), parsePython() (+3 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.09
@@ -218,12 +225,12 @@ Cohesion: 0.25
 Nodes (1): AutonomousBranch
 
 ### Community 19 - "Community 19"
-Cohesion: 0.36
-Nodes (1): AnthropicProvider
-
-### Community 20 - "Community 20"
 Cohesion: 0.38
 Nodes (1): OpenAICompatProvider
+
+### Community 20 - "Community 20"
+Cohesion: 0.36
+Nodes (1): AnthropicProvider
 
 ### Community 21 - "Community 21"
 Cohesion: 0.18
@@ -238,16 +245,16 @@ Cohesion: 0.38
 Nodes (8): _check_stop_flag(), _get_task_output_hash(), _get_task_signature(), log_event(), Persistent agent presence loop with execution guardrails.     Fetches tasks, exe, run_loop(), send_notification(), _trigger_circuit_breaker()
 
 ### Community 24 - "Community 24"
+Cohesion: 0.31
+Nodes (1): ContextRetriever
+
+### Community 25 - "Community 25"
 Cohesion: 0.24
 Nodes (1): GraphStore
 
-### Community 25 - "Community 25"
+### Community 26 - "Community 26"
 Cohesion: 0.31
 Nodes (1): CommandManager
-
-### Community 26 - "Community 26"
-Cohesion: 0.42
-Nodes (1): Indexer
 
 ### Community 27 - "Community 27"
 Cohesion: 0.46
@@ -511,38 +518,66 @@ Nodes (1): Interactive wizard to configure AI provider, key, and model.
 
 ### Community 92 - "Community 92"
 Cohesion: 1.0
-Nodes (1): Record error details on a task and set its status.     error_type: 'RETRYABLE' o
+Nodes (1): Print a concise dashboard of swarm health.
 
 ### Community 93 - "Community 93"
 Cohesion: 1.0
-Nodes (1): Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele
+Nodes (1): Run system health checks and diagnostics.
 
 ### Community 94 - "Community 94"
 Cohesion: 1.0
-Nodes (1): Claude Logic: Auto-detect provider or use override.
+Nodes (1): Manage AJA's structured secretary memory.
 
 ### Community 95 - "Community 95"
 Cohesion: 1.0
-Nodes (1): Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.
+Nodes (1): Manage AJA outbound communication drafts.
 
 ### Community 96 - "Community 96"
 Cohesion: 1.0
-Nodes (1): Project Capabilities
+Nodes (1): Run AJA executive reviews.
 
 ### Community 97 - "Community 97"
 Cohesion: 1.0
-Nodes (1): External AI Providers
+Nodes (1): Manage the Worker Capability Registry.
 
 ### Community 98 - "Community 98"
 Cohesion: 1.0
-Nodes (1): Project Post-Mortem
+Nodes (1): Interactive wizard to configure AI provider, key, and model.
 
 ### Community 99 - "Community 99"
+Cohesion: 1.0
+Nodes (1): Record error details on a task and set its status.     error_type: 'RETRYABLE' o
+
+### Community 100 - "Community 100"
+Cohesion: 1.0
+Nodes (1): Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele
+
+### Community 101 - "Community 101"
+Cohesion: 1.0
+Nodes (1): Claude Logic: Auto-detect provider or use override.
+
+### Community 102 - "Community 102"
+Cohesion: 1.0
+Nodes (1): Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.
+
+### Community 103 - "Community 103"
+Cohesion: 1.0
+Nodes (1): Project Capabilities
+
+### Community 104 - "Community 104"
+Cohesion: 1.0
+Nodes (1): External AI Providers
+
+### Community 105 - "Community 105"
+Cohesion: 1.0
+Nodes (1): Project Post-Mortem
+
+### Community 106 - "Community 106"
 Cohesion: 1.0
 Nodes (1): Sandbox Environment
 
 ## Knowledge Gaps
-- **114 isolated node(s):** `AgentX — Unified CLI Entry Point ================================= Usage:   agen`, `Start the interactive SafeShell TUI.`, `Launch API Bridge (background) + Dashboard dev server.`, `Delegate an objective to the SwarmEngine (auto-picks mode).`, `Print a concise dashboard of swarm health.` (+109 more)
+- **121 isolated node(s):** `AgentX — Unified CLI Entry Point ================================= Usage:   agen`, `Start the interactive SafeShell TUI.`, `Launch API Bridge (background) + Dashboard dev server.`, `Delegate an objective to the SwarmEngine (auto-picks mode).`, `Print a concise dashboard of swarm health.` (+116 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 46`** (2 nodes): `test_case.py`, `simulate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -636,34 +671,48 @@ Nodes (1): Sandbox Environment
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 91`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 92`** (1 nodes): `Record error details on a task and set its status.     error_type: 'RETRYABLE' o`
+- **Thin community `Community 92`** (1 nodes): `Print a concise dashboard of swarm health.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 93`** (1 nodes): `Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele`
+- **Thin community `Community 93`** (1 nodes): `Run system health checks and diagnostics.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 94`** (1 nodes): `Claude Logic: Auto-detect provider or use override.`
+- **Thin community `Community 94`** (1 nodes): `Manage AJA's structured secretary memory.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 95`** (1 nodes): `Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.`
+- **Thin community `Community 95`** (1 nodes): `Manage AJA outbound communication drafts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 96`** (1 nodes): `Project Capabilities`
+- **Thin community `Community 96`** (1 nodes): `Run AJA executive reviews.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 97`** (1 nodes): `External AI Providers`
+- **Thin community `Community 97`** (1 nodes): `Manage the Worker Capability Registry.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 98`** (1 nodes): `Project Post-Mortem`
+- **Thin community `Community 98`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 99`** (1 nodes): `Sandbox Environment`
+- **Thin community `Community 99`** (1 nodes): `Record error details on a task and set its status.     error_type: 'RETRYABLE' o`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 100`** (1 nodes): `Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 101`** (1 nodes): `Claude Logic: Auto-detect provider or use override.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 102`** (1 nodes): `Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 103`** (1 nodes): `Project Capabilities`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 104`** (1 nodes): `External AI Providers`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 105`** (1 nodes): `Project Post-Mortem`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 106`** (1 nodes): `Sandbox Environment`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `CommandStripper` connect `Community 0` to `Community 5`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `CommandStripper` connect `Community 0` to `Community 3`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Are the 38 inferred relationships involving `CommandStripper` (e.g. with `Persist an approval audit entry to SQLite (authoritative) and JSONL (debug expor` and `Write a debug snapshot of runtime state to JSON. Not authoritative — SQLite is.`) actually correct?**
   _`CommandStripper` has 38 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 16 inferred relationships involving `ToolGuard` (e.g. with `agentx/skills/skill_executor.py ================================ Phase 8B + 8B.1` and `Create tables needed exclusively by skill_executor (idempotent).`) actually correct?**
   _`ToolGuard` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `AgentX — Unified CLI Entry Point ================================= Usage:   agen`, `Start the interactive SafeShell TUI.`, `Launch API Bridge (background) + Dashboard dev server.` to the rest of the system?**
-  _114 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _121 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

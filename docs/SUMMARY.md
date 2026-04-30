@@ -26,6 +26,7 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Executive Desk Dashboard**: Refactored command center focusing on high-level agenda and delegation oversight.
 - **Resilient Recovery Layer**: SQLite-backed authoritative task tracking, boot-time crash recovery, and atomic tool idempotency guards.
 - **Persistent Presence Loop**: Continuous agent loop with triggers, guardrails, health dashboard, and remote human-in-the-loop approvals.
+- **LLM Decision Engine**: Strategic dispatch layer that chooses optimal execution paths (Skill vs Compose vs Swarm) with hard risk gates and confidence fallbacks.
 
 ### User Experience:
 | What you want | What you type |
@@ -54,6 +55,8 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Execution Constraints**: Mandatory Definition of Done checklists prevent "agent drift" during autonomous missions.
 - **Atomic Tool Idempotency**: `ToolGuard` prevents duplicate side-effects (payments, emails) using database-level reservation locks.
 - **Crash Recovery**: Auto-detection and re-queuing of interrupted tasks ensures no mission is lost to process failures.
+- **LLM Decoupling**: Decision engine cannot directly execute tools or modify DB; it only selects paths for the deterministic pipeline.
+- **Risk-Gated Dispatch**: HIGH risk objectives are automatically routed to ASK/REJECT by the decision engine.
 
 ## Phase 1: Telegram Remote Control
 
@@ -235,4 +238,18 @@ Transitioned from one-off command execution to a robust, continuous agentic runt
 Interfaces:
 - CLI: `agentx run-loop`, `agentx trigger`, `agentx status`, `agentx approve/reject`, `agentx pause-loop/resume-loop`
 - Logic: `agentx/presence/agent_loop.py`, `agentx/presence/trigger_engine.py`, `agentx/presence/state.py`, `agentx/presence/notifier.py`, `agentx/presence/approval.py`
+
+## Phase 10: LLM Decision Engine
+
+Added an LLM-assisted strategy layer to autonomously determine the optimal execution path for any objective without compromising deterministic safety.
+
+- **Strategic Decision Dispatch**: Replaces simple skill matching with a high-level `decide()` function that chooses between `SKILL`, `COMPOSE`, `NEW` (SwarmEngine), `ASK` (clarification), or `REJECT` (unsafe).
+- **Gated LLM Interaction**: Enforces strict JSON schema validation and hard constraints: `HIGH` risk tasks must result in human intervention (`ASK`) or `REJECT`.
+- **System-Aware Context**: Decision logic incorporates top-skill candidates, risk levels, and recent task history to improve reasoning quality.
+- **Fail-Safe Fallbacks**: Low-confidence LLM outputs (<0.6) automatically fall back to the standard deterministic pipeline (`NEW`).
+- **Composition Routing**: Automatically routes multi-step objectives through the `SkillComposer` when composition is the optimal strategy.
+
+Interfaces:
+- Core: Integrated into `agentx run` / `cmd_run` entry point.
+- Logic: `agentx/decision/engine.py`
 

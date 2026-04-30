@@ -72,7 +72,7 @@
       "label": "cmd_status()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L301",
+      "source_location": "L374",
       "id": "agentx_cmd_status",
       "community": 7,
       "norm_label": "cmd_status()"
@@ -81,7 +81,7 @@
       "label": "cmd_doctor()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L385",
+      "source_location": "L458",
       "id": "agentx_cmd_doctor",
       "community": 7,
       "norm_label": "cmd_doctor()"
@@ -90,7 +90,7 @@
       "label": "cmd_memory()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L466",
+      "source_location": "L539",
       "id": "agentx_cmd_memory",
       "community": 7,
       "norm_label": "cmd_memory()"
@@ -99,7 +99,7 @@
       "label": "cmd_message()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L521",
+      "source_location": "L594",
       "id": "agentx_cmd_message",
       "community": 7,
       "norm_label": "cmd_message()"
@@ -108,7 +108,7 @@
       "label": "cmd_review()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L566",
+      "source_location": "L639",
       "id": "agentx_cmd_review",
       "community": 7,
       "norm_label": "cmd_review()"
@@ -117,7 +117,7 @@
       "label": "cmd_worker()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L576",
+      "source_location": "L649",
       "id": "agentx_cmd_worker",
       "community": 7,
       "norm_label": "cmd_worker()"
@@ -126,7 +126,7 @@
       "label": "_show_worker_help()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L717",
+      "source_location": "L790",
       "id": "agentx_show_worker_help",
       "community": 7,
       "norm_label": "_show_worker_help()"
@@ -135,7 +135,7 @@
       "label": "load_config()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L731",
+      "source_location": "L804",
       "id": "agentx_load_config",
       "community": 7,
       "norm_label": "load_config()"
@@ -144,7 +144,7 @@
       "label": "save_config()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L740",
+      "source_location": "L813",
       "id": "agentx_save_config",
       "community": 7,
       "norm_label": "save_config()"
@@ -153,7 +153,7 @@
       "label": "cmd_setup()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L745",
+      "source_location": "L818",
       "id": "agentx_cmd_setup",
       "community": 7,
       "norm_label": "cmd_setup()"
@@ -162,7 +162,7 @@
       "label": "show_help()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L802",
+      "source_location": "L875",
       "id": "agentx_show_help",
       "community": 7,
       "norm_label": "show_help()"
@@ -171,7 +171,7 @@
       "label": "cmd_trigger()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L831",
+      "source_location": "L904",
       "id": "agentx_cmd_trigger",
       "community": 7,
       "norm_label": "cmd_trigger()"
@@ -180,7 +180,7 @@
       "label": "main()",
       "file_type": "code",
       "source_file": "agentx.py",
-      "source_location": "L902",
+      "source_location": "L975",
       "id": "agentx_main",
       "community": 7,
       "norm_label": "main()"
@@ -225,8 +225,8 @@
       "label": "Print a concise dashboard of swarm health.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L302",
-      "id": "agentx_rationale_302",
+      "source_location": "L375",
+      "id": "agentx_rationale_375",
       "community": 7,
       "norm_label": "print a concise dashboard of swarm health."
     },
@@ -234,8 +234,8 @@
       "label": "Run system health checks and diagnostics.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L386",
-      "id": "agentx_rationale_386",
+      "source_location": "L459",
+      "id": "agentx_rationale_459",
       "community": 7,
       "norm_label": "run system health checks and diagnostics."
     },
@@ -243,8 +243,8 @@
       "label": "Manage AJA's structured secretary memory.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L467",
-      "id": "agentx_rationale_467",
+      "source_location": "L540",
+      "id": "agentx_rationale_540",
       "community": 7,
       "norm_label": "manage aja's structured secretary memory."
     },
@@ -252,8 +252,8 @@
       "label": "Manage AJA outbound communication drafts.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L522",
-      "id": "agentx_rationale_522",
+      "source_location": "L595",
+      "id": "agentx_rationale_595",
       "community": 7,
       "norm_label": "manage aja outbound communication drafts."
     },
@@ -261,8 +261,8 @@
       "label": "Run AJA executive reviews.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L567",
-      "id": "agentx_rationale_567",
+      "source_location": "L640",
+      "id": "agentx_rationale_640",
       "community": 7,
       "norm_label": "run aja executive reviews."
     },
@@ -270,8 +270,8 @@
       "label": "Manage the Worker Capability Registry.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L577",
-      "id": "agentx_rationale_577",
+      "source_location": "L650",
+      "id": "agentx_rationale_650",
       "community": 7,
       "norm_label": "manage the worker capability registry."
     },
@@ -279,8 +279,8 @@
       "label": "Interactive wizard to configure AI provider, key, and model.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L746",
-      "id": "agentx_rationale_746",
+      "source_location": "L819",
+      "id": "agentx_rationale_819",
       "community": 7,
       "norm_label": "interactive wizard to configure ai provider, key, and model."
     },
@@ -328,6 +328,96 @@
       "id": "agentx_init_py",
       "community": 63,
       "norm_label": "__init__.py"
+    },
+    {
+      "label": "engine.py",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L1",
+      "id": "agentx_decision_engine_py",
+      "community": 3,
+      "norm_label": "engine.py"
+    },
+    {
+      "label": "DecisionEngine",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L9",
+      "id": "engine_decisionengine",
+      "community": 3,
+      "norm_label": "decisionengine"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L34",
+      "id": "engine_decisionengine_init",
+      "community": 3,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": ".decide()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L40",
+      "id": "engine_decisionengine_decide",
+      "community": 3,
+      "norm_label": ".decide()"
+    },
+    {
+      "label": "._build_prompt()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L64",
+      "id": "engine_decisionengine_build_prompt",
+      "community": 3,
+      "norm_label": "._build_prompt()"
+    },
+    {
+      "label": "._parse_and_validate()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L85",
+      "id": "engine_decisionengine_parse_and_validate",
+      "community": 3,
+      "norm_label": "._parse_and_validate()"
+    },
+    {
+      "label": "decide()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L123",
+      "id": "engine_decide",
+      "community": 3,
+      "norm_label": "decide()"
+    },
+    {
+      "label": "LLM-assisted decision engine for AgentX.     Determines the best execution path",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L10",
+      "id": "engine_rationale_10",
+      "community": 3,
+      "norm_label": "llm-assisted decision engine for agentx.     determines the best execution path"
+    },
+    {
+      "label": "Decide the execution path based on objective and context.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L41",
+      "id": "engine_rationale_41",
+      "community": 3,
+      "norm_label": "decide the execution path based on objective and context."
+    },
+    {
+      "label": "Standalone wrapper for the decision engine.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L124",
+      "id": "engine_rationale_124",
+      "community": 3,
+      "norm_label": "standalone wrapper for the decision engine."
     },
     {
       "label": "recovery.py",
@@ -451,36 +541,36 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L121",
-      "id": "tasks_rationale_121",
       "community": 16,
-      "norm_label": "record error details on a task and set its status.     error_type: 'retryable' o"
+      "norm_label": "record error details on a task and set its status.     error_type: 'retryable' o",
+      "id": "tasks_rationale_121"
     },
     {
       "label": "Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele",
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L143",
-      "id": "tasks_rationale_143",
       "community": 16,
-      "norm_label": "delete completed / failed_permanent tasks older than ttl_days. returns rows dele"
+      "norm_label": "delete completed / failed_permanent tasks older than ttl_days. returns rows dele",
+      "id": "tasks_rationale_143"
     },
     {
       "label": "Fetch tasks for the agent loop: INTERRUPTED first, then PENDING, then FAILED (re",
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L161",
-      "id": "tasks_rationale_161",
       "community": 16,
-      "norm_label": "fetch tasks for the agent loop: interrupted first, then pending, then failed (re"
+      "norm_label": "fetch tasks for the agent loop: interrupted first, then pending, then failed (re",
+      "id": "tasks_rationale_161"
     },
     {
       "label": "Check scheduled_tasks and enqueue them into tasks if due.",
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L187",
-      "id": "tasks_rationale_187",
       "community": 16,
-      "norm_label": "check scheduled_tasks and enqueue them into tasks if due."
+      "norm_label": "check scheduled_tasks and enqueue them into tasks if due.",
+      "id": "tasks_rationale_187"
     },
     {
       "label": "tools.py",
@@ -910,9 +1000,9 @@
       "file_type": "rationale",
       "source_file": "agentx\\presence\\agent_loop.py",
       "source_location": "L71",
-      "id": "agent_loop_rationale_71",
       "community": 23,
-      "norm_label": "persistent agent presence loop with execution guardrails.     fetches tasks, exe"
+      "norm_label": "persistent agent presence loop with execution guardrails.     fetches tasks, exe",
+      "id": "agent_loop_rationale_71"
     },
     {
       "label": "approval.py",
@@ -964,18 +1054,18 @@
       "file_type": "rationale",
       "source_file": "agentx\\presence\\approval.py",
       "source_location": "L18",
-      "id": "approval_rationale_18",
       "community": 30,
-      "norm_label": "pause execution and wait for human approval via file-based polling."
+      "norm_label": "pause execution and wait for human approval via file-based polling.",
+      "id": "approval_rationale_18"
     },
     {
       "label": "CLI interface to approve/reject a task.",
       "file_type": "rationale",
       "source_file": "agentx\\presence\\approval.py",
       "source_location": "L67",
-      "id": "approval_rationale_67",
       "community": 30,
-      "norm_label": "cli interface to approve/reject a task."
+      "norm_label": "cli interface to approve/reject a task.",
+      "id": "approval_rationale_67"
     },
     {
       "label": "notifier.py",
@@ -1018,9 +1108,9 @@
       "file_type": "rationale",
       "source_file": "agentx\\presence\\notifier.py",
       "source_location": "L55",
-      "id": "notifier_rationale_55",
       "community": 33,
-      "norm_label": "supported event types:     - task_completed     - task_failed     - task_stalled"
+      "norm_label": "supported event types:     - task_completed     - task_failed     - task_stalled",
+      "id": "notifier_rationale_55"
     },
     {
       "label": "state.py",
@@ -2360,7 +2450,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L1",
       "id": "scripts_agent_worker_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "agent_worker.py"
     },
     {
@@ -2369,7 +2459,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L11",
       "id": "agent_worker_now_iso",
-      "community": 5,
+      "community": 3,
       "norm_label": "now_iso()"
     },
     {
@@ -2378,7 +2468,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L15",
       "id": "agent_worker_append_baton_history",
-      "community": 5,
+      "community": 3,
       "norm_label": "append_baton_history()"
     },
     {
@@ -2387,7 +2477,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L26",
       "id": "agent_worker_save_baton",
-      "community": 5,
+      "community": 3,
       "norm_label": "save_baton()"
     },
     {
@@ -2396,7 +2486,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L30",
       "id": "agent_worker_work",
-      "community": 5,
+      "community": 3,
       "norm_label": "work()"
     },
     {
@@ -2404,7 +2494,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L31",
-      "community": 5,
+      "community": 3,
       "norm_label": "the worker entry point.     reads a baton file, executes the assigned task, and",
       "id": "agent_worker_rationale_31"
     },
@@ -4122,7 +4212,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L1",
       "id": "scripts_swarm_engine_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "swarm_engine.py"
     },
     {
@@ -4131,7 +4221,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L14",
       "id": "swarm_engine_now_iso",
-      "community": 5,
+      "community": 3,
       "norm_label": "now_iso()"
     },
     {
@@ -4140,7 +4230,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L17",
       "id": "swarm_engine_append_baton_history",
-      "community": 5,
+      "community": 3,
       "norm_label": "append_baton_history()"
     },
     {
@@ -4149,7 +4239,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L25",
       "id": "swarm_engine_write_baton",
-      "community": 5,
+      "community": 3,
       "norm_label": "write_baton()"
     },
     {
@@ -4158,7 +4248,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L28",
       "id": "swarm_engine_swarmengine",
-      "community": 5,
+      "community": 3,
       "norm_label": "swarmengine"
     },
     {
@@ -4167,7 +4257,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L32",
       "id": "swarm_engine_swarmengine_init",
-      "community": 5,
+      "community": 3,
       "norm_label": ".__init__()"
     },
     {
@@ -4176,7 +4266,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L41",
       "id": "swarm_engine_swarmengine_load_config",
-      "community": 5,
+      "community": 3,
       "norm_label": ".load_config()"
     },
     {
@@ -4185,7 +4275,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L48",
       "id": "swarm_engine_swarmengine_deploy_background_swarm",
-      "community": 5,
+      "community": 3,
       "norm_label": ".deploy_background_swarm()"
     },
     {
@@ -4194,7 +4284,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L77",
       "id": "swarm_engine_swarmengine_run_agent_sync",
-      "community": 5,
+      "community": 3,
       "norm_label": "._run_agent_sync()"
     },
     {
@@ -4203,7 +4293,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L92",
       "id": "swarm_engine_swarmengine_launch_parallel_swarm",
-      "community": 5,
+      "community": 3,
       "norm_label": ".launch_parallel_swarm()"
     },
     {
@@ -4212,7 +4302,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L106",
       "id": "swarm_engine_swarmengine_plan_and_execute_batons",
-      "community": 5,
+      "community": 3,
       "norm_label": ".plan_and_execute_batons()"
     },
     {
@@ -4221,7 +4311,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L160",
       "id": "swarm_engine_swarmengine_execute_baton_worker",
-      "community": 5,
+      "community": 3,
       "norm_label": "._execute_baton_worker()"
     },
     {
@@ -4229,7 +4319,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L29",
-      "community": 5,
+      "community": 3,
       "norm_label": "unified swarm engine replacing batonorchestrator, swarmcontroller, and swarmlaun",
       "id": "swarm_engine_rationale_29"
     },
@@ -4319,7 +4409,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L1",
       "id": "scripts_core_gateway_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "gateway.py"
     },
     {
@@ -4328,7 +4418,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L8",
       "id": "gateway_load_providers",
-      "community": 5,
+      "community": 3,
       "norm_label": "load_providers()"
     },
     {
@@ -4337,7 +4427,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L17",
       "id": "gateway_load_config",
-      "community": 5,
+      "community": 3,
       "norm_label": "load_config()"
     },
     {
@@ -4346,7 +4436,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L27",
       "id": "gateway_unifiedgateway",
-      "community": 5,
+      "community": 3,
       "norm_label": "unifiedgateway"
     },
     {
@@ -4355,7 +4445,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L36",
       "id": "gateway_unifiedgateway_init",
-      "community": 5,
+      "community": 3,
       "norm_label": ".__init__()"
     },
     {
@@ -4364,7 +4454,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L54",
       "id": "gateway_unifiedgateway_chat",
-      "community": 5,
+      "community": 3,
       "norm_label": ".chat()"
     },
     {
@@ -4372,7 +4462,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L18",
-      "community": 5,
+      "community": 3,
       "norm_label": "load saved config from .agentx/config.json.",
       "id": "gateway_rationale_18"
     },
@@ -4381,7 +4471,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L28",
-      "community": 5,
+      "community": 3,
       "norm_label": "a unified client for multiple ai model providers.     supports nvidia, groq, to",
       "id": "gateway_rationale_28"
     },
@@ -4390,7 +4480,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L55",
-      "community": 5,
+      "community": 3,
       "norm_label": "simple chat completion.",
       "id": "gateway_rationale_55"
     },
@@ -4508,7 +4598,7 @@
       "source_file": "src\\cli.ts",
       "source_location": "L1",
       "id": "src_cli_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "cli.ts"
     },
     {
@@ -4561,7 +4651,7 @@
       "source_file": "src\\telegram_file_guardian_check.ts",
       "source_location": "L1",
       "id": "src_telegram_file_guardian_check_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "telegram_file_guardian_check.ts"
     },
     {
@@ -4570,7 +4660,7 @@
       "source_file": "src\\telegram_file_guardian_check.ts",
       "source_location": "L3",
       "id": "telegram_file_guardian_check_main",
-      "community": 3,
+      "community": 4,
       "norm_label": "main()"
     },
     {
@@ -4633,7 +4723,7 @@
       "source_file": "src\\commands\\ask.ts",
       "source_location": "L1",
       "id": "src_commands_ask_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "ask.ts"
     },
     {
@@ -4642,7 +4732,7 @@
       "source_file": "src\\commands\\ask.ts",
       "source_location": "L11",
       "id": "ask_askcommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "askcommand()"
     },
     {
@@ -4651,7 +4741,7 @@
       "source_file": "src\\commands\\code.ts",
       "source_location": "L1",
       "id": "src_commands_code_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "code.ts"
     },
     {
@@ -4660,7 +4750,7 @@
       "source_file": "src\\commands\\code.ts",
       "source_location": "L13",
       "id": "code_codecommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "codecommand()"
     },
     {
@@ -4687,7 +4777,7 @@
       "source_file": "src\\commands\\explain.ts",
       "source_location": "L1",
       "id": "src_commands_explain_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "explain.ts"
     },
     {
@@ -4696,7 +4786,7 @@
       "source_file": "src\\commands\\explain.ts",
       "source_location": "L14",
       "id": "explain_findtarget",
-      "community": 3,
+      "community": 4,
       "norm_label": "findtarget()"
     },
     {
@@ -4705,7 +4795,7 @@
       "source_file": "src\\commands\\explain.ts",
       "source_location": "L50",
       "id": "explain_readcontextaround",
-      "community": 3,
+      "community": 4,
       "norm_label": "readcontextaround()"
     },
     {
@@ -4714,7 +4804,7 @@
       "source_file": "src\\commands\\explain.ts",
       "source_location": "L62",
       "id": "explain_explaincommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "explaincommand()"
     },
     {
@@ -4723,7 +4813,7 @@
       "source_file": "src\\commands\\fix.ts",
       "source_location": "L1",
       "id": "src_commands_fix_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "fix.ts"
     },
     {
@@ -4732,7 +4822,7 @@
       "source_file": "src\\commands\\fix.ts",
       "source_location": "L14",
       "id": "fix_getfileerrors",
-      "community": 3,
+      "community": 4,
       "norm_label": "getfileerrors()"
     },
     {
@@ -4741,7 +4831,7 @@
       "source_file": "src\\commands\\fix.ts",
       "source_location": "L41",
       "id": "fix_fixcommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "fixcommand()"
     },
     {
@@ -4750,7 +4840,7 @@
       "source_file": "src\\commands\\impact.ts",
       "source_location": "L1",
       "id": "src_commands_impact_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "impact.ts"
     },
     {
@@ -4759,7 +4849,7 @@
       "source_file": "src\\commands\\impact.ts",
       "source_location": "L19",
       "id": "impact_impactcommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "impactcommand()"
     },
     {
@@ -4768,7 +4858,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L1",
       "id": "src_commands_index_ts",
-      "community": 25,
+      "community": 26,
       "norm_label": "index.ts"
     },
     {
@@ -4777,7 +4867,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L18",
       "id": "index_commandmanager",
-      "community": 25,
+      "community": 26,
       "norm_label": "commandmanager"
     },
     {
@@ -4786,7 +4876,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L19",
       "id": "index_commandmanager_constructor",
-      "community": 25,
+      "community": 26,
       "norm_label": ".constructor()"
     },
     {
@@ -4795,7 +4885,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L65",
       "id": "index_commandmanager_iscommand",
-      "community": 25,
+      "community": 26,
       "norm_label": ".iscommand()"
     },
     {
@@ -4804,7 +4894,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L69",
       "id": "index_commandmanager_listcommands",
-      "community": 25,
+      "community": 26,
       "norm_label": ".listcommands()"
     },
     {
@@ -4813,7 +4903,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L73",
       "id": "index_commandmanager_execute",
-      "community": 25,
+      "community": 26,
       "norm_label": ".execute()"
     },
     {
@@ -4822,7 +4912,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L105",
       "id": "index_commandmanager_handlevaultcommand",
-      "community": 25,
+      "community": 26,
       "norm_label": ".handlevaultcommand()"
     },
     {
@@ -4831,7 +4921,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L162",
       "id": "index_commandmanager_handlecostmodecommand",
-      "community": 25,
+      "community": 26,
       "norm_label": ".handlecostmodecommand()"
     },
     {
@@ -4840,7 +4930,7 @@
       "source_file": "src\\commands\\index.ts",
       "source_location": "L191",
       "id": "index_commandmanager_handlecostcommand",
-      "community": 25,
+      "community": 26,
       "norm_label": ".handlecostcommand()"
     },
     {
@@ -4849,7 +4939,7 @@
       "source_file": "src\\commands\\map.ts",
       "source_location": "L1",
       "id": "src_commands_map_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "map.ts"
     },
     {
@@ -4858,7 +4948,7 @@
       "source_file": "src\\commands\\map.ts",
       "source_location": "L16",
       "id": "map_mapcommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "mapcommand()"
     },
     {
@@ -4867,7 +4957,7 @@
       "source_file": "src\\commands\\review.ts",
       "source_location": "L1",
       "id": "src_commands_review_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "review.ts"
     },
     {
@@ -4876,7 +4966,7 @@
       "source_file": "src\\commands\\review.ts",
       "source_location": "L13",
       "id": "review_getgitdiff",
-      "community": 3,
+      "community": 4,
       "norm_label": "getgitdiff()"
     },
     {
@@ -4885,7 +4975,7 @@
       "source_file": "src\\commands\\review.ts",
       "source_location": "L33",
       "id": "review_reviewcommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "reviewcommand()"
     },
     {
@@ -4894,7 +4984,7 @@
       "source_file": "src\\commands\\shared.ts",
       "source_location": "L1",
       "id": "src_commands_shared_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "shared.ts"
     },
     {
@@ -4903,7 +4993,7 @@
       "source_file": "src\\commands\\shared.ts",
       "source_location": "L19",
       "id": "shared_printcost",
-      "community": 3,
+      "community": 4,
       "norm_label": "printcost()"
     },
     {
@@ -4912,7 +5002,7 @@
       "source_file": "src\\commands\\shared.ts",
       "source_location": "L26",
       "id": "shared_createclient",
-      "community": 3,
+      "community": 4,
       "norm_label": "createclient()"
     },
     {
@@ -4921,7 +5011,7 @@
       "source_file": "src\\commands\\shared.ts",
       "source_location": "L44",
       "id": "shared_getgraphcontext",
-      "community": 3,
+      "community": 4,
       "norm_label": "getgraphcontext()"
     },
     {
@@ -4930,7 +5020,7 @@
       "source_file": "src\\commands\\trace.ts",
       "source_location": "L1",
       "id": "src_commands_trace_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "trace.ts"
     },
     {
@@ -4939,7 +5029,7 @@
       "source_file": "src\\commands\\trace.ts",
       "source_location": "L19",
       "id": "trace_tracecommand",
-      "community": 3,
+      "community": 4,
       "norm_label": "tracecommand()"
     },
     {
@@ -5164,7 +5254,7 @@
       "source_file": "src\\engine\\executionModes.ts",
       "source_location": "L1",
       "id": "src_engine_executionmodes_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "executionmodes.ts"
     },
     {
@@ -5173,7 +5263,7 @@
       "source_file": "src\\engine\\executionModes.ts",
       "source_location": "L106",
       "id": "executionmodes_isfilesafeforautoedit",
-      "community": 3,
+      "community": 4,
       "norm_label": "isfilesafeforautoedit()"
     },
     {
@@ -5182,7 +5272,7 @@
       "source_file": "src\\engine\\executionModes.ts",
       "source_location": "L121",
       "id": "executionmodes_checkmodepermission",
-      "community": 3,
+      "community": 4,
       "norm_label": "checkmodepermission()"
     },
     {
@@ -5191,7 +5281,7 @@
       "source_file": "src\\engine\\executionModes.ts",
       "source_location": "L169",
       "id": "executionmodes_getdefaultmode",
-      "community": 3,
+      "community": 4,
       "norm_label": "getdefaultmode()"
     },
     {
@@ -5200,7 +5290,7 @@
       "source_file": "src\\engine\\FileGuardian.ts",
       "source_location": "L1",
       "id": "src_engine_fileguardian_ts",
-      "community": 3,
+      "community": 4,
       "norm_label": "fileguardian.ts"
     },
     {
@@ -5209,7 +5299,7 @@
       "source_file": "src\\engine\\FileGuardian.ts",
       "source_location": "L25",
       "id": "fileguardian_loadcustomsafepaths",
-      "community": 3,
+      "community": 4,
       "norm_label": "loadcustomsafepaths()"
     },
     {
@@ -5218,7 +5308,7 @@
       "source_file": "src\\engine\\FileGuardian.ts",
       "source_location": "L36",
       "id": "fileguardian_validatefileoperation",
-      "community": 3,
+      "community": 4,
       "norm_label": "validatefileoperation()"
     },
     {
@@ -5227,7 +5317,7 @@
       "source_file": "src\\engine\\FileGuardian.ts",
       "source_location": "L65",
       "id": "fileguardian_isfileautonomoussafe",
-      "community": 3,
+      "community": 4,
       "norm_label": "isfileautonomoussafe()"
     },
     {
@@ -5468,7 +5558,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L1",
       "id": "src_graph_indexer_ts",
-      "community": 4,
+      "community": 5,
       "norm_label": "indexer.ts"
     },
     {
@@ -5477,7 +5567,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L34",
       "id": "indexer_indexer",
-      "community": 26,
+      "community": 5,
       "norm_label": "indexer"
     },
     {
@@ -5486,7 +5576,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L38",
       "id": "indexer_indexer_constructor",
-      "community": 26,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -5495,7 +5585,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L46",
       "id": "indexer_indexer_fullindex",
-      "community": 26,
+      "community": 5,
       "norm_label": ".fullindex()"
     },
     {
@@ -5504,7 +5594,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L87",
       "id": "indexer_indexer_incrementalindex",
-      "community": 26,
+      "community": 5,
       "norm_label": ".incrementalindex()"
     },
     {
@@ -5513,7 +5603,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L164",
       "id": "indexer_indexer_getorbuildgraph",
-      "community": 26,
+      "community": 5,
       "norm_label": ".getorbuildgraph()"
     },
     {
@@ -5522,7 +5612,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L173",
       "id": "indexer_indexer_getstore",
-      "community": 26,
+      "community": 5,
       "norm_label": ".getstore()"
     },
     {
@@ -5531,7 +5621,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L179",
       "id": "indexer_indexer_walkproject",
-      "community": 26,
+      "community": 5,
       "norm_label": ".walkproject()"
     },
     {
@@ -5540,7 +5630,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L185",
       "id": "indexer_indexer_walkdir",
-      "community": 26,
+      "community": 5,
       "norm_label": ".walkdir()"
     },
     {
@@ -5549,7 +5639,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L208",
       "id": "indexer_indexer_resolvewildcards",
-      "community": 26,
+      "community": 5,
       "norm_label": ".resolvewildcards()"
     },
     {
@@ -5558,7 +5648,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L1",
       "id": "src_graph_parser_ts",
-      "community": 4,
+      "community": 5,
       "norm_label": "parser.ts"
     },
     {
@@ -5567,7 +5657,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L20",
       "id": "parser_detectlanguage",
-      "community": 4,
+      "community": 5,
       "norm_label": "detectlanguage()"
     },
     {
@@ -5576,7 +5666,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L33",
       "id": "parser_hashcontent",
-      "community": 4,
+      "community": 5,
       "norm_label": "hashcontent()"
     },
     {
@@ -5585,7 +5675,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L87",
       "id": "parser_parsefile",
-      "community": 4,
+      "community": 5,
       "norm_label": "parsefile()"
     },
     {
@@ -5594,7 +5684,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L128",
       "id": "parser_parsetsjs",
-      "community": 4,
+      "community": 5,
       "norm_label": "parsetsjs()"
     },
     {
@@ -5603,7 +5693,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L263",
       "id": "parser_parsepython",
-      "community": 4,
+      "community": 5,
       "norm_label": "parsepython()"
     },
     {
@@ -5612,7 +5702,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L310",
       "id": "parser_parsejson",
-      "community": 4,
+      "community": 5,
       "norm_label": "parsejson()"
     },
     {
@@ -5621,7 +5711,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L324",
       "id": "parser_detectcalls",
-      "community": 4,
+      "community": 5,
       "norm_label": "detectcalls()"
     },
     {
@@ -5630,7 +5720,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L345",
       "id": "parser_lineof",
-      "community": 4,
+      "community": 5,
       "norm_label": "lineof()"
     },
     {
@@ -5639,7 +5729,7 @@
       "source_file": "src\\graph\\parser.ts",
       "source_location": "L349",
       "id": "parser_resolveimportpath",
-      "community": 4,
+      "community": 5,
       "norm_label": "resolveimportpath()"
     },
     {
@@ -5648,7 +5738,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L1",
       "id": "src_graph_query_ts",
-      "community": 4,
+      "community": 5,
       "norm_label": "query.ts"
     },
     {
@@ -5657,7 +5747,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L13",
       "id": "query_graphquery",
-      "community": 4,
+      "community": 5,
       "norm_label": "graphquery"
     },
     {
@@ -5666,7 +5756,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L18",
       "id": "query_graphquery_constructor",
-      "community": 4,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -5675,7 +5765,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L37",
       "id": "query_graphquery_search",
-      "community": 4,
+      "community": 5,
       "norm_label": ".search()"
     },
     {
@@ -5684,7 +5774,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L74",
       "id": "query_graphquery_trace",
-      "community": 4,
+      "community": 5,
       "norm_label": ".trace()"
     },
     {
@@ -5693,7 +5783,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L134",
       "id": "query_graphquery_impact",
-      "community": 4,
+      "community": 5,
       "norm_label": ".impact()"
     },
     {
@@ -5702,7 +5792,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L205",
       "id": "query_graphquery_related",
-      "community": 4,
+      "community": 5,
       "norm_label": ".related()"
     },
     {
@@ -5711,7 +5801,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L238",
       "id": "query_graphquery_reposummary",
-      "community": 4,
+      "community": 5,
       "norm_label": ".reposummary()"
     },
     {
@@ -5720,7 +5810,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L298",
       "id": "query_graphquery_formattracesummary",
-      "community": 4,
+      "community": 5,
       "norm_label": ".formattracesummary()"
     },
     {
@@ -5729,7 +5819,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L311",
       "id": "query_graphquery_formatimpactsummary",
-      "community": 4,
+      "community": 5,
       "norm_label": ".formatimpactsummary()"
     },
     {
@@ -5738,7 +5828,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L1",
       "id": "src_graph_retriever_ts",
-      "community": 4,
+      "community": 5,
       "norm_label": "retriever.ts"
     },
     {
@@ -5747,7 +5837,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L22",
       "id": "retriever_contextretriever",
-      "community": 4,
+      "community": 24,
       "norm_label": "contextretriever"
     },
     {
@@ -5756,7 +5846,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L26",
       "id": "retriever_contextretriever_constructor",
-      "community": 4,
+      "community": 24,
       "norm_label": ".constructor()"
     },
     {
@@ -5765,7 +5855,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L35",
       "id": "retriever_contextretriever_retrieve",
-      "community": 4,
+      "community": 24,
       "norm_label": ".retrieve()"
     },
     {
@@ -5774,7 +5864,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L112",
       "id": "retriever_contextretriever_formatforllm",
-      "community": 4,
+      "community": 24,
       "norm_label": ".formatforllm()"
     },
     {
@@ -5783,7 +5873,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L131",
       "id": "retriever_contextretriever_hasrelevantcontext",
-      "community": 4,
+      "community": 24,
       "norm_label": ".hasrelevantcontext()"
     },
     {
@@ -5792,7 +5882,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L141",
       "id": "retriever_contextretriever_getqueryengine",
-      "community": 4,
+      "community": 24,
       "norm_label": ".getqueryengine()"
     },
     {
@@ -5801,7 +5891,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L147",
       "id": "retriever_contextretriever_extractkeywords",
-      "community": 4,
+      "community": 24,
       "norm_label": ".extractkeywords()"
     },
     {
@@ -5810,7 +5900,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L168",
       "id": "retriever_contextretriever_scorematch",
-      "community": 4,
+      "community": 24,
       "norm_label": ".scorematch()"
     },
     {
@@ -5819,7 +5909,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L192",
       "id": "retriever_contextretriever_readfile",
-      "community": 4,
+      "community": 24,
       "norm_label": ".readfile()"
     },
     {
@@ -5828,7 +5918,7 @@
       "source_file": "src\\graph\\retriever.ts",
       "source_location": "L206",
       "id": "retriever_contextretriever_extractrelevantsections",
-      "community": 4,
+      "community": 24,
       "norm_label": ".extractrelevantsections()"
     },
     {
@@ -5837,7 +5927,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L1",
       "id": "src_graph_store_ts",
-      "community": 4,
+      "community": 5,
       "norm_label": "store.ts"
     },
     {
@@ -5846,7 +5936,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L15",
       "id": "store_graphstore",
-      "community": 24,
+      "community": 25,
       "norm_label": "graphstore"
     },
     {
@@ -5855,7 +5945,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L19",
       "id": "store_graphstore_constructor",
-      "community": 24,
+      "community": 25,
       "norm_label": ".constructor()"
     },
     {
@@ -5864,7 +5954,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L29",
       "id": "store_graphstore_load",
-      "community": 24,
+      "community": 25,
       "norm_label": ".load()"
     },
     {
@@ -5873,7 +5963,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L48",
       "id": "store_graphstore_save",
-      "community": 24,
+      "community": 25,
       "norm_label": ".save()"
     },
     {
@@ -5882,7 +5972,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L65",
       "id": "store_graphstore_createempty",
-      "community": 24,
+      "community": 25,
       "norm_label": ".createempty()"
     },
     {
@@ -5891,7 +5981,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L81",
       "id": "store_graphstore_merge",
-      "community": 24,
+      "community": 25,
       "norm_label": ".merge()"
     },
     {
@@ -5900,7 +5990,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L113",
       "id": "store_graphstore_computestats",
-      "community": 24,
+      "community": 25,
       "norm_label": ".computestats()"
     },
     {
@@ -5909,7 +5999,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L127",
       "id": "store_graphstore_emptystats",
-      "community": 24,
+      "community": 25,
       "norm_label": ".emptystats()"
     },
     {
@@ -5918,7 +6008,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L134",
       "id": "store_graphstore_getgraphpath",
-      "community": 24,
+      "community": 25,
       "norm_label": ".getgraphpath()"
     },
     {
@@ -5927,7 +6017,7 @@
       "source_file": "src\\graph\\store.ts",
       "source_location": "L141",
       "id": "store_graphstore_exists",
-      "community": 24,
+      "community": 25,
       "norm_label": ".exists()"
     },
     {
@@ -5936,7 +6026,7 @@
       "source_file": "src\\graph\\types.ts",
       "source_location": "L1",
       "id": "src_graph_types_ts",
-      "community": 4,
+      "community": 5,
       "norm_label": "types.ts"
     },
     {
@@ -5972,7 +6062,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L25",
       "id": "anthropic_anthropicprovider",
-      "community": 19,
+      "community": 20,
       "norm_label": "anthropicprovider"
     },
     {
@@ -5981,7 +6071,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L36",
       "id": "anthropic_anthropicprovider_constructor",
-      "community": 19,
+      "community": 20,
       "norm_label": ".constructor()"
     },
     {
@@ -5990,7 +6080,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L43",
       "id": "anthropic_anthropicprovider_chat",
-      "community": 19,
+      "community": 20,
       "norm_label": ".chat()"
     },
     {
@@ -5999,7 +6089,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L64",
       "id": "anthropic_anthropicprovider_complete",
-      "community": 19,
+      "community": 20,
       "norm_label": ".complete()"
     },
     {
@@ -6008,7 +6098,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L68",
       "id": "anthropic_anthropicprovider_stream",
-      "community": 19,
+      "community": 20,
       "norm_label": ".stream()"
     },
     {
@@ -6017,7 +6107,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L108",
       "id": "anthropic_anthropicprovider_toolcall",
-      "community": 19,
+      "community": 20,
       "norm_label": ".toolcall()"
     },
     {
@@ -6026,7 +6116,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L124",
       "id": "anthropic_anthropicprovider_embeddings",
-      "community": 19,
+      "community": 20,
       "norm_label": ".embeddings()"
     },
     {
@@ -6035,7 +6125,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L130",
       "id": "anthropic_anthropicprovider_splitmessages",
-      "community": 19,
+      "community": 20,
       "norm_label": ".splitmessages()"
     },
     {
@@ -6044,7 +6134,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L141",
       "id": "anthropic_anthropicprovider_extractusage",
-      "community": 19,
+      "community": 20,
       "norm_label": ".extractusage()"
     },
     {
@@ -6053,7 +6143,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L145",
       "id": "anthropic_anthropicprovider_headers",
-      "community": 19,
+      "community": 20,
       "norm_label": ".headers()"
     },
     {
@@ -6062,7 +6152,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L149",
       "id": "anthropic_anthropicprovider_post",
-      "community": 19,
+      "community": 20,
       "norm_label": ".post()"
     },
     {
@@ -6377,7 +6467,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L29",
       "id": "openai_compat_openaicompatprovider",
-      "community": 20,
+      "community": 19,
       "norm_label": "openaicompatprovider"
     },
     {
@@ -6386,7 +6476,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L41",
       "id": "openai_compat_openaicompatprovider_constructor",
-      "community": 20,
+      "community": 19,
       "norm_label": ".constructor()"
     },
     {
@@ -6395,7 +6485,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L52",
       "id": "openai_compat_openaicompatprovider_chat",
-      "community": 20,
+      "community": 19,
       "norm_label": ".chat()"
     },
     {
@@ -6404,7 +6494,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L84",
       "id": "openai_compat_openaicompatprovider_complete",
-      "community": 20,
+      "community": 19,
       "norm_label": ".complete()"
     },
     {
@@ -6413,7 +6503,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L94",
       "id": "openai_compat_openaicompatprovider_stream",
-      "community": 20,
+      "community": 19,
       "norm_label": ".stream()"
     },
     {
@@ -6422,7 +6512,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L174",
       "id": "openai_compat_openaicompatprovider_toolcall",
-      "community": 20,
+      "community": 19,
       "norm_label": ".toolcall()"
     },
     {
@@ -6431,7 +6521,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L217",
       "id": "openai_compat_openaicompatprovider_embeddings",
-      "community": 20,
+      "community": 19,
       "norm_label": ".embeddings()"
     },
     {
@@ -6440,7 +6530,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L230",
       "id": "openai_compat_openaicompatprovider_formatmessages",
-      "community": 20,
+      "community": 19,
       "norm_label": ".formatmessages()"
     },
     {
@@ -6449,7 +6539,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L253",
       "id": "openai_compat_openaicompatprovider_buildheaders",
-      "community": 20,
+      "community": 19,
       "norm_label": ".buildheaders()"
     },
     {
@@ -6458,7 +6548,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L264",
       "id": "openai_compat_openaicompatprovider_post",
-      "community": 20,
+      "community": 19,
       "norm_label": ".post()"
     },
     {
@@ -6467,7 +6557,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L281",
       "id": "openai_compat_openaicompatprovider_mapfinishreason",
-      "community": 20,
+      "community": 19,
       "norm_label": ".mapfinishreason()"
     },
     {
@@ -7325,8 +7415,71 @@
       "label": "Print a concise dashboard of swarm health.",
       "file_type": "rationale",
       "source_file": "agentx.py",
-      "source_location": "L268",
+      "source_location": "L302",
       "community": 85,
+      "norm_label": "print a concise dashboard of swarm health.",
+      "id": "agentx_rationale_302"
+    },
+    {
+      "label": "Run system health checks and diagnostics.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L386",
+      "community": 86,
+      "norm_label": "run system health checks and diagnostics.",
+      "id": "agentx_rationale_386"
+    },
+    {
+      "label": "Manage AJA's structured secretary memory.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L467",
+      "community": 87,
+      "norm_label": "manage aja's structured secretary memory.",
+      "id": "agentx_rationale_467"
+    },
+    {
+      "label": "Manage AJA outbound communication drafts.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L522",
+      "community": 88,
+      "norm_label": "manage aja outbound communication drafts.",
+      "id": "agentx_rationale_522"
+    },
+    {
+      "label": "Run AJA executive reviews.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L567",
+      "community": 89,
+      "norm_label": "run aja executive reviews.",
+      "id": "agentx_rationale_567"
+    },
+    {
+      "label": "Manage the Worker Capability Registry.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L577",
+      "community": 90,
+      "norm_label": "manage the worker capability registry.",
+      "id": "agentx_rationale_577"
+    },
+    {
+      "label": "Interactive wizard to configure AI provider, key, and model.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L746",
+      "community": 91,
+      "norm_label": "interactive wizard to configure ai provider, key, and model.",
+      "id": "agentx_rationale_746"
+    },
+    {
+      "label": "Print a concise dashboard of swarm health.",
+      "file_type": "rationale",
+      "source_file": "agentx.py",
+      "source_location": "L268",
+      "community": 92,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_268"
     },
@@ -7335,7 +7488,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L322",
-      "community": 86,
+      "community": 93,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_322"
     },
@@ -7344,7 +7497,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L403",
-      "community": 87,
+      "community": 94,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_403"
     },
@@ -7353,7 +7506,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L458",
-      "community": 88,
+      "community": 95,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_458"
     },
@@ -7362,7 +7515,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L503",
-      "community": 89,
+      "community": 96,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_503"
     },
@@ -7371,7 +7524,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L513",
-      "community": 90,
+      "community": 97,
       "norm_label": "manage the worker capability registry.",
       "id": "agentx_rationale_513"
     },
@@ -7380,7 +7533,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L682",
-      "community": 91,
+      "community": 98,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_682"
     },
@@ -7389,7 +7542,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L109",
-      "community": 92,
+      "community": 99,
       "norm_label": "record error details on a task and set its status.     error_type: 'retryable' o",
       "id": "tasks_rationale_109"
     },
@@ -7398,7 +7551,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L131",
-      "community": 93,
+      "community": 100,
       "norm_label": "delete completed / failed_permanent tasks older than ttl_days. returns rows dele",
       "id": "tasks_rationale_131"
     },
@@ -7407,7 +7560,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\proxy_server.py",
       "source_location": "L34",
-      "community": 94,
+      "community": 101,
       "norm_label": "claude logic: auto-detect provider or use override.",
       "id": "proxy_server_rationale_34"
     },
@@ -7416,7 +7569,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\proxy_server.py",
       "source_location": "L53",
-      "community": 95,
+      "community": 102,
       "norm_label": "enhanced proxy with claude-inspired fail-open and auto-routing.",
       "id": "proxy_server_rationale_53"
     },
@@ -7425,7 +7578,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\safe_shell.py",
       "source_location": "L8",
-      "community": 5,
+      "community": 3,
       "norm_label": "an integrated 'safe shell' that inspects commands using claude-style stripping",
       "id": "safe_shell_rationale_8"
     },
@@ -7434,7 +7587,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L12",
-      "community": 5,
+      "community": 3,
       "norm_label": "a panel to display ai risk analysis.",
       "id": "tui_shell_rationale_12"
     },
@@ -7443,7 +7596,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L18",
-      "community": 5,
+      "community": 3,
       "norm_label": "a premium tui for safeshell.",
       "id": "tui_shell_rationale_18"
     },
@@ -7491,7 +7644,7 @@
       "label": "Project Capabilities",
       "file_type": "document",
       "source_file": "docs/CAPABILITIES.md",
-      "community": 96,
+      "community": 103,
       "norm_label": "project capabilities",
       "id": "doc_capabilities"
     },
@@ -7499,7 +7652,7 @@
       "label": "External AI Providers",
       "file_type": "document",
       "source_file": "docs/EXTERNAL_MODEL_PROVIDERS.md",
-      "community": 97,
+      "community": 104,
       "norm_label": "external ai providers",
       "id": "doc_external_providers"
     },
@@ -7523,7 +7676,7 @@
       "label": "Project Post-Mortem",
       "file_type": "document",
       "source_file": "docs/POST_MORTEM.md",
-      "community": 98,
+      "community": 105,
       "norm_label": "project post-mortem",
       "id": "doc_post_mortem"
     },
@@ -7539,7 +7692,7 @@
       "label": "Sandbox Environment",
       "file_type": "document",
       "source_file": "docs/SANDBOX_ENVIRONMENT.md",
-      "community": 99,
+      "community": 106,
       "norm_label": "sandbox environment",
       "id": "doc_sandbox"
     },
@@ -7601,7 +7754,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L301",
+      "source_location": "L374",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_status",
@@ -7613,7 +7766,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L385",
+      "source_location": "L458",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_doctor",
@@ -7625,7 +7778,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L466",
+      "source_location": "L539",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_memory",
@@ -7637,7 +7790,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L521",
+      "source_location": "L594",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_message",
@@ -7649,7 +7802,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L566",
+      "source_location": "L639",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_review",
@@ -7661,7 +7814,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L576",
+      "source_location": "L649",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_worker",
@@ -7673,7 +7826,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L717",
+      "source_location": "L790",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_show_worker_help",
@@ -7685,7 +7838,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L731",
+      "source_location": "L804",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_load_config",
@@ -7697,7 +7850,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L740",
+      "source_location": "L813",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_save_config",
@@ -7709,7 +7862,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L745",
+      "source_location": "L818",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_setup",
@@ -7721,7 +7874,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L802",
+      "source_location": "L875",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_show_help",
@@ -7733,7 +7886,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L831",
+      "source_location": "L904",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_cmd_trigger",
@@ -7745,7 +7898,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L902",
+      "source_location": "L975",
       "weight": 1.0,
       "_src": "agentx_py",
       "_tgt": "agentx_main",
@@ -7769,7 +7922,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L926",
+      "source_location": "L999",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_ui",
@@ -7793,7 +7946,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L934",
+      "source_location": "L1007",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_dash",
@@ -7817,7 +7970,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L910",
+      "source_location": "L983",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_run",
@@ -7841,7 +7994,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L953",
+      "source_location": "L1026",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_status",
@@ -7853,19 +8006,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L302",
+      "source_location": "L375",
       "weight": 1.0,
-      "_src": "agentx_rationale_302",
+      "_src": "agentx_rationale_375",
       "_tgt": "agentx_cmd_status",
       "source": "agentx_cmd_status",
-      "target": "agentx_rationale_302",
+      "target": "agentx_rationale_375",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L422",
+      "source_location": "L495",
       "weight": 1.0,
       "_src": "agentx_cmd_doctor",
       "_tgt": "agentx_load_config",
@@ -7877,7 +8030,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L957",
+      "source_location": "L1030",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_doctor",
@@ -7889,19 +8042,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L386",
+      "source_location": "L459",
       "weight": 1.0,
-      "_src": "agentx_rationale_386",
+      "_src": "agentx_rationale_459",
       "_tgt": "agentx_cmd_doctor",
       "source": "agentx_cmd_doctor",
-      "target": "agentx_rationale_386",
+      "target": "agentx_rationale_459",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L959",
+      "source_location": "L1032",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_memory",
@@ -7913,19 +8066,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L467",
+      "source_location": "L540",
       "weight": 1.0,
-      "_src": "agentx_rationale_467",
+      "_src": "agentx_rationale_540",
       "_tgt": "agentx_cmd_memory",
       "source": "agentx_cmd_memory",
-      "target": "agentx_rationale_467",
+      "target": "agentx_rationale_540",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L961",
+      "source_location": "L1034",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_message",
@@ -7937,19 +8090,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L522",
+      "source_location": "L595",
       "weight": 1.0,
-      "_src": "agentx_rationale_522",
+      "_src": "agentx_rationale_595",
       "_tgt": "agentx_cmd_message",
       "source": "agentx_cmd_message",
-      "target": "agentx_rationale_522",
+      "target": "agentx_rationale_595",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L963",
+      "source_location": "L1036",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_review",
@@ -7961,19 +8114,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L567",
+      "source_location": "L640",
       "weight": 1.0,
-      "_src": "agentx_rationale_567",
+      "_src": "agentx_rationale_640",
       "_tgt": "agentx_cmd_review",
       "source": "agentx_cmd_review",
-      "target": "agentx_rationale_567",
+      "target": "agentx_rationale_640",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L584",
+      "source_location": "L657",
       "weight": 1.0,
       "_src": "agentx_cmd_worker",
       "_tgt": "agentx_show_worker_help",
@@ -7985,7 +8138,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L965",
+      "source_location": "L1038",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_worker",
@@ -7997,19 +8150,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L577",
+      "source_location": "L650",
       "weight": 1.0,
-      "_src": "agentx_rationale_577",
+      "_src": "agentx_rationale_650",
       "_tgt": "agentx_cmd_worker",
       "source": "agentx_cmd_worker",
-      "target": "agentx_rationale_577",
+      "target": "agentx_rationale_650",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L754",
+      "source_location": "L827",
       "weight": 1.0,
       "_src": "agentx_cmd_setup",
       "_tgt": "agentx_load_config",
@@ -8021,7 +8174,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L795",
+      "source_location": "L868",
       "weight": 1.0,
       "_src": "agentx_cmd_setup",
       "_tgt": "agentx_save_config",
@@ -8033,7 +8186,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L955",
+      "source_location": "L1028",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_setup",
@@ -8045,19 +8198,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L746",
+      "source_location": "L819",
       "weight": 1.0,
-      "_src": "agentx_rationale_746",
+      "_src": "agentx_rationale_819",
       "_tgt": "agentx_cmd_setup",
       "source": "agentx_cmd_setup",
-      "target": "agentx_rationale_746",
+      "target": "agentx_rationale_819",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L932",
+      "source_location": "L1005",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_show_help",
@@ -8069,7 +8222,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx.py",
-      "source_location": "L967",
+      "source_location": "L1040",
       "weight": 1.0,
       "_src": "agentx_main",
       "_tgt": "agentx_cmd_trigger",
@@ -8100,6 +8253,198 @@
       "source": "test_worker_registry_py",
       "target": "test_worker_registry_rationale_1",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "agentx_decision_engine_py",
+      "_tgt": "engine_decisionengine",
+      "source": "agentx_decision_engine_py",
+      "target": "engine_decisionengine",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L123",
+      "weight": 1.0,
+      "_src": "agentx_decision_engine_py",
+      "_tgt": "engine_decide",
+      "source": "agentx_decision_engine_py",
+      "target": "engine_decide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_src": "engine_decisionengine",
+      "_tgt": "engine_decisionengine_init",
+      "source": "engine_decisionengine",
+      "target": "engine_decisionengine_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L40",
+      "weight": 1.0,
+      "_src": "engine_decisionengine",
+      "_tgt": "engine_decisionengine_decide",
+      "source": "engine_decisionengine",
+      "target": "engine_decisionengine_decide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L64",
+      "weight": 1.0,
+      "_src": "engine_decisionengine",
+      "_tgt": "engine_decisionengine_build_prompt",
+      "source": "engine_decisionengine",
+      "target": "engine_decisionengine_build_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L85",
+      "weight": 1.0,
+      "_src": "engine_decisionengine",
+      "_tgt": "engine_decisionengine_parse_and_validate",
+      "source": "engine_decisionengine",
+      "target": "engine_decisionengine_parse_and_validate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L125",
+      "weight": 1.0,
+      "_src": "engine_decide",
+      "_tgt": "engine_decisionengine",
+      "source": "engine_decisionengine",
+      "target": "engine_decide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_src": "engine_rationale_10",
+      "_tgt": "engine_decisionengine",
+      "source": "engine_decisionengine",
+      "target": "engine_rationale_10",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L5",
+      "weight": 0.8,
+      "_src": "engine_decisionengine",
+      "_tgt": "gateway_unifiedgateway",
+      "source": "engine_decisionengine",
+      "target": "gateway_unifiedgateway",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_src": "engine_decisionengine_decide",
+      "_tgt": "engine_decisionengine_build_prompt",
+      "source": "engine_decisionengine_decide",
+      "target": "engine_decisionengine_build_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L58",
+      "weight": 1.0,
+      "_src": "engine_decisionengine_decide",
+      "_tgt": "engine_decisionengine_parse_and_validate",
+      "source": "engine_decisionengine_decide",
+      "target": "engine_decisionengine_parse_and_validate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_src": "engine_rationale_41",
+      "_tgt": "engine_decisionengine_decide",
+      "source": "engine_decisionengine_decide",
+      "target": "engine_rationale_41",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L124",
+      "weight": 1.0,
+      "_src": "engine_rationale_124",
+      "_tgt": "engine_decide",
+      "source": "engine_decide",
+      "target": "engine_rationale_124",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L5",
+      "weight": 0.8,
+      "_src": "engine_rationale_10",
+      "_tgt": "gateway_unifiedgateway",
+      "source": "engine_rationale_10",
+      "target": "gateway_unifiedgateway",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L5",
+      "weight": 0.8,
+      "_src": "engine_rationale_41",
+      "_tgt": "gateway_unifiedgateway",
+      "source": "engine_rationale_41",
+      "target": "gateway_unifiedgateway",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L5",
+      "weight": 0.8,
+      "_src": "engine_rationale_124",
+      "_tgt": "gateway_unifiedgateway",
+      "source": "engine_rationale_124",
+      "target": "gateway_unifiedgateway",
+      "confidence_score": 0.5
     },
     {
       "relation": "contains",
@@ -16978,8 +17323,8 @@
       "source_file": "scripts\\safe_shell.py",
       "source_location": "L5",
       "weight": 0.8,
-      "_src": "safe_shell_rationale_8",
-      "_tgt": "gateway_unifiedgateway",
+      "_src": "gateway_unifiedgateway",
+      "_tgt": "safe_shell_rationale_8",
       "confidence_score": 0.5,
       "source": "gateway_unifiedgateway",
       "target": "safe_shell_rationale_8"
@@ -16990,8 +17335,8 @@
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L6",
       "weight": 0.8,
-      "_src": "tui_shell_rationale_12",
-      "_tgt": "gateway_unifiedgateway",
+      "_src": "gateway_unifiedgateway",
+      "_tgt": "tui_shell_rationale_12",
       "confidence_score": 0.5,
       "source": "gateway_unifiedgateway",
       "target": "tui_shell_rationale_12"
@@ -17002,8 +17347,8 @@
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L6",
       "weight": 0.8,
-      "_src": "tui_shell_rationale_18",
-      "_tgt": "gateway_unifiedgateway",
+      "_src": "gateway_unifiedgateway",
+      "_tgt": "tui_shell_rationale_18",
       "confidence_score": 0.5,
       "source": "gateway_unifiedgateway",
       "target": "tui_shell_rationale_18"
@@ -17146,8 +17491,8 @@
       "source_file": "scripts\\safe_shell.py",
       "source_location": "L4",
       "weight": 0.8,
-      "_src": "safe_shell_rationale_8",
-      "_tgt": "stripper_commandstripper",
+      "_src": "stripper_commandstripper",
+      "_tgt": "safe_shell_rationale_8",
       "confidence_score": 0.5,
       "source": "stripper_commandstripper",
       "target": "safe_shell_rationale_8"
@@ -17158,8 +17503,8 @@
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L5",
       "weight": 0.8,
-      "_src": "tui_shell_rationale_12",
-      "_tgt": "stripper_commandstripper",
+      "_src": "stripper_commandstripper",
+      "_tgt": "tui_shell_rationale_12",
       "confidence_score": 0.5,
       "source": "stripper_commandstripper",
       "target": "tui_shell_rationale_12"
@@ -17170,8 +17515,8 @@
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L5",
       "weight": 0.8,
-      "_src": "tui_shell_rationale_18",
-      "_tgt": "stripper_commandstripper",
+      "_src": "stripper_commandstripper",
+      "_tgt": "tui_shell_rationale_18",
       "confidence_score": 0.5,
       "source": "stripper_commandstripper",
       "target": "tui_shell_rationale_18"
