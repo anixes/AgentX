@@ -56,8 +56,10 @@ def recover_tasks() -> list:
                         if cursor.fetchone():
                             # Mark as skipped duplicate instead of recovering
                             conn.execute("UPDATE tasks SET status = 'SKIPPED_DUPLICATE' WHERE id = ?", (task_dict["id"],))
+                            print(f"[Recovery][{task_dict['id']}] Found COMPLETED logical task, marking as SKIPPED_DUPLICATE.")
                             continue
                             
+                print(f"[Recovery][{task_dict['id']}] Re-queuing {task_dict['status']} task (retry={task_dict.get('retry_count', 0)})")
                 recovered_tasks.append(task_dict)
                 
             conn.commit()

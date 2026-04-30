@@ -86,6 +86,9 @@ def create_task(payload: dict) -> int:
     except Exception as e:
         print(f"[Tasks] Failed to create task: {e}")
         return -1
+    finally:
+        if 'cursor' in locals() and cursor.lastrowid:
+            print(f"[Tasks][{cursor.lastrowid}] Created task: PENDING")
 
 def update_task_status(task_id: int, status: str):
     if task_id < 0:
@@ -99,6 +102,8 @@ def update_task_status(task_id: int, status: str):
             )
     except Exception as e:
         print(f"[Tasks] Failed to update task: {e}")
+    else:
+        print(f"[Tasks][{task_id}] Transitioned to {status}")
 
 def update_task_error(task_id: int, error: str, error_type: str = "RETRYABLE"):
     """
@@ -119,6 +124,8 @@ def update_task_error(task_id: int, error: str, error_type: str = "RETRYABLE"):
             )
     except Exception as e:
         print(f"[Tasks] Failed to record task error: {e}")
+    else:
+        print(f"[Tasks][{task_id}] Error recorded ({error_type}): {status}")
 
 def cleanup_old_tasks(ttl_days: int = 30) -> int:
     """Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows deleted."""

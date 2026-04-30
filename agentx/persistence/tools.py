@@ -142,6 +142,9 @@ class ToolGuard:
             print(f"[ToolGuard] reserve() error: {e}")
             return None
         finally:
+            # Note: row might be None if exception occurred before fetch
+            if 'row' in locals() and row:
+                print(f"[ToolGuard][{self.idempotency_key}] Reserve check: {row['status']}")
             conn.close()
 
     # ── Step 3: Persist result ────────────────────────────────────────────
@@ -158,6 +161,8 @@ class ToolGuard:
                 """, (result_str, now, self.idempotency_key))
         except Exception as e:
             print(f"[ToolGuard] complete() error: {e}")
+        else:
+            print(f"[ToolGuard][{self.idempotency_key}] Completed successfully.")
 
     # ── Step 2: Failure classification ───────────────────────────────────
     def fail(self, error: str, error_type: str = "RETRYABLE"):
@@ -181,6 +186,8 @@ class ToolGuard:
                 """, (status, error_type, error, now, self.idempotency_key))
         except Exception as e:
             print(f"[ToolGuard] fail() error: {e}")
+        else:
+            print(f"[ToolGuard][{self.idempotency_key}] Failed ({error_type}): {error}")
 
     def is_permanently_failed(self) -> bool:
         try:
@@ -228,6 +235,10 @@ def acquire_task_lock(logical_task_id: str, lock_holder: str) -> bool:
     except Exception as e:
         print(f"[ToolGuard] acquire_task_lock() error: {e}")
         return False
+    finally:
+        if 'row' in locals() and row:
+            success = row["lock_holder"] == lock_holder
+            print(f"[Lock][{logical_task_id}] Acquire attempt by {lock_holder}: {'SUCCESS' if success else 'FAILED (held by ' + row['lock_holder'] + ')'}")
 
 
 def release_task_lock(logical_task_id: str, lock_holder: str) -> bool:
@@ -242,6 +253,8 @@ def release_task_lock(logical_task_id: str, lock_holder: str) -> bool:
     except Exception as e:
         print(f"[ToolGuard] release_task_lock() error: {e}")
         return False
+    finally:
+        print(f"[Lock][{logical_task_id}] Release attempt by {lock_holder}")
 
 
 # ─────────────────────────────────────────────────────────────
