@@ -349,7 +349,8 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         else:
             if not _skill_succeeded:
                 # Normal pipeline only when skill did not complete the work
-                subprocess.run(cmd, check=True)
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                print(result.stdout)
             else:
                 print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
             if tracker:
@@ -372,10 +373,31 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         # --- Decision Feedback Hook (Phase 10) ---
         try:
             from agentx.decision.feedback import log_decision_outcome
+            from agentx.decision.evaluator import evaluate_task
+            
             _outcome = "SUCCESS"
             # If a specialized path (SKILL/COMPOSE) was chosen but failed, it's a FALLBACK to NEW
             if not _skill_succeeded and _decision.get("type") in ("SKILL", "COMPOSE"):
                 _outcome = "FALLBACK"
+            elif _outcome == "SUCCESS":
+                # Evaluate TRUE_SUCCESS vs FALSE_SUCCESS
+                _context = {}
+                if _decision.get("type") == "SKILL" and _top_skills:
+                    _context["skill"] = _top_skills[0]
+                
+                # Fetch output from completed task if possible
+                _result_text = "completed"  # Fallback
+                if not background and not _skill_succeeded and 'result' in locals() and hasattr(result, 'stdout'):
+                    _result_text = result.stdout
+                
+                _evaluation = evaluate_task(task_id, _result_text, _context)
+                _outcome = _evaluation
+                
+                if tracker:
+                    tracker.log_event("TASK_EVALUATED", {"task_id": task_id, "evaluation": _outcome})
+                    tracker.log_event(f"TASK_{_outcome}", {"task_id": task_id})
+                    
+                print(f"[Evaluator] Task evaluation result: {_outcome}")
             
             log_decision_outcome(
                 objective=objective,
@@ -384,8 +406,8 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
                 outcome=_outcome,
                 task_id=task_id
             )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Decision] Failed to log outcome or evaluate: {e}")
     except Exception as e:
         error_str = str(e)
         # Classify the error: SubprocessError / CalledProcessError = RETRYABLE; others may be PERMANENT
