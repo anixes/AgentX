@@ -52,4 +52,24 @@ The bridge between the planner and the tools now enforces atomic state updates.
 | **5. Windows Reliability** | Clean Unicode-free logging for terminal compatibility. | ✅ **VERIFIED** |
 
 ## Implementation Details
-The transition from reactive execution to planning is enabled by the `PlanGraph` structure, where nodes explicitly define `preconditions` and `effects`. This metadata allows the scheduler to build a conflict graph and ensure that no two nodes in a wave modify or read conflicting state.
+
+The transition from reactive execution to planning is enabled by the `PlanGraph` structure, where nodes explicitly define `preconditions` and `effects`. 
+
+### Conflict Detection & Serializability Logic
+
+To guarantee that parallel execution is equivalent to sequential execution (Conflict-Serializability), the scheduler employs a dependency-aware batching algorithm in `react_executor.py`:
+
+1.  **Conflict Identification**: Two nodes, A and B, conflict if:
+    *   **Write-Write**: `A.effects ∩ B.effects` is not empty.
+    *   **Read-Write**: `A.preconditions ∩ B.effects` is not empty.
+    *   **Write-Read**: `A.effects ∩ B.preconditions` is not empty.
+2.  **Constraint Enforcement**: If A and B conflict and A appears before B in the deterministic sequential plan, an edge `A → B` is added to a conflict graph.
+3.  **Batching**: Nodes are executed in "parallel waves" where each wave consists of nodes with zero incoming edges in the conflict graph. This ensures that all conflicting operations are serialized according to their original plan order.
+
+### Verification Workflow
+
+The `verification.py` module provides a rigorous test harness:
+1.  **Sequential Baseline**: The plan is executed in a single thread, capturing the exact `system_state` transition.
+2.  **Parallel Execution**: The plan is executed concurrently using `ThreadPoolExecutor`.
+3.  **Equivalence Assertion**: The final states of both runs are compared. Any discrepancy (race condition) triggers a failure and detailed diff report.
+4.  **Jitter Stress Test**: Random delays are injected into state mutations to maximize the probability of exposing rare interleaving bugs.
