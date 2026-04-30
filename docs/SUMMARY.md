@@ -1,7 +1,7 @@
 # AJA + AgentX Core Build Summary
 
-## Project Milestone: "Remote Human Loop"
-AgentX Core now powers AJA as a secure, self-healing agentic environment with phone-based remote control and production-grade approvals.
+## Project Milestone: "Adaptive Execution & Control"
+AgentX is a self-correcting execution system with adaptive control, not yet a fully autonomous planning agent.
 
 ## Naming
 
@@ -26,7 +26,7 @@ AgentX Core now powers AJA as a secure, self-healing agentic environment with ph
 - **Executive Desk Dashboard**: Refactored command center focusing on high-level agenda and delegation oversight.
 - **Resilient Recovery Layer**: SQLite-backed authoritative task tracking, boot-time crash recovery, and atomic tool idempotency guards.
 - **Persistent Presence Loop**: Continuous agent loop with triggers, guardrails, health dashboard, and remote human-in-the-loop approvals.
-- **LLM Decision Engine**: Strategic dispatch layer that chooses optimal execution paths (Skill vs Compose vs Swarm) with hard risk gates and confidence fallbacks.
+- **Strategy Selection Module**: Strategic dispatch layer that chooses optimal execution paths (Skill vs Compose vs Swarm) with hard risk gates and confidence fallbacks. (formerly LLM Decision Engine)
 
 ### User Experience:
 | What you want | What you type |
@@ -208,7 +208,7 @@ Shifting from ephemeral task execution to a production-grade library of reusable
 
 Interfaces:
 - CLI: `agentx` (pre-execution recommendation), `agentx status` (skill usage tracking)
-- Logic: `agentx/skills/skill_store.py`, `agentx/skills/skill_executor.py`, `agentx/skills/skill_composer.py`
+- Logic: `agentx/skills/skill_store.py`, `agentx/skills/skill_executor.py`, `agentx/skills/hierarchical_execution.py` (formerly skill_composer.py)
 
 ## Documentation Index
 - [ARCHITECTURE_FLOW.md](./ARCHITECTURE_FLOW.md): Visual mapping of the system and CLI reference.
@@ -230,7 +230,7 @@ Transitioned from one-off command execution to a robust, continuous agentic runt
 
 - **Persistent Agent Loop**: A non-blocking execution engine with task prioritization (`INTERRUPTED > PENDING > FAILED`).
 - **Execution Guardrails**: Integrated rate limiting, duplicate task detection, retry storm protection, no-progress stalling, and a circuit breaker that hard-stops the loop on catastrophic failure.
-- **Trigger Engine**: Event-driven task enqueuing supporting `TIME` (intervals), `TASK_STATE` (cascading workflows), and `FILE_FLAG` (external synchronization) with chronos-safe filtering.
+- **Event-driven Task Generator**: Event-driven task enqueuing supporting `TIME` (intervals), `TASK_STATE` (cascading workflows), and `FILE_FLAG` (external synchronization) with chronos-safe filtering. (formerly Trigger Engine)
 - **Real-time Awareness**: Added `agentx status` dashboard featuring system health indicators, load level scoring, and recent telemetry alerts.
 - **Alerting & Notifications**: Telegram/CLI alerting for task completion, failures, stalls, and circuit breaker events with automated rate-limiting and duplicate collapse.
 - **Human Approval Layer**: Implementation of a pause-and-wait workflow for `HIGH` risk tasks, allowing remote `approve`/`reject`/`modify` actions and emergency CLI loop controls (`pause-loop`, `resume-loop`, `kill-task`).
@@ -239,26 +239,134 @@ Interfaces:
 - CLI: `agentx run-loop`, `agentx trigger`, `agentx status`, `agentx approve/reject`, `agentx pause-loop/resume-loop`
 - Logic: `agentx/presence/agent_loop.py`, `agentx/presence/trigger_engine.py`, `agentx/presence/state.py`, `agentx/presence/notifier.py`, `agentx/presence/approval.py`
 
-## Phase 10: LLM Decision Engine
+## Phase 10 — Execution, Control & Learning Architecture (Research-Aligned)
 
-Added an LLM-assisted strategy layer to autonomously determine the optimal execution path for any objective without compromising deterministic safety.
+AgentX now follows a 4-layer agent architecture aligned with modern LLM agent research:
 
-- **Strategic Decision Dispatch**: Replaces simple skill matching with a high-level `decide()` function that chooses between `SKILL`, `COMPOSE`, `NEW` (SwarmEngine), `ASK` (clarification), or `REJECT` (unsafe).
-- **Gated LLM Interaction**: Enforces strict JSON schema validation and hard constraints: `HIGH` risk tasks must result in human intervention (`ASK`) or `REJECT`.
-- **System-Aware Context**: Decision logic incorporates top-skill candidates, risk levels, and recent task history to improve reasoning quality.
-- **Fail-Safe Fallbacks**: Low-confidence LLM outputs (<0.6) automatically fall back to the standard deterministic pipeline (`NEW`).
-- **Composition Routing**: Automatically routes multi-step objectives through the `SkillComposer` when composition is the optimal strategy. Includes a pre-execution validation gate (`validate_chain`) that verifies tool existence, environment prerequisites, and chain length limits before any execution occurs.
-- **Decision Feedback Loop**: Self-improving persistence layer that tracks outcomes (`SUCCESS`, `FAILURE`, `FALLBACK`) and applies confidence biasing to future decisions based on historical performance.
-- **Evaluation Layer**: Analyzes execution results using both deterministic checks (malformed outputs, contradictions, failed postconditions) and a controlled LLM semantic check to distinguish between `TRUE_SUCCESS`, `PARTIAL_SUCCESS`, and `FALSE_SUCCESS`, preventing blind trust in simple 'COMPLETED' statuses.
-- **Long-Term Decision Memory**: Extracts tags from objectives to detect patterns across similar past tasks. Automatically upgrades or downgrades decision priority if repeated successes or failures are detected for similar intents.
-- **System State Awareness**: Injects loop health, load levels, and failure rates into the LLM context. Applies non-blocking decision bias (e.g., discouraging `COMPOSE` during high load or favoring `ASK` when the system is unhealthy).
-- **Deterministic Rule Extraction**: Automatically generates hard rules from repeated failures (≥ 3 times) to forcibly override future LLM decisions (e.g., forcing `ASK` instead of failing continuously), completely bypassing the LLM.
-- **Decision Traceability**: Real-time logging of an `evidence` array detailing exactly why an LLM decision or deterministic bias was applied. Includes a new CLI command (`agentx explain <task_id>`) for fully transparent post-mortem debugging of the decision pipeline.
-- **Outcome-Aware Prompting**: Injecting previous decision results (exact and similar matches) directly into the LLM prompt to improve contextual reasoning for recurring objectives.
-- **Deterministic Validation Layer**: A strict, code-only safety module that validates LLM decisions against hard system constraints (existence checks, risk gating, and minimum confidence) before dispatch.
-- **Strategic Overrides**: Automatic correction of unsafe decisions (e.g., forcing `ASK` for high-risk tasks or falling back to `NEW` for low-confidence skill matches).
+1. **Execution Layer** (Acting)
+2. **Control Layer** (Evaluation + Safety)
+3. **Learning Layer** (Memory + Feedback)
+4. **Routing Layer** (Pre-planning intelligence / Early planning proxy)
 
-Interfaces:
-- Core: Integrated into `agentx run` / `cmd_run` entry point.
-- Logic: `agentx/decision/engine.py`, `agentx/decision/feedback.py`, `agentx/decision/validator.py`
+> [!NOTE]
+> Modern LLM agents are structured around decomposition, reflection, and memory modules. In this architecture, Execution handles the acting, Control handles reflection and verification, Learning handles state and experience, and Routing acts as a lightweight proxy for planning decisions.
 
+### Research-Aligned Module Mapping
+
+| Internal Component | Research Taxonomy |
+| :--- | :--- |
+| **Skill Library** | Action Abstractions |
+| **Hierarchical Task Execution** | Composition & Decomposition |
+| **Strategy Selection Module** | Decision Making / Strategy Optimization |
+| **Multi-Agent Evaluation / Judge Layer** | Reflection & Verification |
+| **Adaptive Replanning Loop** | Self-Correction / Iterative Recovery |
+| **Event-driven Task Generator** | Reactive Trigger System |
+
+### Hierarchical Execution without Planning (Phase 10 state)
+
+AgentX currently operates as a hierarchical execution system without explicit planning.
+
+- Tasks are executed via skills (low-level actions).
+- Composition provides limited hierarchical structure.
+- Strategy selection is reactive (not goal-decomposed).
+
+> [!IMPORTANT]
+> Without goal decomposition, agents remain reactive instead of autonomous. AgentX is currently a self-correcting execution system with adaptive control, not yet a fully autonomous planning agent.
+
+### Multi-Layer Evaluation Pipeline (Production-grade)
+
+AgentX implements a layered evaluation system inspired by LLM-as-judge research patterns:
+
+- **Layer 1: Deterministic Validation** — Code-based checks (postconditions, contradictory terms).
+- **Layer 2: Semantic Evaluation (LLM)** — LLM-based verification of intent satisfaction.
+- **Layer 3: Multi-Evaluator Consensus** — Cross-model agreement scoring.
+- **Layer 4: Meta-Evaluation (Judge-of-Judges)** — Higher-level analysis of judge reliability and bias.
+- **Layer 5: Uncertainty Propagation** — Tracking confidence drift across execution.
+
+Features include:
+- **Minority Veto**: High-reliability judges can override a "Success" verdict.
+- **Weighted Reliability**: Votes are weighted by historical performance in specific contexts.
+- **Agreement Scoring**: Measuring consensus quality to trigger escalation.
+
+> [!TIP]
+> This aligns with reflection and evaluation modules in LLM agent taxonomy, where agents verify outputs before committing actions. Reflection and memory are core planning components in LLM agents.
+
+### Uncertainty-Aware Execution Model
+
+AgentX treats uncertainty as a first-class control signal:
+
+- **Step-level uncertainty tracking**: Confidence scores captured for every action.
+- **Task-level accumulation with decay**: Tracking drift over time without runaway scores.
+- **Hard-stop thresholds**: Halting execution when `task_uncertainty > 0.8`.
+- **Propagation**: Passing uncertainty signals to the decision engine for strategy biasing.
+
+> [!CAUTION]
+> This prevents long-horizon error accumulation, a known failure mode in flat autoregressive agent systems. Flat agent policies cause error propagation in long tasks.
+
+### Hierarchical Execution (Pre-Planning Form)
+
+AgentX partially implements hierarchical reasoning via:
+- **Skill abstraction** (macro-actions)
+- **Skill composition** (micro execution)
+- **Retry-based local replanning**
+
+However, global planning (task decomposition and DAG-based execution) is not yet implemented (Phase 11).
+
+> [!NOTE]
+> Hierarchical frameworks split planning into macro and micro levels. AgentX currently masters the micro-level execution.
+
+### Causal Failure Classification System
+
+Failures are classified into deterministic causal categories:
+- `AUTH_ERROR`
+- `RATE_LIMIT`
+- `TOOL_NOT_FOUND`
+- `INVALID_INPUT`
+
+Each category is mapped to specific recovery actions, converting repeated failures into deterministic policies and reducing repeated error loops.
+
+### Adaptive Control & Stability Mechanisms
+
+Execution is stabilized through several structured guards:
+- **Retry Guards**: Max attempts and strategy switch limits.
+- **Cascade Limits**: Preventing infinite multi-evaluator escalation.
+- **Budget Control**: Hard limits on token usage and API calls.
+- **Stagnation Detection**: Detecting identical outputs across retries.
+- **Convergence Verification**: Independent pass to confirm goal satisfaction.
+
+> [!NOTE]
+> These controls act as execution stabilizers, preventing drift and infinite loops in long-horizon tasks. Failures often arise from lack of structured control and replanning.
+
+### Predictive Routing Layer (Pre-Execution Intelligence)
+
+Before execution begins, AgentX estimates:
+- **Task Complexity**: Based on objective length and verb count.
+- **Expected Uncertainty**: Derived from complexity and historical performance.
+- **Execution Cost**: Estimated token/call budget.
+
+Based on these heuristics, it selects an optimal path:
+- **Fast Path**: Single evaluator for simple tasks.
+- **Cascade Path**: Multi-evaluator consensus for complex tasks.
+- **Abort**: Immediate human escalation for high-uncertainty tasks.
+
+> [!TIP]
+> This acts as a lightweight planning proxy, reducing unnecessary computation and failure risk.
+
+### Known Limitation — Absence of Goal-Level Planning
+
+AgentX currently lacks:
+- Explicit task decomposition.
+- Global plan construction.
+- Structured plan repair.
+
+As a result, it operates as a reactive execution system rather than a fully autonomous planner. LLM agents struggle with long-horizon planning without hierarchical decomposition.
+
+### Transition to Planning Layer (Phase 11)
+
+The next evolution introduces:
+- **Goal decomposition** (HTN-style).
+- **Plan-then-execute / ReAct hybrid**.
+- **Dynamic replanning**.
+- **DAG-based execution**.
+
+This transitions AgentX from an **execution system** → **autonomous planner**.

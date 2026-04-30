@@ -38,7 +38,21 @@ def request_approval(task_id: int, objective: str, payload: dict = None) -> dict
     print(f"Task ID: {task_id}")
     print(f"Objective: {objective}")
     print(f"To approve: agentx approve {task_id}")
-    print(f"To reject:  agentx reject {task_id}\n")
+    print(f"To reject:  agentx reject {task_id}")
+    
+    # --- Interactive Prompt (Phase 11) ---
+    import sys
+    if sys.stdin.isatty():
+        try:
+            choice = input("\nDo you want to [A]pprove, [R]eject, or [W]ait for external approval? (a/r/w): ").lower().strip()
+            if choice == 'a':
+                set_approval_status(task_id, "approved")
+            elif choice == 'r':
+                set_approval_status(task_id, "rejected")
+        except EOFError:
+            pass # Fallback to polling if input fails
+    
+    print("\n[*] Waiting for approval status update...\n")
     
     while True:
         if not os.path.exists(filepath):

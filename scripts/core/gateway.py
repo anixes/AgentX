@@ -63,7 +63,22 @@ class UnifiedGateway:
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"Error using {self.provider}: {str(e)}"
+            print(f"[Gateway] Error: {e}")
+            return None
+            
+    def embed(self, model: str, text: str) -> list[float]:
+        """Generate dense vector embedding for text."""
+        try:
+            # We assume the configured provider supports /embeddings
+            response = self.client.embeddings.create(
+                input=text,
+                model=model
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            print(f"[Gateway] Embedding Error: {e}")
+            return []
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unified AI API Gateway CLI")

@@ -283,6 +283,118 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         except ImportError:
             pass
 
+    # ── Step 2/3/4: Phase 25 — Predictive Routing Gate ─────────────────────
+    # Runs BEFORE any execution so we can save computation on easy tasks and
+    # abort early on tasks that are almost certainly going to fail/escalate.
+    _routing_path = "cascade"   # default — will be narrowed below
+    _difficulty_estimate: Dict = {}
+    try:
+        from agentx.decision.engine import estimate_task_difficulty
+        _diff_ctx = {
+            "risk_level": _risk_level,
+            "high_risk": context.get("high_risk", False),
+            "metrics_data": context.get("metrics_data", {}),
+        }
+        _difficulty_estimate = estimate_task_difficulty(objective, _diff_ctx)
+        _complexity = _difficulty_estimate.get("complexity", 0.5)
+        _exp_uncertainty = _difficulty_estimate.get("expected_uncertainty", 0.5)
+
+        logger.info(
+            "[Router] difficulty estimate — complexity=%.2f expected_uncertainty=%.2f",
+            _complexity, _exp_uncertainty,
+        )
+        print(f"[Router] complexity={_complexity:.2f}  expected_uncertainty={_exp_uncertainty:.2f}")
+
+        # ── Step 3: Early abstention ───────────────────────────────────────
+        if _exp_uncertainty > 0.6:
+            logger.warning("[Router] ROUTING_ABORTED: expected_uncertainty=%.2f > 0.6", _exp_uncertainty)
+            print(f"[Router] ROUTING_ABORTED: task too uncertain (expected_uncertainty={_exp_uncertainty:.2f}) → ASK")
+            if tracker:
+                tracker.log_event("ROUTING_ABORTED", {
+                    "task_id": task_id,
+                    "expected_uncertainty": _exp_uncertainty,
+                    "complexity": _complexity,
+                })
+            _routing_path = "aborted"
+            # Record before we redirect
+            try:
+                from agentx.decision.metrics import update_routing_metrics
+                update_routing_metrics(
+                    task_id=str(task_id),
+                    routing_path="aborted",
+                    predicted_complexity=_complexity,
+                    predicted_uncertainty=_exp_uncertainty,
+                )
+            except Exception:
+                pass
+            # Redirect to ASK — same approval flow as the ASK decision type
+            print(f"[*] Clarification required (routing abstention): high uncertainty predicted")
+            try:
+                from agentx.presence.approval import request_approval
+                if tasks:
+                    tasks.update_task_status(task_id, "PENDING_APPROVAL")
+                _appr = request_approval(
+                    task_id,
+                    f"ROUTING ABORTED (high expected uncertainty={_exp_uncertainty:.2f})\n\nObjective: {objective}",
+                    {"risk_level": "HIGH"},
+                )
+                if _appr["status"] == "rejected":
+                    if tasks:
+                        tasks.update_task_status(task_id, "REJECTED")
+                    return
+                # Approved → drop through with standard NEW path
+            except ImportError:
+                return  # No approval module — hard stop
+
+        # ── Step 2: Pre-route path selection ──────────────────────────────
+        elif _complexity < 0.4 and _exp_uncertainty < 0.35:
+            # Simple task: force fast evaluator path by setting flag in context
+            _routing_path = "fast"
+            logger.info("[Router] ROUTING_FAST_PATH: complexity=%.2f", _complexity)
+            print(f"[Router] ROUTING_FAST_PATH: simple task → single evaluator forced")
+            if tracker:
+                tracker.log_event("ROUTING_FAST_PATH", {
+                    "task_id": task_id,
+                    "complexity": _complexity,
+                    "expected_uncertainty": _exp_uncertainty,
+                })
+            # Inject a sentinel so evaluate_pipeline skips cascade automatically
+            context["_routing_force_fast"] = True
+
+        elif _complexity >= 0.7:
+            # High complexity: skip fast path entirely, go straight to cascade
+            _routing_path = "cascade"
+            logger.info("[Router] ROUTING_ESCALATED: complexity=%.2f → cascade only", _complexity)
+            print(f"[Router] ROUTING_ESCALATED: complex task (complexity={_complexity:.2f}) → cascade forced")
+            if tracker:
+                tracker.log_event("ROUTING_ESCALATED", {
+                    "task_id": task_id,
+                    "complexity": _complexity,
+                    "expected_uncertainty": _exp_uncertainty,
+                })
+            # Ensure cascade is used immediately regardless of task_uncertainty
+            context["_routing_force_cascade"] = True
+
+        else:
+            # Medium complexity: normal adaptive cascade logic (Phase 24) handles it
+            _routing_path = "cascade"
+            logger.info("[Router] normal routing: complexity=%.2f", _complexity)
+
+        # Record the routing decision (actual_uncertainty updated at end of task)
+        try:
+            from agentx.decision.metrics import update_routing_metrics
+            update_routing_metrics(
+                task_id=str(task_id),
+                routing_path=_routing_path,
+                predicted_complexity=_complexity,
+                predicted_uncertainty=_exp_uncertainty,
+            )
+        except Exception:
+            pass
+
+    except Exception as _route_err:
+        logger.warning("[Router] difficulty estimation failed: %s — using default routing", _route_err)
+
     if _decision.get("type") == "COMPOSE":
         try:
             from agentx.skills.skill_composer import build_chain, compose_skills
@@ -296,6 +408,17 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
                     objective=objective,
                     tracker=tracker
                 )
+                # --- Phase 15: Step-level evaluation ---
+                _step_outcome = "TRUE_SUCCESS" if _skill_succeeded else "FALSE_SUCCESS"
+                if tracker:
+                    tracker.log_event("STEP_EVALUATED", {
+                        "task_id": task_id,
+                        "step": "COMPOSE",
+                        "outcome": _step_outcome,
+                    })
+                print(f"[Compose] STEP_EVALUATED: {_step_outcome}")
+                if not _skill_succeeded:
+                    print("[Compose] STEP_EVALUATED: aborting COMPOSE — step failed.")
             else:
                 print("[Decision] No suitable chain found, falling back to NEW")
                 _decision["type"] = "NEW"
@@ -303,187 +426,490 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
             print("[Decision] skill_composer not available, falling back to NEW")
             _decision["type"] = "NEW"
 
-    if _decision.get("type") == "SKILL":
-        if _execute_skill and _top_skills:
-            _matched_skill = _top_skills[0]
-            if tracker:
-                tracker.log_event("SKILL_SELECTED", {
-                    "objective":   objective,
-                    "skill_id":    _matched_skill.get("id"),
-                    "skill_name":  _matched_skill.get("name"),
-                    "risk_level":  _matched_skill.get("risk_level", "LOW"),
-                    "confidence":  _matched_skill.get("confidence_score", 0),
-                })
-            
-            try:
-                from agentx.presence.approval import request_approval
-                if _matched_skill.get("risk_level") == "HIGH":
-                    if tasks:
-                        tasks.update_task_status(task_id, "PENDING_APPROVAL")
-                    appr_result = request_approval(task_id, objective, _matched_skill)
-                    if appr_result["status"] == "rejected":
-                        print(f"[AgentX] Task {task_id} REJECTED by human.")
-                        if tasks:
-                            tasks.update_task_status(task_id, "REJECTED")
-                        return
-                    if tasks:
-                        tasks.update_task_status(task_id, "RUNNING")
-            except ImportError:
-                pass
-
-            _skill_succeeded = _execute_skill(
-                skill      = _matched_skill,
-                task_id    = task_id,
-                run_id     = run_id,
-                objective  = objective,
-                tracker    = tracker,
-            )
-            if not _skill_succeeded and tracker:
-                tracker.log_event("SKILL_FALLBACK", {"objective": objective, "skill_id": _matched_skill.get("id")})
-
-
-    cmd = [
-        PYTHON,
-        str(PROJECT_ROOT / "scripts" / "swarm_engine.py"),
-        "--mode", "baton",
-        "--objective", objective,
-        "--run-id", run_id
-    ]
-
-    if tracker:
-        tracker.log_event("CHECKPOINT", {"objective": objective, "step": "pre_execution"})
-        tracker.log_event("TASK_STARTED", {"objective": objective, "background": background, "recovered": bool(task)})
-
+    # --- Retry Loop (Phase 10/14/24) ---
     try:
-        now_str = datetime.now(timezone.utc).isoformat()
-        if tasks:
-            tasks.update_task_status(task_id, "RUNNING")
-            tasks.set_execution_metadata(task_id, started_at=now_str)
-            
-        if background:
-            print("[*] Running in background mode...")
-            log_file = PROJECT_ROOT / ".agentx" / "bg_run.log"
-            log_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(f"\\n--- New Run: {time.ctime()} ---\\n")
-                if not _skill_succeeded:
-                    # Normal pipeline: only launch SwarmEngine when skill did not complete
-                    subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
-                else:
-                    print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
-            if tracker:
-                tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
-                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "background_started" if not _skill_succeeded else "skill_completed"})
-            try:
-                from agentx.presence.notifier import send_notification
-                send_notification("TASK_COMPLETED", {"task_id": task_id, "objective": objective})
-            except ImportError:
-                pass
-            if tasks:
-                tasks.update_task_status(task_id, "COMPLETED")
-                tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
-            if _capture_skill:
-                try:
-                    _capture_skill(task_id)
-                except Exception:
-                    pass
-        else:
-            if not _skill_succeeded:
-                # Normal pipeline only when skill did not complete the work
-                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-                print(result.stdout)
-            else:
-                print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
-            if tracker:
-                tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
-                tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "success" if not _skill_succeeded else "skill_completed"})
-            try:
-                from agentx.presence.notifier import send_notification
-                send_notification("TASK_COMPLETED", {"task_id": task_id, "objective": objective})
-            except ImportError:
-                pass
-            if tasks:
-                tasks.update_task_status(task_id, "COMPLETED")
-                tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
-            if _capture_skill:
-                try:
-                    _capture_skill(task_id)
-                except Exception:
-                    pass
+        from agentx.decision.retry import retry_strategy, apply_backoff, MAX_RETRIES
+        from agentx.decision.convergence import (
+            is_goal_satisfied,
+            detect_stagnation,
+            detect_no_improvement,
+            output_hash
+        )
+        max_attempts = MAX_RETRIES
+    except ImportError:
+        max_attempts = 1
 
-        # --- Decision Feedback Hook (Phase 10) ---
-        try:
-            from agentx.decision.feedback import log_decision_outcome
-            from agentx.decision.evaluator import evaluate_task
-            
-            _outcome = "SUCCESS"
-            # If a specialized path (SKILL/COMPOSE) was chosen but failed, it's a FALLBACK to NEW
-            if not _skill_succeeded and _decision.get("type") in ("SKILL", "COMPOSE"):
-                _outcome = "FALLBACK"
-            elif _outcome == "SUCCESS":
-                # Evaluate TRUE_SUCCESS vs FALSE_SUCCESS
-                _context = {"objective": objective}
-                if _decision.get("type") == "SKILL" and _top_skills:
-                    _context["skill"] = _top_skills[0]
-                
-                # Fetch output from completed task if possible
-                _result_text = "completed"  # Fallback
-                if not background and not _skill_succeeded and 'result' in locals() and hasattr(result, 'stdout'):
-                    _result_text = result.stdout
-                
-                _evaluation = evaluate_task(task_id, _result_text, _context)
-                _outcome = _evaluation
-                
+    # Phase 24 — Absolute retry guard (prevents infinite loops)
+    MAX_TOTAL_ATTEMPTS = 5
+    MAX_STRATEGY_SWITCHES = 3
+    max_attempts = min(max_attempts, MAX_TOTAL_ATTEMPTS)
+
+    last_result_hash = ""
+    current_result_str = ""
+    hash_history = []
+    outcome_history = []
+    task_uncertainty_score = 0.0
+    MAX_TASK_UNCERTAINTY = 0.8
+    _strategy_switch_count = 0
+
+    # Phase 24 — Budget counters (token/call awareness)
+    BUDGET_MAX_CALLS = int(os.environ.get("AGENTX_BUDGET_MAX_CALLS", "20"))
+    BUDGET_MAX_TOKENS = int(os.environ.get("AGENTX_BUDGET_MAX_TOKENS", "200000"))
+    _budget_calls_used = 0
+    _budget_tokens_used = 0
+
+    # Phase 24 — Cascade tracking (passed into evaluator context)
+    _cascade_count = 0
+
+    # Phase 24 / Step 7 — Planning-layer execution context
+    execution_context = {
+        "task_uncertainty": task_uncertainty_score,
+        "budget_remaining": 1.0,
+        "risk_level": "HIGH" if context.get("high_risk") else "LOW",
+        "confidence": _decision.get("confidence", 1.0) if "_decision" in dir() else 1.0,
+    }
+    try:
+        from agentx.decision.metrics import get_uncertainty_trend
+        execution_context["uncertainty_trend"] = get_uncertainty_trend()
+    except Exception:
+        execution_context["uncertainty_trend"] = "stable"
+    try:
+        for attempt in range(max_attempts):
+            if attempt > 0:
+                apply_backoff(attempt)
                 if tracker:
-                    tracker.log_event("TASK_EVALUATED", {"task_id": task_id, "evaluation": _outcome})
-                    tracker.log_event(f"TASK_{_outcome}", {"task_id": task_id})
-                    
-                print(f"[Evaluator] Task evaluation result: {_outcome}")
-            
-            log_decision_outcome(
-                objective=objective,
-                decision_type=_decision.get("type", "NEW"),
-                confidence=_decision.get("confidence", 0),
-                outcome=_outcome,
-                task_id=task_id
-            )
-        except Exception as e:
-            print(f"[Decision] Failed to log outcome or evaluate: {e}")
-    except Exception as e:
-        error_str = str(e)
-        # Classify the error: SubprocessError / CalledProcessError = RETRYABLE; others may be PERMANENT
-        from subprocess import CalledProcessError
-        error_type = "RETRYABLE" if isinstance(e, (CalledProcessError, OSError, TimeoutError)) else "PERMANENT"
-        if tracker:
-            tracker.log_event("CHECKPOINT", {"objective": objective, "step": "exception"})
-            tracker.log_event("TASK_FAILED", {"objective": objective, "error": error_str, "error_type": error_type})
-        try:
-            from agentx.presence.notifier import send_notification
-            send_notification("TASK_FAILED", {"task_id": task_id, "objective": objective, "error": error_str})
-        except ImportError:
-            pass
-        if tasks:
-            tasks.update_task_error(task_id, error_str, error_type=error_type)
-        
-        # --- Decision Feedback Hook (Phase 10) ---
-        try:
-            from agentx.decision.feedback import log_decision_outcome
-            log_decision_outcome(
-                objective=objective,
-                decision_type=_decision.get("type", "NEW"),
-                confidence=_decision.get("confidence", 0),
-                outcome="FAILURE",
-                task_id=task_id
-            )
-        except Exception:
-            pass
+                    tracker.log_event("RETRY_ATTEMPT", {"attempt": attempt, "objective": objective})
 
-        raise e
+                # --- Phase 15: Context freshness refresh before retry ---
+                try:
+                    if tasks and task_id:
+                        _fresh_task = tasks.get_task(task_id) if hasattr(tasks, "get_task") else None
+                        if _fresh_task:
+                            _decision_context["task_status"] = _fresh_task.get("status", "UNKNOWN")
+                    if tracker:
+                        tracker.log_event("CONTEXT_REFRESHED", {"attempt": attempt, "task_id": task_id})
+                    print(f"[Engine] CONTEXT_REFRESHED: attempt {attempt}, re-validating state.")
+                except Exception:
+                    pass
+
+            _skill_succeeded = False
+            if _decision.get("type") == "SKILL":
+                if _execute_skill and _top_skills:
+                    _matched_skill = _top_skills[0]
+                    if tracker:
+                        tracker.log_event("SKILL_SELECTED", {
+                            "objective":   objective,
+                            "skill_id":    _matched_skill.get("id"),
+                            "skill_name":  _matched_skill.get("name"),
+                            "risk_level":  _matched_skill.get("risk_level", "LOW"),
+                            "confidence":  _matched_skill.get("confidence_score", 0),
+                        })
+                    
+                    try:
+                        from agentx.presence.approval import request_approval
+                        if _matched_skill.get("risk_level") == "HIGH":
+                            if tasks:
+                                tasks.update_task_status(task_id, "PENDING_APPROVAL")
+                            appr_result = request_approval(task_id, objective, _matched_skill)
+                            if appr_result["status"] == "rejected":
+                                print(f"[AgentX] Task {task_id} REJECTED by human.")
+                                if tasks:
+                                    tasks.update_task_status(task_id, "REJECTED")
+                                return
+                            if tasks:
+                                tasks.update_task_status(task_id, "RUNNING")
+                    except ImportError:
+                        pass
+
+                    _skill_succeeded = _execute_skill(
+                        skill      = _matched_skill,
+                        task_id    = task_id,
+                        run_id     = run_id,
+                        objective  = objective,
+                        tracker    = tracker,
+                    )
+                    if not _skill_succeeded and tracker:
+                        tracker.log_event("SKILL_FALLBACK", {"objective": objective, "skill_id": _matched_skill.get("id")})
+
+
+            cmd = [
+                PYTHON,
+                str(PROJECT_ROOT / "scripts" / "swarm_engine.py"),
+                "--mode", "baton",
+                "--objective", objective,
+                "--run-id", run_id
+            ]
+
+            if tracker:
+                tracker.log_event("CHECKPOINT", {"objective": objective, "step": "pre_execution"})
+                tracker.log_event("TASK_STARTED", {"objective": objective, "background": background, "recovered": bool(task)})
+
+            try:
+                now_str = datetime.now(timezone.utc).isoformat()
+                if tasks:
+                    tasks.update_task_status(task_id, "RUNNING")
+                    tasks.set_execution_metadata(task_id, started_at=now_str)
+                    
+                if background:
+                    print("[*] Running in background mode...")
+                    log_file = PROJECT_ROOT / ".agentx" / "bg_run.log"
+                    log_file.parent.mkdir(parents=True, exist_ok=True)
+                    with open(log_file, "a", encoding="utf-8") as f:
+                        f.write(f"\\n--- New Run: {time.ctime()} ---\\n")
+                        if not _skill_succeeded:
+                            # Normal pipeline: only launch SwarmEngine when skill did not complete
+                            subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+                        else:
+                            print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
+                    if tracker:
+                        tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
+                        tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "background_started" if not _skill_succeeded else "skill_completed"})
+                    try:
+                        from agentx.presence.notifier import send_notification
+                        send_notification("TASK_COMPLETED", {"task_id": task_id, "objective": objective})
+                    except ImportError:
+                        pass
+                    if tasks:
+                        tasks.update_task_status(task_id, "COMPLETED")
+                        tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
+                    if _capture_skill:
+                        try:
+                            _capture_skill(task_id)
+                        except Exception:
+                            pass
+                else:
+                    if not _skill_succeeded:
+                        # Normal pipeline only when skill did not complete the work
+                        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                        print(result.stdout)
+                    else:
+                        print("[SkillExec] Skill completed successfully — SwarmEngine not needed.")
+                    if tracker:
+                        tracker.log_event("CHECKPOINT", {"objective": objective, "step": "post_execution"})
+                        tracker.log_event("TASK_COMPLETED", {"objective": objective, "status": "success" if not _skill_succeeded else "skill_completed"})
+                    try:
+                        from agentx.presence.notifier import send_notification
+                        send_notification("TASK_COMPLETED", {"task_id": task_id, "objective": objective})
+                    except ImportError:
+                        pass
+                    if tasks:
+                        tasks.update_task_status(task_id, "COMPLETED")
+                        tasks.set_execution_metadata(task_id, finished_at=datetime.now(timezone.utc).isoformat())
+                    if _capture_skill:
+                        try:
+                            _capture_skill(task_id)
+                        except Exception:
+                            pass
+
+                # --- Decision Feedback Hook (Phase 10/14) ---
+                try:
+                    from agentx.decision.feedback import log_decision_outcome
+                    from agentx.decision.evaluator import evaluate_combined
+                    
+                    _outcome = "SUCCESS"
+                    # If a specialized path (SKILL/COMPOSE) was chosen but failed, it's a FALLBACK to NEW
+                    if not _skill_succeeded and _decision.get("type") in ("SKILL", "COMPOSE"):
+                        _outcome = "FALLBACK"
+                    elif _outcome == "SUCCESS":
+                        # Evaluate TRUE_SUCCESS vs FALSE_SUCCESS
+                        _context = {
+                            "objective": objective,
+                            "task_uncertainty": task_uncertainty_score,
+                            "cascade_count": _cascade_count,
+                        }
+                        if _decision.get("type") == "SKILL" and _top_skills:
+                            _context["skill"] = _top_skills[0]
+                        
+                        # Fetch output from completed task if possible
+                        _result_text = "completed"  # Fallback
+                        if not background and not _skill_succeeded and 'result' in locals() and hasattr(result, 'stdout'):
+                            _result_text = result.stdout
+                        current_result_str = _result_text
+                        
+                        try:
+                            from agentx.decision.evaluator import evaluate_pipeline
+                            _evaluation = evaluate_pipeline(task_id, _result_text, _context, confidence=_decision.get("confidence", 1.0))
+                        except ImportError:
+                            _evaluation = evaluate_combined(task_id, _result_text, _context)
+                            
+                        if isinstance(_evaluation, dict):
+                            _outcome = _evaluation.get("decision", "UNCERTAIN")
+                            if _evaluation.get("eval_path") == "cascade":
+                                _cascade_count += 1
+                            current_uncertainty = _evaluation.get("uncertainty_score", 0.0)
+                        else:
+                            _outcome = _evaluation
+                            current_uncertainty = 0.0
+                            
+                        # Step 2: Track Uncertainty
+                        task_uncertainty_score += current_uncertainty
+                        task_uncertainty_score *= 0.9
+
+                        # Phase 24: Sync execution_context after each step
+                        _budget_calls_used += 1
+                        _budget_tokens_used += len(str(_result_text))
+                        _budget_fraction_remaining = max(
+                            0.0,
+                            1.0 - max(
+                                _budget_calls_used / BUDGET_MAX_CALLS,
+                                _budget_tokens_used / BUDGET_MAX_TOKENS,
+                            )
+                        )
+                        execution_context.update({
+                            "task_uncertainty": task_uncertainty_score,
+                            "budget_remaining": round(_budget_fraction_remaining, 3),
+                            "confidence": _decision.get("confidence", 1.0),
+                        })
+
+                        # Phase 24 — Budget exceeded hard stop
+                        if _budget_calls_used > BUDGET_MAX_CALLS or _budget_tokens_used > BUDGET_MAX_TOKENS:
+                            if tracker:
+                                tracker.log_event("BUDGET_EXCEEDED", {
+                                    "task_id": task_id,
+                                    "calls": _budget_calls_used,
+                                    "tokens": _budget_tokens_used,
+                                })
+                            logger.warning(
+                                "[Engine] BUDGET_EXCEEDED: calls=%d tokens=%d — escalating to ASK",
+                                _budget_calls_used, _budget_tokens_used,
+                            )
+                            print(f"[Engine] BUDGET_EXCEEDED: calls={_budget_calls_used}, tokens={_budget_tokens_used}")
+                            _outcome = "FAILURE"
+                            break
+
+                        # Step 3: Thresholds
+                        if task_uncertainty_score > MAX_TASK_UNCERTAINTY:
+                            if tracker:
+                                tracker.log_event("SYSTEM_UNCERTAINTY_EXCEEDED", {"task_id": task_id, "score": task_uncertainty_score})
+                            print(f"[Engine] SYSTEM_UNCERTAINTY_EXCEEDED ({task_uncertainty_score:.2f} > {MAX_TASK_UNCERTAINTY}). Escalating to ASK.")
+                            _outcome = "FAILURE"
+                            break
+                        
+                        # Step 4 — Uncertainty Handling
+                        if _outcome == "UNCERTAIN":
+                            if tracker:
+                                tracker.log_event("UNCERTAINTY_TRIGGERED", {"task_id": task_id})
+                            print("[Evaluator] UNCERTAINTY_TRIGGERED. Forcing escalation.")
+                            _outcome = "FAILURE"  # Force escalation
+                            
+                        outcome_history.append(_outcome)
+                        _current_hash = output_hash(_result_text)
+                        hash_history.append(_current_hash)
+                        
+                        conv_signal = is_goal_satisfied(_outcome, _result_text, _decision.get("confidence", 1.0), task_uncertainty_score)
+                        if conv_signal != "CONTINUE":
+                            if tracker:
+                                tracker.log_event("CONVERGENCE_DETECTED", {"task_id": task_id, "signal": conv_signal})
+                            
+                            if conv_signal == "ESCALATE":
+                                if tracker:
+                                    tracker.log_event("CONVERGENCE_LOW_CONFIDENCE", {"task_id": task_id})
+                                print(f"[Convergence] LOW CONFIDENCE. Escalating to ASK.")
+                                _outcome = "FAILURE"
+                                # Will trigger retry strategy escalation
+                            else:
+                                # conv_signal == "STOP"
+                                try:
+                                    from agentx.decision.convergence import verify_convergence
+                                    verification = verify_convergence(
+                                        task_id, 
+                                        _result_text, 
+                                        _context,
+                                        confidence=_decision.get("confidence", 1.0)
+                                    )
+                                except ImportError:
+                                    verification = "VERIFIED"
+                                    
+                                if verification == "VERIFIED":
+                                    if tracker:
+                                        tracker.log_event("CONVERGENCE_VERIFIED", {"task_id": task_id})
+                                    print(f"[Convergence] GOAL_SATISFIED and VERIFIED. Finishing loop.")
+                                    log_decision_outcome(
+                                        objective=objective,
+                                        decision_type=_decision.get("type", "NEW"),
+                                        confidence=_decision.get("confidence", 0),
+                                        outcome=_outcome,
+                                        task_id=task_id
+                                    )
+                                    try:
+                                        from agentx.decision.metrics import update_metrics
+                                        update_metrics(_decision, _outcome, attempts=attempt + 1, uncertainty_score=task_uncertainty_score)
+                                    except: pass
+                                    break
+                                else:
+                                    if tracker:
+                                        tracker.log_event("CONVERGENCE_VERIFICATION_FAILED", {"task_id": task_id})
+                                    print(f"[Convergence] VERIFICATION FAILED. Escalating to ASK.")
+                                    _outcome = "FAILURE"
+                        
+                        if tracker:
+                            tracker.log_event("TASK_EVALUATED", {"task_id": task_id, "evaluation": _outcome})
+                            tracker.log_event(f"TASK_{_outcome}", {"task_id": task_id})
+                            
+                        print(f"[Evaluator] Task evaluation result: {_outcome}")
+                    
+                    log_decision_outcome(
+                        objective=objective,
+                        decision_type=_decision.get("type", "NEW"),
+                        confidence=_decision.get("confidence", 0),
+                        outcome=_outcome,
+                        task_id=task_id
+                    )
+
+                    # --- Metrics Update (Phase 13) ---
+                    try:
+                        from agentx.decision.metrics import update_metrics
+                        update_metrics(_decision, _outcome, attempts=attempt + 1, uncertainty_score=task_uncertainty_score)
+                        if tracker:
+                            tracker.log_event("METRICS_UPDATED", {
+                                "decision_type": _decision.get("type", "NEW"),
+                                "outcome": _outcome,
+                                "attempt": attempt + 1
+                            })
+                    except Exception as _me:
+                        pass
+
+                    # --- Convergence Checks (Phase 14) ---
+                    if detect_stagnation(hash_history):
+                        if tracker: tracker.log_event("CONVERGENCE_DETECTED", {"reason": "stagnation"})
+                        print("[Convergence] STAGNATION_DETECTED (repeated output hashes).")
+                        
+                    if detect_no_improvement(outcome_history):
+                        if tracker: tracker.log_event("NO_PROGRESS", {"outcomes": outcome_history[-3:]})
+                        print("[Convergence] NO_PROGRESS detected over recent attempts.")
+
+                except Exception as e:
+                    print(f"[Decision] Failed to evaluate or log outcome: {e}")
+
+                
+                try:
+                    action, _decision, last_result_hash = retry_strategy(
+                        _decision, _outcome, attempt, last_result_hash,
+                        current_result_str,
+                        error="",
+                        result_text=current_result_str,
+                    )
+                    if action == "STOP":
+                        if tracker: tracker.log_event("RETRY_TERMINATED", {"reason": "success"})
+                        break
+                    elif action == "FAIL":
+                        if tracker: tracker.log_event("RETRY_TERMINATED", {"reason": "max_retries"})
+                        break
+                    elif action == "CHANGE_STRATEGY":
+                        _strategy_switch_count += 1
+                        if _strategy_switch_count > MAX_STRATEGY_SWITCHES:
+                            if tracker:
+                                tracker.log_event("RETRY_LIMIT_REACHED", {
+                                    "task_id": task_id,
+                                    "strategy_switches": _strategy_switch_count,
+                                })
+                            logger.warning(
+                                "[Retry] RETRY_LIMIT_REACHED: strategy_switches=%d > %d",
+                                _strategy_switch_count, MAX_STRATEGY_SWITCHES,
+                            )
+                            print(f"[Retry] RETRY_LIMIT_REACHED: too many strategy switches ({_strategy_switch_count})")
+                            break
+                        if tracker: tracker.log_event("RETRY_STRATEGY_CHANGED", {"new_type": _decision.get("type")})
+                        continue
+                    elif action == "RETRY_REFINE":
+                        if attempt + 1 >= MAX_TOTAL_ATTEMPTS:
+                            if tracker:
+                                tracker.log_event("RETRY_LIMIT_REACHED", {
+                                    "task_id": task_id, "attempt": attempt + 1,
+                                })
+                            logger.warning("[Retry] RETRY_LIMIT_REACHED: attempt=%d", attempt + 1)
+                            print(f"[Retry] RETRY_LIMIT_REACHED: attempt {attempt + 1} of {MAX_TOTAL_ATTEMPTS}")
+                            break
+                        continue
+                except Exception as retry_e:
+                    print(f"[Retry] Error in retry strategy: {retry_e}")
+                    break
+            except Exception as e:
+                error_str = str(e)
+                from subprocess import CalledProcessError
+                error_type = "RETRYABLE" if isinstance(e, (CalledProcessError, OSError, TimeoutError)) else "PERMANENT"
+                if tracker:
+                    tracker.log_event("CHECKPOINT", {"objective": objective, "step": "exception"})
+                    tracker.log_event("TASK_FAILED", {"objective": objective, "error": error_str, "error_type": error_type})
+                try:
+                    from agentx.presence.notifier import send_notification
+                    send_notification("TASK_FAILED", {"task_id": task_id, "objective": objective, "error": error_str})
+                except ImportError:
+                    pass
+                if tasks:
+                    tasks.update_task_error(task_id, error_str, error_type=error_type)
+
+                # --- Causal Failure Classification & Rule Extraction (Phase 12) ---
+                try:
+                    from agentx.decision.rules import classify_failure, extract_rule_from_failures
+                    _ctype = classify_failure(error_str)
+                    if tracker:
+                        tracker.log_event("FAILURE_CLASSIFIED", {
+                            "objective": objective,
+                            "condition_type": _ctype,
+                            "error": error_str[:200]
+                        })
+                    # Attempt causal retry inside the retry loop if attempts remain
+                    if attempt < max_attempts - 1:
+                        _causal_action_str, _decision, last_result_hash = retry_strategy(
+                            _decision, "FAILURE", attempt, last_result_hash,
+                            current_result_str,
+                            error=error_str,
+                            result_text=current_result_str,
+                        )
+                        if tracker:
+                            tracker.log_event("RETRY_STRATEGY_CHANGED", {
+                                "causal": True,
+                                "condition_type": _ctype,
+                                "new_type": _decision.get("type")
+                            })
+                        apply_backoff(attempt + 1)
+                        continue  # re-enter the for loop
+                    # All attempts used — extract a persistent causal rule
+                    extract_rule_from_failures(objective, _context_for_decide, error=error_str)
+                    if tracker:
+                        tracker.log_event("RULE_CREATED_CAUSAL", {
+                            "objective": objective,
+                            "condition_type": _ctype
+                        })
+                except Exception as _ce:
+                    print(f"[Rules] Causal extraction error: {_ce}")
+
+                # --- Decision Feedback Hook (Phase 10) ---
+                try:
+                    from agentx.decision.feedback import log_decision_outcome
+                    log_decision_outcome(
+                        objective=objective,
+                        decision_type=_decision.get("type", "NEW"),
+                        confidence=_decision.get("confidence", 0),
+                        outcome="FAILURE",
+                        task_id=task_id
+                    )
+                except Exception:
+                    pass
+
+                raise e
     finally:
         # Always release the task lock
         if _lock_acquired:
             try:
                 release_task_lock(logical_task_id, lock_holder=run_id)
+            except Exception:
+                pass
+
+        # Phase 25 — Back-fill routing record with actual outcome
+        if _routing_path and _difficulty_estimate:
+            try:
+                from agentx.decision.metrics import update_routing_metrics
+                _final_outcome = outcome_history[-1] if outcome_history else "UNKNOWN"
+                update_routing_metrics(
+                    task_id=str(task_id),
+                    routing_path=_routing_path,
+                    predicted_complexity=_difficulty_estimate.get("complexity", 0.0),
+                    predicted_uncertainty=_difficulty_estimate.get("expected_uncertainty", 0.0),
+                    actual_uncertainty=task_uncertainty_score,
+                    actual_outcome=_final_outcome,
+                )
             except Exception:
                 pass
 
@@ -517,6 +943,32 @@ def cmd_status():
                 print(f"  - High failure rate ({state['recent_failures']} recent)")
         print("========================\n")
         
+        try:
+            from agentx.decision.feedback import SECRETARY_DB
+            import sqlite3
+            with sqlite3.connect(SECRETARY_DB) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("SELECT outcome, COUNT(*) as cnt FROM decision_logs GROUP BY outcome").fetchall()
+                outcomes = {r["outcome"]: r["cnt"] for r in rows}
+                
+                total = sum(outcomes.values())
+                if total > 0:
+                    print("=== Strategy Effectiveness ===")
+                    true_succ = outcomes.get("TRUE_SUCCESS", 0) + outcomes.get("SUCCESS", 0)
+                    partial = outcomes.get("PARTIAL_SUCCESS", 0)
+                    false_succ = outcomes.get("FALSE_SUCCESS", 0)
+                    failures = outcomes.get("FAILURE", 0)
+                    fallback = outcomes.get("FALLBACK", 0)
+                    
+                    print(f"  True Success:    {true_succ} ({true_succ/total*100:.1f}%)")
+                    if partial: print(f"  Partial Success: {partial} ({partial/total*100:.1f}%)")
+                    if false_succ: print(f"  False Success:   {false_succ} ({false_succ/total*100:.1f}%)")
+                    if failures: print(f"  Failures:        {failures} ({failures/total*100:.1f}%)")
+                    if fallback: print(f"  Fallbacks:       {fallback} ({fallback/total*100:.1f}%)")
+                    print("========================\n")
+        except Exception:
+            pass
+            
     except ImportError:
         pass
 
@@ -1086,6 +1538,89 @@ def cmd_trigger(*args):
 
 
 # ---------------------------------------------------------------------------
+# Metrics command (Phase 13)
+# ---------------------------------------------------------------------------
+
+def cmd_metrics():
+    """Print decision quality and performance metrics."""
+    try:
+        from agentx.decision.metrics import print_metrics
+        print_metrics()
+    except Exception as e:
+        print(f"[Metrics] Could not load metrics: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Explain command (Phase 5/14)
+# ---------------------------------------------------------------------------
+
+def cmd_explain(task_id: str):
+    """Show a forensic trace of a task's decision history and execution events."""
+    try:
+        from agentx.persistence.tracker import get_events_by_task_id
+        tid = int(task_id)
+        events = get_events_by_task_id(tid)
+        
+        if not events:
+            print(f"[Explain] No events found for Task ID {tid}.")
+            return
+            
+        print(f"\nForensic Trace for Task {tid}")
+        print("=" * 60)
+        
+        for e in events:
+            tstamp = e["timestamp"].split(".")[0].replace("T", " ")
+            etype = e["event_type"]
+            payload = e["payload"]
+            
+            # Colourful headers if supported, otherwise just text
+            print(f"[{tstamp}] {etype}")
+            
+            if etype == "DECISION_MADE":
+                print(f"    Type: {payload.get('type')} | Confidence: {payload.get('confidence')}")
+                print(f"    Reason: {payload.get('reason')}")
+            elif etype == "TASK_EVALUATED":
+                print(f"    Evaluation: {payload.get('evaluation')}")
+            elif etype == "RETRY_ATTEMPT":
+                print(f"    Attempt: {payload.get('attempt')}")
+            elif etype in ("CONVERGENCE_DETECTED", "NO_PROGRESS", "GOAL_SATISFIED"):
+                print(f"    *** {etype} ***")
+                if payload: print(f"    Details: {payload}")
+            else:
+                # Generic dump for other types
+                keys = [k for k in payload.keys() if k not in ("task_id", "objective")]
+                for k in keys:
+                    val = payload[k]
+                    if isinstance(val, str) and len(val) > 100:
+                        val = val[:97] + "..."
+                    print(f"    {k}: {val}")
+            print("-" * 40)
+
+        # Append failure analysis (Phase 16)
+        try:
+            from agentx.decision.failure_analysis import get_failures_by_task
+            failures = get_failures_by_task(tid)
+            if failures:
+                print("\n[Failure Analysis]")
+                print("=" * 60)
+                for f in failures:
+                    ts = f["timestamp"].split(".")[0].replace("T", " ")
+                    print(f"[{ts}] {f['failure_type']}")
+                    if f["error_message"]:
+                        print(f"    Error: {f['error_message'][:100]}...")
+                    if f["context_snapshot"]:
+                        print(f"    Context: {f['context_snapshot'][:100]}...")
+                    print("-" * 40)
+        except ImportError:
+            pass
+            
+    except ValueError:
+        print("[Explain] Task ID must be an integer.")
+    except Exception as e:
+        print(f"[Explain] Error tracing task: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Router
 # ---------------------------------------------------------------------------
 
@@ -1184,6 +1719,13 @@ def main():
             print(f"[AgentX] Failed to kill task: {e}")
     elif command == "ui":
         cmd_ui()
+    elif command == "metrics":
+        cmd_metrics()
+    elif command == "explain":
+        if len(args) < 2:
+            print("Usage: agentx explain <task_id>")
+            sys.exit(1)
+        cmd_explain(args[1])
     else:
         print(f"[X] Unknown command: '{command}'")
         show_help()

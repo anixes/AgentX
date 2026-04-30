@@ -14,6 +14,10 @@ from datetime import datetime, timezone
 
 SECRETARY_DB = os.environ.get("AGENTX_DB_PATH", ".agentx/aja_secretary.sqlite3")
 
+# Phase 15: decisions older than this are excluded from similarity lookups
+FEEDBACK_DECAY_DAYS = 30
+
+
 def init_feedback_db():
     """Ensure the decision_logs table exists."""
     os.makedirs(os.path.dirname(SECRETARY_DB) or ".", exist_ok=True)
@@ -60,15 +64,27 @@ def log_decision_outcome(objective: str, decision_type: str, confidence: float, 
         init_feedback_db()
         obj_hash = get_objective_hash(objective)
         tags = extract_tags(objective)
+        
+        # --- Vectorization Phase 11 ---
+        embedding_blob = None
+        try:
+            from scripts.core.gateway import UnifiedGateway
+            gateway = UnifiedGateway()
+            # OpenRouter / OpenAI embeddings fallback
+            emb = gateway.embed("text-embedding-3-small", objective)
+            if emb:
+                import json
+                embedding_blob = json.dumps(emb).encode('utf-8')
+        except Exception as e:
+            pass
+
         with sqlite3.connect(SECRETARY_DB) as conn:
-            # We use try/except block for backward compatibility if columns were just added
             try:
                 conn.execute("""
-                    INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at, tags, original_objective)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (obj_hash, decision_type, confidence, outcome, task_id, datetime.now(timezone.utc).isoformat(), tags, objective))
+                    INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at, tags, original_objective, embedding)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (obj_hash, decision_type, confidence, outcome, task_id, datetime.now(timezone.utc).isoformat(), tags, objective, embedding_blob))
             except sqlite3.OperationalError:
-                # Fallback if alter table didn't work for some reason
                 conn.execute("""
                     INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at)
                     VALUES (?, ?, ?, ?, ?, ?)
@@ -106,32 +122,80 @@ def get_recent_decisions(objective: str, limit: int = 10):
         return []
 
 def get_similar_decisions(objective: str, limit: int = 10):
-    """Retrieve past decisions with similar intent using tag matching."""
+    """Retrieve past decisions with similar intent using vector embeddings or tags."""
     try:
         init_feedback_db()
-        tags = extract_tags(objective).split(',')
-        tags = [t for t in tags if t]
-        if not tags:
-            return []
-            
-        clauses = []
-        params = []
-        for t in tags:
-            clauses.append("tags LIKE ?")
-            params.append(f"%{t}%")
-            
-        where_clause = " OR ".join(clauses)
         
+        # --- Vectorization Phase 11 ---
+        target_embedding = None
+        try:
+            from scripts.core.gateway import UnifiedGateway
+            gateway = UnifiedGateway()
+            target_embedding = gateway.embed("text-embedding-3-small", objective)
+        except Exception:
+            pass
+
         with sqlite3.connect(SECRETARY_DB) as conn:
             conn.row_factory = sqlite3.Row
+            
+            # 1. Try vector similarity if embedding succeeded (with decay window)
+            if target_embedding:
+                from datetime import timedelta
+                _cutoff = (datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
+                           - timedelta(days=FEEDBACK_DECAY_DAYS)).isoformat()
+                rows = conn.execute("""
+                    SELECT original_objective, decision_type, outcome, created_at, embedding 
+                    FROM decision_logs 
+                    WHERE embedding IS NOT NULL AND original_objective IS NOT NULL
+                    AND created_at >= ?
+                """, (_cutoff,)).fetchall()
+                if rows:
+                    import json
+                    import math
+                    results = []
+                    for r in rows:
+                        try:
+                            emb = json.loads(r["embedding"].decode('utf-8'))
+                            dot = sum(a*b for a, b in zip(target_embedding, emb))
+                            norm_a = math.sqrt(sum(a*a for a in target_embedding))
+                            norm_b = math.sqrt(sum(b*b for b in emb))
+                            sim = dot / (norm_a * norm_b) if norm_a and norm_b else 0
+                            results.append((sim, dict(r)))
+                        except Exception:
+                            continue
+                    
+                    results.sort(key=lambda x: x[0], reverse=True)
+                    # Filter matches above 0.75 threshold
+                    matches = [r[1] for r in results if r[0] > 0.75][:limit]
+                    if matches:
+                        return matches
+
+            # 2. Fallback to tag matching
+            tags = extract_tags(objective).split(',')
+            tags = [t for t in tags if t]
+            if not tags:
+                return []
+                
+            clauses = []
+            params = []
+            for t in tags:
+                clauses.append("tags LIKE ?")
+                params.append(f"%{t}%")
+                
+            where_clause = " OR ".join(clauses)
+            
             rows = conn.execute(f"""
                 SELECT original_objective, decision_type, outcome, created_at 
                 FROM decision_logs 
                 WHERE ({where_clause}) AND original_objective IS NOT NULL
+                AND created_at >= (
+                    SELECT datetime('now', '-' || ? || ' days')
+                )
                 ORDER BY created_at DESC 
                 LIMIT ?
-            """, (*params, limit)).fetchall()
+            """, (*params, FEEDBACK_DECAY_DAYS, limit)).fetchall()
             return [dict(r) for r in rows]
+            
     except Exception as e:
         print(f"[Feedback] Failed to get similar decisions: {e}")
         return []

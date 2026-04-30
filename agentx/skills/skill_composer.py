@@ -360,6 +360,7 @@ def compose_skills(
 
         # ── Shared context accumulated across skills ───────────────────────────
         shared_context: dict = {}
+        uncertain_steps = 0
 
         for position, (skill, sub_objective) in enumerate(chain):
             skill_id   = skill.get("id", "unknown")
@@ -426,6 +427,22 @@ def compose_skills(
                     "position": position + 1, "skill_name": skill_name,
                     "failures": pc_failures,
                 })
+                _emit("CHAIN_FALLBACK")
+                return False
+
+            # ── Step 5: Composition Awareness (Uncertainty Tracking) ──────────
+            try:
+                from agentx.decision.evaluator import evaluate_pipeline
+                step_eval = evaluate_pipeline(task_id, "completed", {"objective": sub_objective, "skill": skill})
+                if isinstance(step_eval, dict):
+                    if step_eval.get("decision") == "UNCERTAIN" or step_eval.get("uncertainty_score", 0.0) > 0.4:
+                        uncertain_steps += 1
+            except Exception:
+                pass
+
+            if uncertain_steps >= 2:
+                _emit("CHAIN_UNCERTAINTY_EXCEEDED", {"uncertain_steps": uncertain_steps})
+                print(f"[Composer] CHAIN_UNCERTAINTY_EXCEEDED. Halting early.")
                 _emit("CHAIN_FALLBACK")
                 return False
 

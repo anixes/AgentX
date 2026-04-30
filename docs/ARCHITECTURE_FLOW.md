@@ -69,6 +69,12 @@ agentx              → Start the interactive SafeShell TUI (default)
 agentx dash         → Launch Dashboard + API Bridge in one command
 agentx run [--bg]   → Delegate a mission to SwarmEngine (optionally in background)
 agentx status       → Show swarm health & active batons
+agentx explain <id> → Forensic trace of an agent's decision logic and failures
+agentx metrics      → Real-time strategy success rates and reliability dashboard
+agentx run-loop     → Launch the persistent autonomous agent loop
+agentx trigger      → Enqueue event-driven tasks (TIME, TASK_STATE, FILE_FLAG)
+agentx approve <id> → Remotely approve a pending high-risk action
+agentx reject <id>  → Remotely reject a pending high-risk action
 agentx setup        → Configure AI provider, API key & model interactively
 agentx doctor       → Run system health checks and diagnostics
 agentx memory       → Manage agent persistent memory
@@ -124,12 +130,59 @@ The **Priority Engine** computes a 0-100 score for every task using urgency, sta
 
 The **Definition of Done (DoD)** framework enforces mandatory success criteria for every delegated mission. Criteria are auto-generated from keywords (e.g., "code", "auth", "deploy") if not manually specified, ensuring worker agents remain aligned with executive expectations.
 
-## Phase 7: Resilient Recovery Layer
-
-The **Resilient Recovery Layer** provides AgentX with crash survival and tool-level idempotency. 
-
-- **Authoritative Task Layer**: All missions are tracked in SQLite (PENDING -> RUNNING -> COMPLETED).
-- **Recovery Engine**: Automatically detects and re-queues interrupted tasks on boot.
-- **ToolGuard**: Atomic reservation and result caching prevent duplicate side-effects (e.g., sending the same email twice).
 - **Task Locking**: Prevents race conditions between concurrent agents working on the same logical task.
 - **TTL Cleanup**: Automatically prunes execution logs older than 30 days.
+
+## Phase 8: Resilient Skill System
+
+Shifting from ephemeral task execution to a production-grade library of reusable, verifiable behaviors. 
+
+- **Autonomous Skill Capture**: Successful missions are crystallized into versioned skill records in SQLite.
+- **Verifiable Correctness**: Post-execution assertions (postconditions) ensure results satisfy semantic requirements.
+- **Multi-Skill Composition**: Split complex objectives into chains with context-aware variable injection.
+- **Safe Replay Engine**: Step-level recovery via checkpoints and environment prerequisite validation.
+
+## Phase 9: Resilient Loop & Presence
+
+Transitioned from one-off command execution to a robust, continuous agentic runtime.
+
+- **Persistent Agent Loop**: Non-blocking execution engine with task prioritization.
+- **Execution Guardrails**: Rate limiting, duplicate task detection, retry storm protection, and circuit breakers.
+- **Trigger Engine**: Event-driven task enqueuing supporting `TIME`, `TASK_STATE`, and `FILE_FLAG`.
+
+## Phase 10: Strategy Selection Module (Research-Aligned)
+
+Added a strategic layer to autonomously determine the optimal execution path for any objective.
+
+- **Strategy Selection Module**: Choices between `SKILL` (Action Abstractions), `Hierarchical Execution` (Composition), `NEW`, `ASK`, or `REJECT`.
+- **Gated Interaction**: Strict JSON schema validation and hard risk gates.
+- **Fail-Safe Fallbacks**: Low-confidence outputs fall back to deterministic pipelines.
+- **Decision Traceability**: Real-time logging of `evidence` for every decision (see `agentx explain`).
+
+## Phase 11: Vectorized Memory & Effectiveness
+
+Enhanced the Strategy Selection Module with semantic retrieval and performance observability.
+
+- **Vectorized Decision Memory**: Replaced keyword lookup with dense vector embeddings for semantic similarity.
+- **Strategy Effectiveness Reporting**: Real-time outcome distribution metrics on the dashboard.
+- **Interactive Human-in-the-Loop**: Responsive CLI prompts for `ASK` strategies.
+
+## Phase 12-14: Causal Rules, Metrics & Stability
+
+- **Causal Rule Engine**: Automatically converts repeated failures into targeted, actionable rules (e.g., `AUTH_ERROR → ASK`).
+- **Decision Quality Metrics**: SQLite-backed metrics layer computes accuracy, failure rates, and retry success rates.
+- **Loop Stability (Convergence)**: Stagnation and trend analysis to prevent "hallucination finish" and infinite loops.
+
+## Phase 15-17: Final Hardening & Control Layer
+
+- **Evaluator Calibration**: routinely replays "Golden Tasks" to detect evaluator drift.
+- **Step-level Evaluation**: Validates every step of a `Hierarchical Execution` chain, aborting on failure.
+- **Multi-Evaluator Pipeline**: 4-layer consensus system (Deterministic -> Multi-Eval -> Minority Veto -> Agreement).
+- **Cost-Optimized Verification**: Intelligent skipping of expensive multi-eval for low-risk, high-confidence tasks.
+
+## Phase 18-19: Risk-Aware Correctness & Reliability
+
+- **Probabilistic Risk Scoring**: Evaluation results include a `risk_score` (0.0-1.0) and `veto_triggered` flag. High-risk convergence triggers mandatory human escalation.
+- **Reliability-Weighted Multi-Eval**: Evaluator signals are weighted by historical accuracy. Weak judges (< 0.3 reliability) are suppressed; high-reliability judges can issue **HARD VETO** signals.
+- **Meta-Evaluation Layer**: Autonomous calibration against "Golden Tasks" detects biased or inconsistent judges and alerts on performance drift.
+- **Diversity Guardrails**: Enforces consensus across diverse model families (e.g., GPT, Claude, Gemini) to prevent correlated "yes-man" failures.
