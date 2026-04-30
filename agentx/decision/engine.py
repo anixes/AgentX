@@ -47,10 +47,17 @@ class DecisionEngine:
 
         # --- Decision Feedback (Phase 10 Self-Improvement) ---
         feedback_stats = {}
+        similar_decisions = []
         try:
-            from agentx.decision.feedback import get_feedback_stats
+            from agentx.decision.feedback import get_feedback_stats, get_similar_decisions
             feedback_stats = get_feedback_stats(objective)
             context["feedback_stats"] = feedback_stats
+            
+            # Phase 10 - Long term memory
+            similar_decisions = get_similar_decisions(objective)
+            if similar_decisions:
+                print(f"[Decision] DECISION_MEMORY_USED: Found {len(similar_decisions)} similar past decisions.")
+                context["similar_decisions"] = similar_decisions
         except ImportError:
             pass
 
@@ -81,6 +88,18 @@ class DecisionEngine:
                     decision["confidence"] = min(1.0, decision["confidence"] + 0.1)
                     print(f"[Decision] BIAS APPLIED: Boosted {decision['type']} due to prior success.")
 
+            # --- Apply Long-term Memory Biasing ---
+            if similar_decisions:
+                sim_fails = sum(1 for s in similar_decisions if s["decision_type"] == decision["type"] and s["outcome"] == "FAILURE")
+                sim_success = sum(1 for s in similar_decisions if s["decision_type"] == decision["type"] and s["outcome"] == "SUCCESS")
+                
+                if sim_fails >= 2:
+                    print(f"[Decision] DECISION_PATTERN_DETECTED: Repeated similar failures for {decision['type']}.")
+                    decision["confidence"] = max(0.0, decision["confidence"] - 0.2)
+                elif sim_success > 0:
+                    print(f"[Decision] DECISION_PATTERN_DETECTED: Repeated similar success for {decision['type']}.")
+                    decision["confidence"] = min(1.0, decision["confidence"] + 0.1)
+
             return decision
         except Exception as e:
             logger.error(f"Decision engine failure: {str(e)}")
@@ -96,9 +115,16 @@ class DecisionEngine:
         prompt += f"Risk Level: {risk}\n\n"
         
         if feedback:
-            prompt += "Previous Decision Outcomes for this objective:\n"
+            prompt += "Previous Decision Outcomes for this exact objective:\n"
             for dtype, stats in feedback.items():
                 prompt += f"- {dtype}: {stats['SUCCESS']} successes, {stats['FAILURE']} failures, {stats['FALLBACK']} fallbacks\n"
+            prompt += "\n"
+
+        similar = context.get("similar_decisions", [])
+        if similar:
+            prompt += "Similar Past Objectives and Outcomes:\n"
+            for s in similar[:5]:  # limit to top 5
+                prompt += f"- '{s.get('original_objective', 'unknown')}': chose {s.get('decision_type')} -> {s.get('outcome')}\n"
             prompt += "\n"
 
         if skills:

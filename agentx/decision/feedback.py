@@ -30,21 +30,49 @@ def init_feedback_db():
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_obj_hash ON decision_logs(objective_hash)")
+        
+        # Phase 10 - Long term memory extensions
+        for col_def in (
+            "ALTER TABLE decision_logs ADD COLUMN embedding BLOB",
+            "ALTER TABLE decision_logs ADD COLUMN tags TEXT",
+            "ALTER TABLE decision_logs ADD COLUMN original_objective TEXT"
+        ):
+            try:
+                conn.execute(col_def)
+            except Exception:
+                pass
 
 def get_objective_hash(objective: str) -> str:
     """Normalize and hash the objective string."""
     return hashlib.sha256(objective.strip().lower().encode('utf-8')).hexdigest()
+
+def extract_tags(objective: str) -> str:
+    """Extract simple keyword tags from an objective."""
+    import re
+    words = re.findall(r'\b\w+\b', objective.lower())
+    stopwords = {"and", "the", "to", "a", "of", "for", "in", "on", "with", "is", "it"}
+    tags = [w for w in words if len(w) > 3 and w not in stopwords]
+    return ",".join(tags)
 
 def log_decision_outcome(objective: str, decision_type: str, confidence: float, outcome: str, task_id: int = None):
     """Record the outcome of a decision."""
     try:
         init_feedback_db()
         obj_hash = get_objective_hash(objective)
+        tags = extract_tags(objective)
         with sqlite3.connect(SECRETARY_DB) as conn:
-            conn.execute("""
-                INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (obj_hash, decision_type, confidence, outcome, task_id, datetime.now(timezone.utc).isoformat()))
+            # We use try/except block for backward compatibility if columns were just added
+            try:
+                conn.execute("""
+                    INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at, tags, original_objective)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (obj_hash, decision_type, confidence, outcome, task_id, datetime.now(timezone.utc).isoformat(), tags, objective))
+            except sqlite3.OperationalError:
+                # Fallback if alter table didn't work for some reason
+                conn.execute("""
+                    INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (obj_hash, decision_type, confidence, outcome, task_id, datetime.now(timezone.utc).isoformat()))
     except Exception as e:
         print(f"[Feedback] Failed to log outcome: {e}")
 
@@ -65,6 +93,37 @@ def get_recent_decisions(objective: str, limit: int = 10):
             return [dict(r) for r in rows]
     except Exception as e:
         print(f"[Feedback] Failed to retrieve history: {e}")
+        return []
+
+def get_similar_decisions(objective: str, limit: int = 10):
+    """Retrieve past decisions with similar intent using tag matching."""
+    try:
+        init_feedback_db()
+        tags = extract_tags(objective).split(',')
+        tags = [t for t in tags if t]
+        if not tags:
+            return []
+            
+        clauses = []
+        params = []
+        for t in tags:
+            clauses.append("tags LIKE ?")
+            params.append(f"%{t}%")
+            
+        where_clause = " OR ".join(clauses)
+        
+        with sqlite3.connect(SECRETARY_DB) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(f"""
+                SELECT original_objective, decision_type, outcome, created_at 
+                FROM decision_logs 
+                WHERE ({where_clause}) AND original_objective IS NOT NULL
+                ORDER BY created_at DESC 
+                LIMIT ?
+            """, (*params, limit)).fetchall()
+            return [dict(r) for r in rows]
+    except Exception as e:
+        print(f"[Feedback] Failed to get similar decisions: {e}")
         return []
 
 def get_feedback_stats(objective: str):

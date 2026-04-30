@@ -249,7 +249,8 @@ Added an LLM-assisted strategy layer to autonomously determine the optimal execu
 - **Fail-Safe Fallbacks**: Low-confidence LLM outputs (<0.6) automatically fall back to the standard deterministic pipeline (`NEW`).
 - **Composition Routing**: Automatically routes multi-step objectives through the `SkillComposer` when composition is the optimal strategy. Includes a pre-execution validation gate (`validate_chain`) that verifies tool existence, environment prerequisites, and chain length limits before any execution occurs.
 - **Decision Feedback Loop**: Self-improving persistence layer that tracks outcomes (`SUCCESS`, `FAILURE`, `FALLBACK`) and applies confidence biasing to future decisions based on historical performance.
-- **Outcome-Aware Prompting**: Injecting previous decision results directly into the LLM prompt to improve contextual reasoning for recurring objectives.
+- **Long-Term Decision Memory**: Extracts tags from objectives to detect patterns across similar past tasks. Automatically upgrades or downgrades decision priority if repeated successes or failures are detected for similar intents.
+- **Outcome-Aware Prompting**: Injecting previous decision results (exact and similar matches) directly into the LLM prompt to improve contextual reasoning for recurring objectives.
 - **Deterministic Validation Layer**: A strict, code-only safety module that validates LLM decisions against hard system constraints (existence checks, risk gating, and minimum confidence) before dispatch.
 - **Strategic Overrides**: Automatic correction of unsafe decisions (e.g., forcing `ASK` for high-risk tasks or falling back to `NEW` for low-confidence skill matches).
 

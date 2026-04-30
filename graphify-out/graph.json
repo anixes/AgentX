@@ -335,7 +335,7 @@
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L1",
       "id": "agentx_decision_engine_py",
-      "community": 3,
+      "community": 2,
       "norm_label": "engine.py"
     },
     {
@@ -344,7 +344,7 @@
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L9",
       "id": "engine_decisionengine",
-      "community": 3,
+      "community": 2,
       "norm_label": "decisionengine"
     },
     {
@@ -353,7 +353,7 @@
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L34",
       "id": "engine_decisionengine_init",
-      "community": 3,
+      "community": 2,
       "norm_label": ".__init__()"
     },
     {
@@ -362,34 +362,34 @@
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L40",
       "id": "engine_decisionengine_decide",
-      "community": 3,
+      "community": 2,
       "norm_label": ".decide()"
     },
     {
       "label": "._build_prompt()",
       "file_type": "code",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L89",
+      "source_location": "L108",
       "id": "engine_decisionengine_build_prompt",
-      "community": 3,
+      "community": 2,
       "norm_label": "._build_prompt()"
     },
     {
       "label": "._parse_and_validate()",
       "file_type": "code",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L117",
+      "source_location": "L143",
       "id": "engine_decisionengine_parse_and_validate",
-      "community": 3,
+      "community": 2,
       "norm_label": "._parse_and_validate()"
     },
     {
       "label": "decide()",
       "file_type": "code",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L138",
+      "source_location": "L164",
       "id": "engine_decide",
-      "community": 3,
+      "community": 2,
       "norm_label": "decide()"
     },
     {
@@ -397,7 +397,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L10",
-      "community": 3,
+      "community": 2,
       "norm_label": "llm-assisted decision engine for agentx.     determines the best execution path",
       "id": "engine_rationale_10"
     },
@@ -406,7 +406,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L41",
-      "community": 3,
+      "community": 2,
       "norm_label": "decide the execution path based on objective and context.",
       "id": "engine_rationale_41"
     },
@@ -414,10 +414,10 @@
       "label": "Standalone wrapper for the decision engine.",
       "file_type": "rationale",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L139",
-      "community": 3,
-      "norm_label": "standalone wrapper for the decision engine.",
-      "id": "engine_rationale_139"
+      "source_location": "L165",
+      "id": "engine_rationale_165",
+      "community": 2,
+      "norm_label": "standalone wrapper for the decision engine."
     },
     {
       "label": "feedback.py",
@@ -425,7 +425,7 @@
       "source_file": "agentx\\decision\\feedback.py",
       "source_location": "L1",
       "id": "agentx_decision_feedback_py",
-      "community": 17,
+      "community": 14,
       "norm_label": "feedback.py"
     },
     {
@@ -434,43 +434,61 @@
       "source_file": "agentx\\decision\\feedback.py",
       "source_location": "L17",
       "id": "feedback_init_feedback_db",
-      "community": 17,
+      "community": 14,
       "norm_label": "init_feedback_db()"
     },
     {
       "label": "get_objective_hash()",
       "file_type": "code",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L34",
+      "source_location": "L45",
       "id": "feedback_get_objective_hash",
-      "community": 17,
+      "community": 14,
       "norm_label": "get_objective_hash()"
+    },
+    {
+      "label": "extract_tags()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L49",
+      "id": "feedback_extract_tags",
+      "community": 14,
+      "norm_label": "extract_tags()"
     },
     {
       "label": "log_decision_outcome()",
       "file_type": "code",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L38",
+      "source_location": "L57",
       "id": "feedback_log_decision_outcome",
-      "community": 17,
+      "community": 14,
       "norm_label": "log_decision_outcome()"
     },
     {
       "label": "get_recent_decisions()",
       "file_type": "code",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L51",
+      "source_location": "L79",
       "id": "feedback_get_recent_decisions",
-      "community": 17,
+      "community": 14,
       "norm_label": "get_recent_decisions()"
+    },
+    {
+      "label": "get_similar_decisions()",
+      "file_type": "code",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L98",
+      "id": "feedback_get_similar_decisions",
+      "community": 14,
+      "norm_label": "get_similar_decisions()"
     },
     {
       "label": "get_feedback_stats()",
       "file_type": "code",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L70",
+      "source_location": "L129",
       "id": "feedback_get_feedback_stats",
-      "community": 17,
+      "community": 14,
       "norm_label": "get_feedback_stats()"
     },
     {
@@ -478,7 +496,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\feedback.py",
       "source_location": "L1",
-      "community": 17,
+      "community": 14,
       "norm_label": "agentx/decision/feedback.py ========================== phase 10 \u2014 decision feedb",
       "id": "feedback_rationale_1"
     },
@@ -487,7 +505,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\feedback.py",
       "source_location": "L18",
-      "community": 17,
+      "community": 14,
       "norm_label": "ensure the decision_logs table exists.",
       "id": "feedback_rationale_18"
     },
@@ -495,37 +513,55 @@
       "label": "Normalize and hash the objective string.",
       "file_type": "rationale",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L35",
-      "community": 17,
-      "norm_label": "normalize and hash the objective string.",
-      "id": "feedback_rationale_35"
+      "source_location": "L46",
+      "id": "feedback_rationale_46",
+      "community": 14,
+      "norm_label": "normalize and hash the objective string."
+    },
+    {
+      "label": "Extract simple keyword tags from an objective.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L50",
+      "id": "feedback_rationale_50",
+      "community": 14,
+      "norm_label": "extract simple keyword tags from an objective."
     },
     {
       "label": "Record the outcome of a decision.",
       "file_type": "rationale",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L39",
-      "community": 17,
-      "norm_label": "record the outcome of a decision.",
-      "id": "feedback_rationale_39"
+      "source_location": "L58",
+      "id": "feedback_rationale_58",
+      "community": 14,
+      "norm_label": "record the outcome of a decision."
     },
     {
       "label": "Retrieve recent decision outcomes for a specific objective hash.",
       "file_type": "rationale",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L52",
-      "community": 17,
-      "norm_label": "retrieve recent decision outcomes for a specific objective hash.",
-      "id": "feedback_rationale_52"
+      "source_location": "L80",
+      "id": "feedback_rationale_80",
+      "community": 14,
+      "norm_label": "retrieve recent decision outcomes for a specific objective hash."
+    },
+    {
+      "label": "Retrieve past decisions with similar intent using tag matching.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L99",
+      "id": "feedback_rationale_99",
+      "community": 14,
+      "norm_label": "retrieve past decisions with similar intent using tag matching."
     },
     {
       "label": "Calculate success/failure stats for an objective.",
       "file_type": "rationale",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L71",
-      "community": 17,
-      "norm_label": "calculate success/failure stats for an objective.",
-      "id": "feedback_rationale_71"
+      "source_location": "L130",
+      "id": "feedback_rationale_130",
+      "community": 14,
+      "norm_label": "calculate success/failure stats for an objective."
     },
     {
       "label": "validator.py",
@@ -596,7 +632,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L1",
       "id": "agentx_persistence_tasks_py",
-      "community": 16,
+      "community": 17,
       "norm_label": "tasks.py"
     },
     {
@@ -605,7 +641,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L8",
       "id": "tasks_init_db",
-      "community": 16,
+      "community": 17,
       "norm_label": "init_db()"
     },
     {
@@ -614,7 +650,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L61",
       "id": "tasks_is_logical_task_completed",
-      "community": 16,
+      "community": 17,
       "norm_label": "is_logical_task_completed()"
     },
     {
@@ -623,7 +659,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L71",
       "id": "tasks_set_execution_metadata",
-      "community": 16,
+      "community": 17,
       "norm_label": "set_execution_metadata()"
     },
     {
@@ -632,7 +668,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L88",
       "id": "tasks_create_task",
-      "community": 16,
+      "community": 17,
       "norm_label": "create_task()"
     },
     {
@@ -641,7 +677,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L105",
       "id": "tasks_update_task_status",
-      "community": 16,
+      "community": 17,
       "norm_label": "update_task_status()"
     },
     {
@@ -650,7 +686,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L120",
       "id": "tasks_update_task_error",
-      "community": 16,
+      "community": 17,
       "norm_label": "update_task_error()"
     },
     {
@@ -659,7 +695,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L142",
       "id": "tasks_cleanup_old_tasks",
-      "community": 16,
+      "community": 17,
       "norm_label": "cleanup_old_tasks()"
     },
     {
@@ -668,7 +704,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L160",
       "id": "tasks_fetch_pending_tasks",
-      "community": 16,
+      "community": 17,
       "norm_label": "fetch_pending_tasks()"
     },
     {
@@ -677,7 +713,7 @@
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L186",
       "id": "tasks_enqueue_scheduled_tasks",
-      "community": 16,
+      "community": 17,
       "norm_label": "enqueue_scheduled_tasks()"
     },
     {
@@ -685,7 +721,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L121",
-      "community": 16,
+      "community": 17,
       "norm_label": "record error details on a task and set its status.     error_type: 'retryable' o",
       "id": "tasks_rationale_121"
     },
@@ -694,7 +730,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L143",
-      "community": 16,
+      "community": 17,
       "norm_label": "delete completed / failed_permanent tasks older than ttl_days. returns rows dele",
       "id": "tasks_rationale_143"
     },
@@ -703,7 +739,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L161",
-      "community": 16,
+      "community": 17,
       "norm_label": "fetch tasks for the agent loop: interrupted first, then pending, then failed (re",
       "id": "tasks_rationale_161"
     },
@@ -712,7 +748,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L187",
-      "community": 16,
+      "community": 17,
       "norm_label": "check scheduled_tasks and enqueue them into tasks if due.",
       "id": "tasks_rationale_187"
     },
@@ -749,7 +785,7 @@
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L80",
       "id": "tools_toolguard",
-      "community": 2,
+      "community": 3,
       "norm_label": "toolguard"
     },
     {
@@ -758,7 +794,7 @@
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L91",
       "id": "tools_toolguard_init",
-      "community": 2,
+      "community": 3,
       "norm_label": ".__init__()"
     },
     {
@@ -776,7 +812,7 @@
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L151",
       "id": "tools_toolguard_complete",
-      "community": 2,
+      "community": 3,
       "norm_label": ".complete()"
     },
     {
@@ -785,7 +821,7 @@
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L168",
       "id": "tools_toolguard_fail",
-      "community": 2,
+      "community": 3,
       "norm_label": ".fail()"
     },
     {
@@ -794,7 +830,7 @@
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L192",
       "id": "tools_toolguard_is_permanently_failed",
-      "community": 2,
+      "community": 3,
       "norm_label": ".is_permanently_failed()"
     },
     {
@@ -874,7 +910,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L81",
-      "community": 2,
+      "community": 3,
       "norm_label": "one instance per tool call.  wraps atomic reservation + result caching.      arg",
       "id": "tools_rationale_81"
     },
@@ -892,7 +928,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L152",
-      "community": 2,
+      "community": 3,
       "norm_label": "mark this tool call completed and cache the result.",
       "id": "tools_rationale_152"
     },
@@ -901,7 +937,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tools.py",
       "source_location": "L169",
-      "community": 2,
+      "community": 3,
       "norm_label": "mark this tool call failed.          args:             error      : human-readab",
       "id": "tools_rationale_169"
     },
@@ -1459,18 +1495,18 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_composer.py",
       "source_location": "L211",
-      "id": "skill_composer_rationale_211",
       "community": 13,
-      "norm_label": "validate a multi-step execution chain before any execution begins.      checks:"
+      "norm_label": "validate a multi-step execution chain before any execution begins.      checks:",
+      "id": "skill_composer_rationale_211"
     },
     {
       "label": "Execute a chain of skills sequentially with shared context.      Parameters",
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_composer.py",
       "source_location": "L276",
-      "id": "skill_composer_rationale_276",
       "community": 13,
-      "norm_label": "execute a chain of skills sequentially with shared context.      parameters"
+      "norm_label": "execute a chain of skills sequentially with shared context.      parameters",
+      "id": "skill_composer_rationale_276"
     },
     {
       "label": "skill_executor.py",
@@ -1478,7 +1514,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L1",
       "id": "agentx_skills_skill_executor_py",
-      "community": 2,
+      "community": 3,
       "norm_label": "skill_executor.py"
     },
     {
@@ -1487,7 +1523,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L44",
       "id": "skill_executor_db_path",
-      "community": 2,
+      "community": 3,
       "norm_label": "_db_path()"
     },
     {
@@ -1496,7 +1532,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L51",
       "id": "skill_executor_get_conn",
-      "community": 2,
+      "community": 3,
       "norm_label": "_get_conn()"
     },
     {
@@ -1505,7 +1541,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L61",
       "id": "skill_executor_bootstrap_executor_tables",
-      "community": 2,
+      "community": 3,
       "norm_label": "_bootstrap_executor_tables()"
     },
     {
@@ -1514,7 +1550,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L96",
       "id": "skill_executor_mark_stale_skills",
-      "community": 2,
+      "community": 3,
       "norm_label": "mark_stale_skills()"
     },
     {
@@ -1523,7 +1559,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L129",
       "id": "skill_executor_refresh_last_used",
-      "community": 2,
+      "community": 3,
       "norm_label": "_refresh_last_used()"
     },
     {
@@ -1532,7 +1568,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L165",
       "id": "skill_executor_check_network",
-      "community": 2,
+      "community": 3,
       "norm_label": "_check_network()"
     },
     {
@@ -1541,7 +1577,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L175",
       "id": "skill_executor_check_db_available",
-      "community": 2,
+      "community": 3,
       "norm_label": "_check_db_available()"
     },
     {
@@ -1550,7 +1586,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L183",
       "id": "skill_executor_check_env_vars",
-      "community": 2,
+      "community": 3,
       "norm_label": "_check_env_vars()"
     },
     {
@@ -1559,7 +1595,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L190",
       "id": "skill_executor_check_environment",
-      "community": 2,
+      "community": 3,
       "norm_label": "check_environment()"
     },
     {
@@ -1568,7 +1604,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L229",
       "id": "skill_executor_risk_gate",
-      "community": 2,
+      "community": 3,
       "norm_label": "_risk_gate()"
     },
     {
@@ -1577,7 +1613,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L277",
       "id": "skill_executor_load_completed_steps",
-      "community": 2,
+      "community": 3,
       "norm_label": "_load_completed_steps()"
     },
     {
@@ -1586,7 +1622,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L295",
       "id": "skill_executor_checkpoint_step",
-      "community": 2,
+      "community": 3,
       "norm_label": "_checkpoint_step()"
     },
     {
@@ -1595,7 +1631,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L313",
       "id": "skill_executor_clear_checkpoints",
-      "community": 2,
+      "community": 3,
       "norm_label": "_clear_checkpoints()"
     },
     {
@@ -1604,7 +1640,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L331",
       "id": "skill_executor_execute_step",
-      "community": 2,
+      "community": 3,
       "norm_label": "_execute_step()"
     },
     {
@@ -1613,7 +1649,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L377",
       "id": "skill_executor_invoke_tool",
-      "community": 2,
+      "community": 3,
       "norm_label": "_invoke_tool()"
     },
     {
@@ -1622,7 +1658,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L404",
       "id": "skill_executor_is_permanent_error",
-      "community": 2,
+      "community": 3,
       "norm_label": "_is_permanent_error()"
     },
     {
@@ -1631,7 +1667,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L417",
       "id": "skill_executor_update_skill_metrics",
-      "community": 2,
+      "community": 3,
       "norm_label": "_update_skill_metrics()"
     },
     {
@@ -1640,7 +1676,7 @@
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L452",
       "id": "skill_executor_execute_skill",
-      "community": 2,
+      "community": 3,
       "norm_label": "execute_skill()"
     },
     {
@@ -1648,7 +1684,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L1",
-      "community": 2,
+      "community": 3,
       "norm_label": "agentx/skills/skill_executor.py ================================ phase 8b + 8b.1",
       "id": "skill_executor_rationale_1"
     },
@@ -1657,7 +1693,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L62",
-      "community": 2,
+      "community": 3,
       "norm_label": "create tables needed exclusively by skill_executor (idempotent).",
       "id": "skill_executor_rationale_62"
     },
@@ -1666,7 +1702,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L97",
-      "community": 2,
+      "community": 3,
       "norm_label": "mark skills whose last_used_at (or created_at) is older than stale_after_days.",
       "id": "skill_executor_rationale_97"
     },
@@ -1675,7 +1711,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L130",
-      "community": 2,
+      "community": 3,
       "norm_label": "touch last_used_at + clear stale flag whenever a skill is attempted.",
       "id": "skill_executor_rationale_130"
     },
@@ -1684,7 +1720,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L176",
-      "community": 2,
+      "community": 3,
       "norm_label": "consider db available if the agentx db file exists and is readable.",
       "id": "skill_executor_rationale_176"
     },
@@ -1693,7 +1729,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L191",
-      "community": 2,
+      "community": 3,
       "norm_label": "validate skill prerequisites against the current runtime environment.      retur",
       "id": "skill_executor_rationale_191"
     },
@@ -1702,7 +1738,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L230",
-      "community": 2,
+      "community": 3,
       "norm_label": "enforce execution gate based on skill risk_level.      high   \u2192 requires explici",
       "id": "skill_executor_rationale_230"
     },
@@ -1711,7 +1747,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L278",
-      "community": 2,
+      "community": 3,
       "norm_label": "return {step_index: result} for all already-completed steps     of this (skill_i",
       "id": "skill_executor_rationale_278"
     },
@@ -1720,7 +1756,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L297",
-      "community": 2,
+      "community": 3,
       "norm_label": "persist a completed step checkpoint (insert or replace for idempotency).",
       "id": "skill_executor_rationale_297"
     },
@@ -1729,7 +1765,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L314",
-      "community": 2,
+      "community": 3,
       "norm_label": "remove checkpoints after full success or terminal failure.",
       "id": "skill_executor_rationale_314"
     },
@@ -1738,7 +1774,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L332",
-      "community": 2,
+      "community": 3,
       "norm_label": "execute a single tool_sequence step via toolguard.      returns (success: bool,",
       "id": "skill_executor_rationale_332"
     },
@@ -1747,7 +1783,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L378",
-      "community": 2,
+      "community": 3,
       "norm_label": "look up and call a real tool implementation.      tool implementations live in a",
       "id": "skill_executor_rationale_378"
     },
@@ -1756,7 +1792,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L405",
-      "community": 2,
+      "community": 3,
       "norm_label": "classify whether an error should never be retried.",
       "id": "skill_executor_rationale_405"
     },
@@ -1765,7 +1801,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L418",
-      "community": 2,
+      "community": 3,
       "norm_label": "atomically update success_count / failure_count / confidence_score.",
       "id": "skill_executor_rationale_418"
     },
@@ -1774,7 +1810,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L460",
-      "community": 2,
+      "community": 3,
       "norm_label": "execute a recommended skill safely within system guarantees.      parameters",
       "id": "skill_executor_rationale_460"
     },
@@ -1783,7 +1819,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_executor.py",
       "source_location": "L579",
-      "community": 2,
+      "community": 3,
       "norm_label": "# note: checkpoints from steps 0..i-1 are intentionally kept",
       "id": "skill_executor_rationale_579"
     },
@@ -2612,7 +2648,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L1",
       "id": "scripts_agent_worker_py",
-      "community": 3,
+      "community": 2,
       "norm_label": "agent_worker.py"
     },
     {
@@ -2621,7 +2657,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L11",
       "id": "agent_worker_now_iso",
-      "community": 3,
+      "community": 2,
       "norm_label": "now_iso()"
     },
     {
@@ -2630,7 +2666,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L15",
       "id": "agent_worker_append_baton_history",
-      "community": 3,
+      "community": 2,
       "norm_label": "append_baton_history()"
     },
     {
@@ -2639,7 +2675,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L26",
       "id": "agent_worker_save_baton",
-      "community": 3,
+      "community": 2,
       "norm_label": "save_baton()"
     },
     {
@@ -2648,7 +2684,7 @@
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L30",
       "id": "agent_worker_work",
-      "community": 3,
+      "community": 2,
       "norm_label": "work()"
     },
     {
@@ -2656,7 +2692,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\agent_worker.py",
       "source_location": "L31",
-      "community": 3,
+      "community": 2,
       "norm_label": "the worker entry point.     reads a baton file, executes the assigned task, and",
       "id": "agent_worker_rationale_31"
     },
@@ -4374,7 +4410,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L1",
       "id": "scripts_swarm_engine_py",
-      "community": 3,
+      "community": 2,
       "norm_label": "swarm_engine.py"
     },
     {
@@ -4383,7 +4419,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L14",
       "id": "swarm_engine_now_iso",
-      "community": 3,
+      "community": 2,
       "norm_label": "now_iso()"
     },
     {
@@ -4392,7 +4428,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L17",
       "id": "swarm_engine_append_baton_history",
-      "community": 3,
+      "community": 2,
       "norm_label": "append_baton_history()"
     },
     {
@@ -4401,7 +4437,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L25",
       "id": "swarm_engine_write_baton",
-      "community": 3,
+      "community": 2,
       "norm_label": "write_baton()"
     },
     {
@@ -4410,7 +4446,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L28",
       "id": "swarm_engine_swarmengine",
-      "community": 3,
+      "community": 2,
       "norm_label": "swarmengine"
     },
     {
@@ -4419,7 +4455,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L32",
       "id": "swarm_engine_swarmengine_init",
-      "community": 3,
+      "community": 2,
       "norm_label": ".__init__()"
     },
     {
@@ -4428,7 +4464,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L41",
       "id": "swarm_engine_swarmengine_load_config",
-      "community": 3,
+      "community": 2,
       "norm_label": ".load_config()"
     },
     {
@@ -4437,7 +4473,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L48",
       "id": "swarm_engine_swarmengine_deploy_background_swarm",
-      "community": 3,
+      "community": 2,
       "norm_label": ".deploy_background_swarm()"
     },
     {
@@ -4446,7 +4482,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L77",
       "id": "swarm_engine_swarmengine_run_agent_sync",
-      "community": 3,
+      "community": 2,
       "norm_label": "._run_agent_sync()"
     },
     {
@@ -4455,7 +4491,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L92",
       "id": "swarm_engine_swarmengine_launch_parallel_swarm",
-      "community": 3,
+      "community": 2,
       "norm_label": ".launch_parallel_swarm()"
     },
     {
@@ -4464,7 +4500,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L106",
       "id": "swarm_engine_swarmengine_plan_and_execute_batons",
-      "community": 3,
+      "community": 2,
       "norm_label": ".plan_and_execute_batons()"
     },
     {
@@ -4473,7 +4509,7 @@
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L160",
       "id": "swarm_engine_swarmengine_execute_baton_worker",
-      "community": 3,
+      "community": 2,
       "norm_label": "._execute_baton_worker()"
     },
     {
@@ -4481,7 +4517,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\swarm_engine.py",
       "source_location": "L29",
-      "community": 3,
+      "community": 2,
       "norm_label": "unified swarm engine replacing batonorchestrator, swarmcontroller, and swarmlaun",
       "id": "swarm_engine_rationale_29"
     },
@@ -4571,7 +4607,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L1",
       "id": "scripts_core_gateway_py",
-      "community": 3,
+      "community": 2,
       "norm_label": "gateway.py"
     },
     {
@@ -4580,7 +4616,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L8",
       "id": "gateway_load_providers",
-      "community": 3,
+      "community": 2,
       "norm_label": "load_providers()"
     },
     {
@@ -4589,7 +4625,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L17",
       "id": "gateway_load_config",
-      "community": 3,
+      "community": 2,
       "norm_label": "load_config()"
     },
     {
@@ -4598,7 +4634,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L27",
       "id": "gateway_unifiedgateway",
-      "community": 3,
+      "community": 2,
       "norm_label": "unifiedgateway"
     },
     {
@@ -4607,7 +4643,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L36",
       "id": "gateway_unifiedgateway_init",
-      "community": 3,
+      "community": 2,
       "norm_label": ".__init__()"
     },
     {
@@ -4616,7 +4652,7 @@
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L54",
       "id": "gateway_unifiedgateway_chat",
-      "community": 3,
+      "community": 2,
       "norm_label": ".chat()"
     },
     {
@@ -4624,7 +4660,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L18",
-      "community": 3,
+      "community": 2,
       "norm_label": "load saved config from .agentx/config.json.",
       "id": "gateway_rationale_18"
     },
@@ -4633,7 +4669,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L28",
-      "community": 3,
+      "community": 2,
       "norm_label": "a unified client for multiple ai model providers.     supports nvidia, groq, to",
       "id": "gateway_rationale_28"
     },
@@ -4642,7 +4678,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\core\\gateway.py",
       "source_location": "L55",
-      "community": 3,
+      "community": 2,
       "norm_label": "simple chat completion.",
       "id": "gateway_rationale_55"
     },
@@ -4777,7 +4813,7 @@
       "source_file": "src\\runtime_actions.ts",
       "source_location": "L1",
       "id": "src_runtime_actions_ts",
-      "community": 14,
+      "community": 15,
       "norm_label": "runtime_actions.ts"
     },
     {
@@ -4786,7 +4822,7 @@
       "source_file": "src\\runtime_actions.ts",
       "source_location": "L6",
       "id": "runtime_actions_appendapprovalaudit",
-      "community": 14,
+      "community": 15,
       "norm_label": "appendapprovalaudit()"
     },
     {
@@ -4795,7 +4831,7 @@
       "source_file": "src\\runtime_actions.ts",
       "source_location": "L15",
       "id": "runtime_actions_isexpired",
-      "community": 14,
+      "community": 15,
       "norm_label": "isexpired()"
     },
     {
@@ -4804,7 +4840,7 @@
       "source_file": "src\\runtime_actions.ts",
       "source_location": "L19",
       "id": "runtime_actions_main",
-      "community": 14,
+      "community": 15,
       "norm_label": "main()"
     },
     {
@@ -5729,7 +5765,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L34",
       "id": "indexer_indexer",
-      "community": 5,
+      "community": 27,
       "norm_label": "indexer"
     },
     {
@@ -5738,7 +5774,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L38",
       "id": "indexer_indexer_constructor",
-      "community": 5,
+      "community": 27,
       "norm_label": ".constructor()"
     },
     {
@@ -5747,7 +5783,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L46",
       "id": "indexer_indexer_fullindex",
-      "community": 5,
+      "community": 27,
       "norm_label": ".fullindex()"
     },
     {
@@ -5756,7 +5792,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L87",
       "id": "indexer_indexer_incrementalindex",
-      "community": 5,
+      "community": 27,
       "norm_label": ".incrementalindex()"
     },
     {
@@ -5765,7 +5801,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L164",
       "id": "indexer_indexer_getorbuildgraph",
-      "community": 5,
+      "community": 27,
       "norm_label": ".getorbuildgraph()"
     },
     {
@@ -5774,7 +5810,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L173",
       "id": "indexer_indexer_getstore",
-      "community": 5,
+      "community": 27,
       "norm_label": ".getstore()"
     },
     {
@@ -5783,7 +5819,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L179",
       "id": "indexer_indexer_walkproject",
-      "community": 5,
+      "community": 27,
       "norm_label": ".walkproject()"
     },
     {
@@ -5792,7 +5828,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L185",
       "id": "indexer_indexer_walkdir",
-      "community": 5,
+      "community": 27,
       "norm_label": ".walkdir()"
     },
     {
@@ -5801,7 +5837,7 @@
       "source_file": "src\\graph\\indexer.ts",
       "source_location": "L208",
       "id": "indexer_indexer_resolvewildcards",
-      "community": 5,
+      "community": 27,
       "norm_label": ".resolvewildcards()"
     },
     {
@@ -5909,7 +5945,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L13",
       "id": "query_graphquery",
-      "community": 27,
+      "community": 5,
       "norm_label": "graphquery"
     },
     {
@@ -5918,7 +5954,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L18",
       "id": "query_graphquery_constructor",
-      "community": 27,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -5927,7 +5963,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L37",
       "id": "query_graphquery_search",
-      "community": 27,
+      "community": 5,
       "norm_label": ".search()"
     },
     {
@@ -5936,7 +5972,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L74",
       "id": "query_graphquery_trace",
-      "community": 27,
+      "community": 5,
       "norm_label": ".trace()"
     },
     {
@@ -5945,7 +5981,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L134",
       "id": "query_graphquery_impact",
-      "community": 27,
+      "community": 5,
       "norm_label": ".impact()"
     },
     {
@@ -5954,7 +5990,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L205",
       "id": "query_graphquery_related",
-      "community": 27,
+      "community": 5,
       "norm_label": ".related()"
     },
     {
@@ -5963,7 +5999,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L238",
       "id": "query_graphquery_reposummary",
-      "community": 27,
+      "community": 5,
       "norm_label": ".reposummary()"
     },
     {
@@ -5972,7 +6008,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L298",
       "id": "query_graphquery_formattracesummary",
-      "community": 27,
+      "community": 5,
       "norm_label": ".formattracesummary()"
     },
     {
@@ -5981,7 +6017,7 @@
       "source_file": "src\\graph\\query.ts",
       "source_location": "L311",
       "id": "query_graphquery_formatimpactsummary",
-      "community": 27,
+      "community": 5,
       "norm_label": ".formatimpactsummary()"
     },
     {
@@ -6224,7 +6260,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L25",
       "id": "anthropic_anthropicprovider",
-      "community": 21,
+      "community": 20,
       "norm_label": "anthropicprovider"
     },
     {
@@ -6233,7 +6269,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L36",
       "id": "anthropic_anthropicprovider_constructor",
-      "community": 21,
+      "community": 20,
       "norm_label": ".constructor()"
     },
     {
@@ -6242,7 +6278,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L43",
       "id": "anthropic_anthropicprovider_chat",
-      "community": 21,
+      "community": 20,
       "norm_label": ".chat()"
     },
     {
@@ -6251,7 +6287,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L64",
       "id": "anthropic_anthropicprovider_complete",
-      "community": 21,
+      "community": 20,
       "norm_label": ".complete()"
     },
     {
@@ -6260,7 +6296,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L68",
       "id": "anthropic_anthropicprovider_stream",
-      "community": 21,
+      "community": 20,
       "norm_label": ".stream()"
     },
     {
@@ -6269,7 +6305,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L108",
       "id": "anthropic_anthropicprovider_toolcall",
-      "community": 21,
+      "community": 20,
       "norm_label": ".toolcall()"
     },
     {
@@ -6278,7 +6314,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L124",
       "id": "anthropic_anthropicprovider_embeddings",
-      "community": 21,
+      "community": 20,
       "norm_label": ".embeddings()"
     },
     {
@@ -6287,7 +6323,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L130",
       "id": "anthropic_anthropicprovider_splitmessages",
-      "community": 21,
+      "community": 20,
       "norm_label": ".splitmessages()"
     },
     {
@@ -6296,7 +6332,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L141",
       "id": "anthropic_anthropicprovider_extractusage",
-      "community": 21,
+      "community": 20,
       "norm_label": ".extractusage()"
     },
     {
@@ -6305,7 +6341,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L145",
       "id": "anthropic_anthropicprovider_headers",
-      "community": 21,
+      "community": 20,
       "norm_label": ".headers()"
     },
     {
@@ -6314,7 +6350,7 @@
       "source_file": "src\\providers\\anthropic.ts",
       "source_location": "L149",
       "id": "anthropic_anthropicprovider_post",
-      "community": 21,
+      "community": 20,
       "norm_label": ".post()"
     },
     {
@@ -6629,7 +6665,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L29",
       "id": "openai_compat_openaicompatprovider",
-      "community": 20,
+      "community": 21,
       "norm_label": "openaicompatprovider"
     },
     {
@@ -6638,7 +6674,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L41",
       "id": "openai_compat_openaicompatprovider_constructor",
-      "community": 20,
+      "community": 21,
       "norm_label": ".constructor()"
     },
     {
@@ -6647,7 +6683,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L52",
       "id": "openai_compat_openaicompatprovider_chat",
-      "community": 20,
+      "community": 21,
       "norm_label": ".chat()"
     },
     {
@@ -6656,7 +6692,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L84",
       "id": "openai_compat_openaicompatprovider_complete",
-      "community": 20,
+      "community": 21,
       "norm_label": ".complete()"
     },
     {
@@ -6665,7 +6701,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L94",
       "id": "openai_compat_openaicompatprovider_stream",
-      "community": 20,
+      "community": 21,
       "norm_label": ".stream()"
     },
     {
@@ -6674,7 +6710,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L174",
       "id": "openai_compat_openaicompatprovider_toolcall",
-      "community": 20,
+      "community": 21,
       "norm_label": ".toolcall()"
     },
     {
@@ -6683,7 +6719,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L217",
       "id": "openai_compat_openaicompatprovider_embeddings",
-      "community": 20,
+      "community": 21,
       "norm_label": ".embeddings()"
     },
     {
@@ -6692,7 +6728,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L230",
       "id": "openai_compat_openaicompatprovider_formatmessages",
-      "community": 20,
+      "community": 21,
       "norm_label": ".formatmessages()"
     },
     {
@@ -6701,7 +6737,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L253",
       "id": "openai_compat_openaicompatprovider_buildheaders",
-      "community": 20,
+      "community": 21,
       "norm_label": ".buildheaders()"
     },
     {
@@ -6710,7 +6746,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L264",
       "id": "openai_compat_openaicompatprovider_post",
-      "community": 20,
+      "community": 21,
       "norm_label": ".post()"
     },
     {
@@ -6719,7 +6755,7 @@
       "source_file": "src\\providers\\openai-compat.ts",
       "source_location": "L281",
       "id": "openai_compat_openaicompatprovider_mapfinishreason",
-      "community": 20,
+      "community": 21,
       "norm_label": ".mapfinishreason()"
     },
     {
@@ -6952,7 +6988,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L1",
       "id": "src_services_runtimestate_ts",
-      "community": 14,
+      "community": 15,
       "norm_label": "runtimestate.ts"
     },
     {
@@ -6961,7 +6997,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L47",
       "id": "runtimestate_ensurestatedir",
-      "community": 14,
+      "community": 15,
       "norm_label": "ensurestatedir()"
     },
     {
@@ -6970,7 +7006,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L53",
       "id": "runtimestate_defaultstate",
-      "community": 14,
+      "community": 15,
       "norm_label": "defaultstate()"
     },
     {
@@ -6979,7 +7015,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L61",
       "id": "runtimestate_runtimestatestore",
-      "community": 14,
+      "community": 15,
       "norm_label": "runtimestatestore"
     },
     {
@@ -6988,7 +7024,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L62",
       "id": "runtimestate_runtimestatestore_read",
-      "community": 14,
+      "community": 15,
       "norm_label": ".read()"
     },
     {
@@ -6997,7 +7033,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L88",
       "id": "runtimestate_runtimestatestore_write",
-      "community": 14,
+      "community": 15,
       "norm_label": ".write()"
     },
     {
@@ -7006,7 +7042,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L93",
       "id": "runtimestate_runtimestatestore_setpendingapproval",
-      "community": 14,
+      "community": 15,
       "norm_label": ".setpendingapproval()"
     },
     {
@@ -7015,7 +7051,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L99",
       "id": "runtimestate_runtimestatestore_getstate",
-      "community": 14,
+      "community": 15,
       "norm_label": ".getstate()"
     },
     {
@@ -7024,7 +7060,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L103",
       "id": "runtimestate_runtimestatestore_addevent",
-      "community": 14,
+      "community": 15,
       "norm_label": ".addevent()"
     },
     {
@@ -7033,7 +7069,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L109",
       "id": "runtimestate_runtimestatestore_addtokenstats",
-      "community": 14,
+      "community": 15,
       "norm_label": ".addtokenstats()"
     },
     {
@@ -7042,7 +7078,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L117",
       "id": "runtimestate_runtimestatestore_clear",
-      "community": 14,
+      "community": 15,
       "norm_label": ".clear()"
     },
     {
@@ -7051,7 +7087,7 @@
       "source_file": "src\\services\\runtimeState.ts",
       "source_location": "L122",
       "id": "runtimestate_getruntimestatefilepath",
-      "community": 14,
+      "community": 15,
       "norm_label": "getruntimestatefilepath()"
     },
     {
@@ -7444,7 +7480,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L1",
       "id": "tests_system_tests_py",
-      "community": 15,
+      "community": 16,
       "norm_label": "system_tests.py"
     },
     {
@@ -7453,7 +7489,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L27",
       "id": "system_tests_setup_clean_db",
-      "community": 15,
+      "community": 16,
       "norm_label": "setup_clean_db()"
     },
     {
@@ -7462,7 +7498,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L34",
       "id": "system_tests_get_db_connection",
-      "community": 15,
+      "community": 16,
       "norm_label": "get_db_connection()"
     },
     {
@@ -7471,7 +7507,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L39",
       "id": "system_tests_run_cmd",
-      "community": 15,
+      "community": 16,
       "norm_label": "run_cmd()"
     },
     {
@@ -7480,7 +7516,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L43",
       "id": "system_tests_test_invariant_1_and_7",
-      "community": 15,
+      "community": 16,
       "norm_label": "test_invariant_1_and_7()"
     },
     {
@@ -7489,7 +7525,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L65",
       "id": "system_tests_test_invariant_4_concurrency_lock",
-      "community": 15,
+      "community": 16,
       "norm_label": "test_invariant_4_concurrency_lock()"
     },
     {
@@ -7498,7 +7534,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L93",
       "id": "system_tests_test_invariant_6_recovery",
-      "community": 15,
+      "community": 16,
       "norm_label": "test_invariant_6_recovery()"
     },
     {
@@ -7507,7 +7543,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L125",
       "id": "system_tests_test_invariant_2_tool_idempotency",
-      "community": 15,
+      "community": 16,
       "norm_label": "test_invariant_2_tool_idempotency()"
     },
     {
@@ -7516,7 +7552,7 @@
       "source_file": "tests\\system_tests.py",
       "source_location": "L157",
       "id": "system_tests_test_invariant_5_retry_limit",
-      "community": 15,
+      "community": 16,
       "norm_label": "test_invariant_5_retry_limit()"
     },
     {
@@ -7524,7 +7560,7 @@
       "file_type": "rationale",
       "source_file": "tests\\system_tests.py",
       "source_location": "L40",
-      "community": 15,
+      "community": 16,
       "norm_label": "run agentx command via subprocess to ensure clean process separation.",
       "id": "system_tests_rationale_40"
     },
@@ -7533,7 +7569,7 @@
       "file_type": "rationale",
       "source_file": "tests\\system_tests.py",
       "source_location": "L44",
-      "community": 15,
+      "community": 16,
       "norm_label": "invariant 1 & 7: same logical_task_id execute at most once and return cached/ski",
       "id": "system_tests_rationale_44"
     },
@@ -7542,7 +7578,7 @@
       "file_type": "rationale",
       "source_file": "tests\\system_tests.py",
       "source_location": "L66",
-      "community": 15,
+      "community": 16,
       "norm_label": "invariant 4: task-level locking prevents parallel collision.",
       "id": "system_tests_rationale_66"
     },
@@ -7551,7 +7587,7 @@
       "file_type": "rationale",
       "source_file": "tests\\system_tests.py",
       "source_location": "L94",
-      "community": 15,
+      "community": 16,
       "norm_label": "invariant 6: recovery resumes interrupted tasks.",
       "id": "system_tests_rationale_94"
     },
@@ -7560,7 +7596,7 @@
       "file_type": "rationale",
       "source_file": "tests\\system_tests.py",
       "source_location": "L126",
-      "community": 15,
+      "community": 16,
       "norm_label": "invariant 2: tool idempotency_key prevents duplicate execution.",
       "id": "system_tests_rationale_126"
     },
@@ -7569,16 +7605,61 @@
       "file_type": "rationale",
       "source_file": "tests\\system_tests.py",
       "source_location": "L158",
-      "community": 15,
+      "community": 16,
       "norm_label": "invariant 5: retry_count never exceeds max_retries.",
       "id": "system_tests_rationale_158"
+    },
+    {
+      "label": "Standalone wrapper for the decision engine.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L139",
+      "community": 2,
+      "norm_label": "standalone wrapper for the decision engine.",
+      "id": "engine_rationale_139"
+    },
+    {
+      "label": "Normalize and hash the objective string.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L35",
+      "community": 87,
+      "norm_label": "normalize and hash the objective string.",
+      "id": "feedback_rationale_35"
+    },
+    {
+      "label": "Record the outcome of a decision.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L39",
+      "community": 88,
+      "norm_label": "record the outcome of a decision.",
+      "id": "feedback_rationale_39"
+    },
+    {
+      "label": "Retrieve recent decision outcomes for a specific objective hash.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L52",
+      "community": 89,
+      "norm_label": "retrieve recent decision outcomes for a specific objective hash.",
+      "id": "feedback_rationale_52"
+    },
+    {
+      "label": "Calculate success/failure stats for an objective.",
+      "file_type": "rationale",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L71",
+      "community": 90,
+      "norm_label": "calculate success/failure stats for an objective.",
+      "id": "feedback_rationale_71"
     },
     {
       "label": "Execute a chain of skills sequentially with shared context.      Parameters",
       "file_type": "rationale",
       "source_file": "agentx\\skills\\skill_composer.py",
       "source_location": "L218",
-      "community": 87,
+      "community": 91,
       "norm_label": "execute a chain of skills sequentially with shared context.      parameters",
       "id": "skill_composer_rationale_218"
     },
@@ -7587,7 +7668,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L407",
-      "community": 88,
+      "community": 92,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_407"
     },
@@ -7596,7 +7677,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L491",
-      "community": 89,
+      "community": 93,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_491"
     },
@@ -7605,7 +7686,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L572",
-      "community": 90,
+      "community": 94,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_572"
     },
@@ -7614,7 +7695,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L627",
-      "community": 91,
+      "community": 95,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_627"
     },
@@ -7623,7 +7704,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L672",
-      "community": 92,
+      "community": 96,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_672"
     },
@@ -7632,7 +7713,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L682",
-      "community": 93,
+      "community": 97,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_682"
     },
@@ -7641,7 +7722,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L851",
-      "community": 94,
+      "community": 98,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_851"
     },
@@ -7650,7 +7731,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L156",
-      "community": 3,
+      "community": 2,
       "norm_label": "standalone wrapper for the decision engine.",
       "id": "engine_rationale_156"
     },
@@ -7659,7 +7740,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L375",
-      "community": 95,
+      "community": 99,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_375"
     },
@@ -7668,7 +7749,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L459",
-      "community": 96,
+      "community": 100,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_459"
     },
@@ -7677,7 +7758,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L540",
-      "community": 97,
+      "community": 101,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_540"
     },
@@ -7686,7 +7767,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L595",
-      "community": 98,
+      "community": 102,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_595"
     },
@@ -7695,7 +7776,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L640",
-      "community": 99,
+      "community": 103,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_640"
     },
@@ -7704,7 +7785,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L650",
-      "community": 100,
+      "community": 104,
       "norm_label": "manage the worker capability registry.",
       "id": "agentx_rationale_650"
     },
@@ -7713,7 +7794,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L819",
-      "community": 101,
+      "community": 105,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_819"
     },
@@ -7722,7 +7803,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L124",
-      "community": 3,
+      "community": 2,
       "norm_label": "standalone wrapper for the decision engine.",
       "id": "engine_rationale_124"
     },
@@ -7731,7 +7812,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L302",
-      "community": 102,
+      "community": 106,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_302"
     },
@@ -7740,7 +7821,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L386",
-      "community": 103,
+      "community": 107,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_386"
     },
@@ -7749,7 +7830,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L467",
-      "community": 104,
+      "community": 108,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_467"
     },
@@ -7758,7 +7839,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L522",
-      "community": 105,
+      "community": 109,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_522"
     },
@@ -7767,7 +7848,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L567",
-      "community": 106,
+      "community": 110,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_567"
     },
@@ -7776,7 +7857,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L577",
-      "community": 107,
+      "community": 111,
       "norm_label": "manage the worker capability registry.",
       "id": "agentx_rationale_577"
     },
@@ -7785,7 +7866,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L746",
-      "community": 108,
+      "community": 112,
       "norm_label": "interactive wizard to configure ai provider, key, and model.",
       "id": "agentx_rationale_746"
     },
@@ -7794,7 +7875,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L268",
-      "community": 109,
+      "community": 113,
       "norm_label": "print a concise dashboard of swarm health.",
       "id": "agentx_rationale_268"
     },
@@ -7803,7 +7884,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L322",
-      "community": 110,
+      "community": 114,
       "norm_label": "run system health checks and diagnostics.",
       "id": "agentx_rationale_322"
     },
@@ -7812,7 +7893,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L403",
-      "community": 111,
+      "community": 115,
       "norm_label": "manage aja's structured secretary memory.",
       "id": "agentx_rationale_403"
     },
@@ -7821,7 +7902,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L458",
-      "community": 112,
+      "community": 116,
       "norm_label": "manage aja outbound communication drafts.",
       "id": "agentx_rationale_458"
     },
@@ -7830,7 +7911,7 @@
       "file_type": "rationale",
       "source_file": "agentx.py",
       "source_location": "L503",
-      "community": 113,
+      "community": 117,
       "norm_label": "run aja executive reviews.",
       "id": "agentx_rationale_503"
     },
@@ -7839,7 +7920,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L109",
-      "community": 114,
+      "community": 118,
       "norm_label": "record error details on a task and set its status.     error_type: 'retryable' o",
       "id": "tasks_rationale_109"
     },
@@ -7848,7 +7929,7 @@
       "file_type": "rationale",
       "source_file": "agentx\\persistence\\tasks.py",
       "source_location": "L131",
-      "community": 115,
+      "community": 119,
       "norm_label": "delete completed / failed_permanent tasks older than ttl_days. returns rows dele",
       "id": "tasks_rationale_131"
     },
@@ -7857,7 +7938,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\proxy_server.py",
       "source_location": "L34",
-      "community": 116,
+      "community": 120,
       "norm_label": "claude logic: auto-detect provider or use override.",
       "id": "proxy_server_rationale_34"
     },
@@ -7866,7 +7947,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\proxy_server.py",
       "source_location": "L53",
-      "community": 117,
+      "community": 121,
       "norm_label": "enhanced proxy with claude-inspired fail-open and auto-routing.",
       "id": "proxy_server_rationale_53"
     },
@@ -7875,7 +7956,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\safe_shell.py",
       "source_location": "L8",
-      "community": 3,
+      "community": 2,
       "norm_label": "an integrated 'safe shell' that inspects commands using claude-style stripping",
       "id": "safe_shell_rationale_8"
     },
@@ -7884,7 +7965,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L12",
-      "community": 3,
+      "community": 2,
       "norm_label": "a panel to display ai risk analysis.",
       "id": "tui_shell_rationale_12"
     },
@@ -7893,7 +7974,7 @@
       "file_type": "rationale",
       "source_file": "scripts\\tui_shell.py",
       "source_location": "L18",
-      "community": 3,
+      "community": 2,
       "norm_label": "a premium tui for safeshell.",
       "id": "tui_shell_rationale_18"
     },
@@ -7941,7 +8022,7 @@
       "label": "Project Capabilities",
       "file_type": "document",
       "source_file": "docs/CAPABILITIES.md",
-      "community": 118,
+      "community": 122,
       "norm_label": "project capabilities",
       "id": "doc_capabilities"
     },
@@ -7949,7 +8030,7 @@
       "label": "External AI Providers",
       "file_type": "document",
       "source_file": "docs/EXTERNAL_MODEL_PROVIDERS.md",
-      "community": 119,
+      "community": 123,
       "norm_label": "external ai providers",
       "id": "doc_external_providers"
     },
@@ -7973,7 +8054,7 @@
       "label": "Project Post-Mortem",
       "file_type": "document",
       "source_file": "docs/POST_MORTEM.md",
-      "community": 120,
+      "community": 124,
       "norm_label": "project post-mortem",
       "id": "doc_post_mortem"
     },
@@ -7989,7 +8070,7 @@
       "label": "Sandbox Environment",
       "file_type": "document",
       "source_file": "docs/SANDBOX_ENVIRONMENT.md",
-      "community": 121,
+      "community": 125,
       "norm_label": "sandbox environment",
       "id": "doc_sandbox"
     },
@@ -8567,7 +8648,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L138",
+      "source_location": "L164",
       "weight": 1.0,
       "_src": "agentx_decision_engine_py",
       "_tgt": "engine_decide",
@@ -8603,7 +8684,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L89",
+      "source_location": "L108",
       "weight": 1.0,
       "_src": "engine_decisionengine",
       "_tgt": "engine_decisionengine_build_prompt",
@@ -8615,7 +8696,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L117",
+      "source_location": "L143",
       "weight": 1.0,
       "_src": "engine_decisionengine",
       "_tgt": "engine_decisionengine_parse_and_validate",
@@ -8627,7 +8708,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L140",
+      "source_location": "L166",
       "weight": 1.0,
       "_src": "engine_decide",
       "_tgt": "engine_decisionengine",
@@ -8663,7 +8744,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L57",
+      "source_location": "L64",
       "weight": 1.0,
       "_src": "engine_decisionengine_decide",
       "_tgt": "engine_decisionengine_build_prompt",
@@ -8675,7 +8756,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L67",
+      "source_location": "L74",
       "weight": 1.0,
       "_src": "engine_decisionengine_decide",
       "_tgt": "engine_decisionengine_parse_and_validate",
@@ -8699,12 +8780,12 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\engine.py",
-      "source_location": "L139",
+      "source_location": "L165",
       "weight": 1.0,
-      "_src": "engine_rationale_139",
+      "_src": "engine_rationale_165",
       "_tgt": "engine_decide",
       "source": "engine_decide",
-      "target": "engine_rationale_139",
+      "target": "engine_rationale_165",
       "confidence_score": 1.0
     },
     {
@@ -8737,11 +8818,11 @@
       "source_file": "agentx\\decision\\engine.py",
       "source_location": "L5",
       "weight": 0.8,
-      "_src": "engine_rationale_139",
+      "_src": "engine_rationale_165",
       "_tgt": "gateway_unifiedgateway",
-      "confidence_score": 0.5,
-      "source": "engine_rationale_139",
-      "target": "gateway_unifiedgateway"
+      "source": "engine_rationale_165",
+      "target": "gateway_unifiedgateway",
+      "confidence_score": 0.5
     },
     {
       "relation": "contains",
@@ -8759,7 +8840,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L34",
+      "source_location": "L45",
       "weight": 1.0,
       "_src": "agentx_decision_feedback_py",
       "_tgt": "feedback_get_objective_hash",
@@ -8771,7 +8852,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L38",
+      "source_location": "L49",
+      "weight": 1.0,
+      "_src": "agentx_decision_feedback_py",
+      "_tgt": "feedback_extract_tags",
+      "source": "agentx_decision_feedback_py",
+      "target": "feedback_extract_tags",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L57",
       "weight": 1.0,
       "_src": "agentx_decision_feedback_py",
       "_tgt": "feedback_log_decision_outcome",
@@ -8783,7 +8876,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L51",
+      "source_location": "L79",
       "weight": 1.0,
       "_src": "agentx_decision_feedback_py",
       "_tgt": "feedback_get_recent_decisions",
@@ -8795,7 +8888,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L70",
+      "source_location": "L98",
+      "weight": 1.0,
+      "_src": "agentx_decision_feedback_py",
+      "_tgt": "feedback_get_similar_decisions",
+      "source": "agentx_decision_feedback_py",
+      "target": "feedback_get_similar_decisions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L129",
       "weight": 1.0,
       "_src": "agentx_decision_feedback_py",
       "_tgt": "feedback_get_feedback_stats",
@@ -8819,7 +8924,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L41",
+      "source_location": "L60",
       "weight": 1.0,
       "_src": "feedback_log_decision_outcome",
       "_tgt": "feedback_init_feedback_db",
@@ -8831,12 +8936,24 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L54",
+      "source_location": "L82",
       "weight": 1.0,
       "_src": "feedback_get_recent_decisions",
       "_tgt": "feedback_init_feedback_db",
       "source": "feedback_init_feedback_db",
       "target": "feedback_get_recent_decisions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_src": "feedback_get_similar_decisions",
+      "_tgt": "feedback_init_feedback_db",
+      "source": "feedback_init_feedback_db",
+      "target": "feedback_get_similar_decisions",
       "confidence_score": 1.0
     },
     {
@@ -8855,7 +8972,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L42",
+      "source_location": "L61",
       "weight": 1.0,
       "_src": "feedback_log_decision_outcome",
       "_tgt": "feedback_get_objective_hash",
@@ -8867,7 +8984,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L55",
+      "source_location": "L83",
       "weight": 1.0,
       "_src": "feedback_get_recent_decisions",
       "_tgt": "feedback_get_objective_hash",
@@ -8879,31 +8996,67 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L35",
+      "source_location": "L46",
       "weight": 1.0,
-      "_src": "feedback_rationale_35",
+      "_src": "feedback_rationale_46",
       "_tgt": "feedback_get_objective_hash",
       "source": "feedback_get_objective_hash",
-      "target": "feedback_rationale_35",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L39",
-      "weight": 1.0,
-      "_src": "feedback_rationale_39",
-      "_tgt": "feedback_log_decision_outcome",
-      "source": "feedback_log_decision_outcome",
-      "target": "feedback_rationale_39",
+      "target": "feedback_rationale_46",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L72",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_src": "feedback_log_decision_outcome",
+      "_tgt": "feedback_extract_tags",
+      "source": "feedback_extract_tags",
+      "target": "feedback_log_decision_outcome",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "_src": "feedback_get_similar_decisions",
+      "_tgt": "feedback_extract_tags",
+      "source": "feedback_extract_tags",
+      "target": "feedback_get_similar_decisions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_src": "feedback_rationale_50",
+      "_tgt": "feedback_extract_tags",
+      "source": "feedback_extract_tags",
+      "target": "feedback_rationale_50",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L58",
+      "weight": 1.0,
+      "_src": "feedback_rationale_58",
+      "_tgt": "feedback_log_decision_outcome",
+      "source": "feedback_log_decision_outcome",
+      "target": "feedback_rationale_58",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L131",
       "weight": 1.0,
       "_src": "feedback_get_feedback_stats",
       "_tgt": "feedback_get_recent_decisions",
@@ -8915,24 +9068,36 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L52",
+      "source_location": "L80",
       "weight": 1.0,
-      "_src": "feedback_rationale_52",
+      "_src": "feedback_rationale_80",
       "_tgt": "feedback_get_recent_decisions",
       "source": "feedback_get_recent_decisions",
-      "target": "feedback_rationale_52",
+      "target": "feedback_rationale_80",
       "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "agentx\\decision\\feedback.py",
-      "source_location": "L71",
+      "source_location": "L99",
       "weight": 1.0,
-      "_src": "feedback_rationale_71",
+      "_src": "feedback_rationale_99",
+      "_tgt": "feedback_get_similar_decisions",
+      "source": "feedback_get_similar_decisions",
+      "target": "feedback_rationale_99",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "agentx\\decision\\feedback.py",
+      "source_location": "L130",
+      "weight": 1.0,
+      "_src": "feedback_rationale_130",
       "_tgt": "feedback_get_feedback_stats",
       "source": "feedback_get_feedback_stats",
-      "target": "feedback_rationale_71",
+      "target": "feedback_rationale_130",
       "confidence_score": 1.0
     },
     {
@@ -17877,6 +18042,18 @@
       "source": "gateway_unifiedgateway",
       "target": "gateway_rationale_28",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "agentx\\decision\\engine.py",
+      "source_location": "L5",
+      "weight": 0.8,
+      "_src": "engine_rationale_139",
+      "_tgt": "gateway_unifiedgateway",
+      "confidence_score": 0.5,
+      "source": "gateway_unifiedgateway",
+      "target": "engine_rationale_139"
     },
     {
       "relation": "uses",

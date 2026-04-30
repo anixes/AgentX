@@ -1,12 +1,12 @@
 # Graph Report - .  (2026-04-30)
 
 ## Corpus Check
-- 112 files · ~88,256 words
+- 112 files · ~88,735 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 889 nodes · 1291 edges · 122 communities detected
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.52)
+- 898 nodes · 1299 edges · 126 communities detected
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -132,6 +132,10 @@
 - [[_COMMUNITY_Community 119|Community 119]]
 - [[_COMMUNITY_Community 120|Community 120]]
 - [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `get_secretary_memory()` - 48 edges
@@ -140,7 +144,7 @@
 4. `CostTracker` - 21 edges
 5. `execute_telegram_command()` - 18 edges
 6. `create_skill_from_task()` - 17 edges
-7. `UnifiedGateway` - 16 edges
+7. `UnifiedGateway` - 17 edges
 8. `ModelRouter` - 16 edges
 9. `main()` - 13 edges
 10. `CostModeManager` - 12 edges
@@ -172,12 +176,12 @@ Cohesion: 0.08
 Nodes (45): _compute_confidence(), create_skill_from_task(), _db_path(), _expand_tokens(), _extract_tags(), _family_id(), _fetch_task(), _fetch_tool_executions() (+37 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.08
-Nodes (36): _bootstrap_executor_tables(), _check_db_available(), check_environment(), _checkpoint_step(), _clear_checkpoints(), _db_path(), execute_skill(), _execute_step() (+28 more)
+Cohesion: 0.07
+Nodes (26): append_baton_history(), now_iso(), The worker entry point.     Reads a baton file, executes the assigned task, and, save_baton(), work(), decide(), DecisionEngine, LLM-assisted decision engine for AgentX.     Determines the best execution path (+18 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.07
-Nodes (25): append_baton_history(), now_iso(), The worker entry point.     Reads a baton file, executes the assigned task, and, save_baton(), work(), decide(), DecisionEngine, LLM-assisted decision engine for AgentX.     Determines the best execution path (+17 more)
+Cohesion: 0.08
+Nodes (36): _bootstrap_executor_tables(), _check_db_available(), check_environment(), _checkpoint_step(), _clear_checkpoints(), _db_path(), execute_skill(), _execute_step() (+28 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.07
@@ -185,7 +189,7 @@ Nodes (10): checkModePermission(), isFileSafeForAutoEdit(), explainCommand(), fi
 
 ### Community 5 - "Community 5"
 Cohesion: 0.1
-Nodes (11): Indexer, detectCalls(), detectLanguage(), hashContent(), lineOf(), parseFile(), parseJSON(), parsePython() (+3 more)
+Nodes (11): detectCalls(), detectLanguage(), hashContent(), lineOf(), parseFile(), parseJSON(), parsePython(), parseTSJS() (+3 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.09
@@ -220,20 +224,20 @@ Cohesion: 0.15
 Nodes (17): build_chain(), compose_skills(), _inject_context(), _log_skill_status(), _max_risk(), agentx/skills/skill_composer.py ================================ Phase 9 — Gap 2, Heuristically split a multi-step objective into ordered sub-objectives.      "fe, Decompose objective into sub-objectives and recommend a skill for each.      Ret (+9 more)
 
 ### Community 14 - "Community 14"
+Cohesion: 0.19
+Nodes (15): extract_tags(), get_feedback_stats(), get_objective_hash(), get_recent_decisions(), get_similar_decisions(), init_feedback_db(), log_decision_outcome(), agentx/decision/feedback.py ========================== Phase 10 — Decision Feedb (+7 more)
+
+### Community 15 - "Community 15"
 Cohesion: 0.26
 Nodes (7): appendApprovalAudit(), isExpired(), main(), defaultState(), ensureStateDir(), getRuntimeStateFilePath(), RuntimeStateStore
 
-### Community 15 - "Community 15"
+### Community 16 - "Community 16"
 Cohesion: 0.23
 Nodes (14): get_db_connection(), Invariant 2: Tool idempotency_key prevents duplicate execution., Invariant 5: retry_count never exceeds MAX_RETRIES., Run agentx command via subprocess to ensure clean process separation., Invariant 1 & 7: Same logical_task_id execute at most once and return cached/ski, Invariant 4: Task-level locking prevents parallel collision., Invariant 6: Recovery resumes interrupted tasks., run_cmd() (+6 more)
 
-### Community 16 - "Community 16"
+### Community 17 - "Community 17"
 Cohesion: 0.18
 Nodes (10): cleanup_old_tasks(), create_task(), enqueue_scheduled_tasks(), fetch_pending_tasks(), init_db(), Record error details on a task and set its status.     error_type: 'RETRYABLE' o, Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele, Fetch tasks for the agent loop: INTERRUPTED first, then PENDING, then FAILED (re (+2 more)
-
-### Community 17 - "Community 17"
-Cohesion: 0.24
-Nodes (11): get_feedback_stats(), get_objective_hash(), get_recent_decisions(), init_feedback_db(), log_decision_outcome(), agentx/decision/feedback.py ========================== Phase 10 — Decision Feedb, Ensure the decision_logs table exists., Normalize and hash the objective string. (+3 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.2
@@ -244,12 +248,12 @@ Cohesion: 0.25
 Nodes (1): AutonomousBranch
 
 ### Community 20 - "Community 20"
-Cohesion: 0.38
-Nodes (1): OpenAICompatProvider
-
-### Community 21 - "Community 21"
 Cohesion: 0.36
 Nodes (1): AnthropicProvider
+
+### Community 21 - "Community 21"
+Cohesion: 0.38
+Nodes (1): OpenAICompatProvider
 
 ### Community 22 - "Community 22"
 Cohesion: 0.18
@@ -272,8 +276,8 @@ Cohesion: 0.31
 Nodes (1): CommandManager
 
 ### Community 27 - "Community 27"
-Cohesion: 0.36
-Nodes (1): GraphQuery
+Cohesion: 0.42
+Nodes (1): Indexer
 
 ### Community 28 - "Community 28"
 Cohesion: 0.46
@@ -513,146 +517,162 @@ Nodes (1): UI Status Bar
 
 ### Community 87 - "Community 87"
 Cohesion: 1.0
-Nodes (1): Execute a chain of skills sequentially with shared context.      Parameters
+Nodes (1): Normalize and hash the objective string.
 
 ### Community 88 - "Community 88"
 Cohesion: 1.0
-Nodes (1): Print a concise dashboard of swarm health.
+Nodes (1): Record the outcome of a decision.
 
 ### Community 89 - "Community 89"
 Cohesion: 1.0
-Nodes (1): Run system health checks and diagnostics.
+Nodes (1): Retrieve recent decision outcomes for a specific objective hash.
 
 ### Community 90 - "Community 90"
 Cohesion: 1.0
-Nodes (1): Manage AJA's structured secretary memory.
+Nodes (1): Calculate success/failure stats for an objective.
 
 ### Community 91 - "Community 91"
 Cohesion: 1.0
-Nodes (1): Manage AJA outbound communication drafts.
+Nodes (1): Execute a chain of skills sequentially with shared context.      Parameters
 
 ### Community 92 - "Community 92"
 Cohesion: 1.0
-Nodes (1): Run AJA executive reviews.
+Nodes (1): Print a concise dashboard of swarm health.
 
 ### Community 93 - "Community 93"
 Cohesion: 1.0
-Nodes (1): Interactive wizard to configure AI provider, key, and model.
+Nodes (1): Run system health checks and diagnostics.
 
 ### Community 94 - "Community 94"
 Cohesion: 1.0
-Nodes (1): Interactive wizard to configure AI provider, key, and model.
+Nodes (1): Manage AJA's structured secretary memory.
 
 ### Community 95 - "Community 95"
 Cohesion: 1.0
-Nodes (1): Print a concise dashboard of swarm health.
+Nodes (1): Manage AJA outbound communication drafts.
 
 ### Community 96 - "Community 96"
 Cohesion: 1.0
-Nodes (1): Run system health checks and diagnostics.
+Nodes (1): Run AJA executive reviews.
 
 ### Community 97 - "Community 97"
 Cohesion: 1.0
-Nodes (1): Manage AJA's structured secretary memory.
+Nodes (1): Interactive wizard to configure AI provider, key, and model.
 
 ### Community 98 - "Community 98"
 Cohesion: 1.0
-Nodes (1): Manage AJA outbound communication drafts.
+Nodes (1): Interactive wizard to configure AI provider, key, and model.
 
 ### Community 99 - "Community 99"
 Cohesion: 1.0
-Nodes (1): Run AJA executive reviews.
+Nodes (1): Print a concise dashboard of swarm health.
 
 ### Community 100 - "Community 100"
 Cohesion: 1.0
-Nodes (1): Manage the Worker Capability Registry.
+Nodes (1): Run system health checks and diagnostics.
 
 ### Community 101 - "Community 101"
 Cohesion: 1.0
-Nodes (1): Interactive wizard to configure AI provider, key, and model.
+Nodes (1): Manage AJA's structured secretary memory.
 
 ### Community 102 - "Community 102"
 Cohesion: 1.0
-Nodes (1): Print a concise dashboard of swarm health.
+Nodes (1): Manage AJA outbound communication drafts.
 
 ### Community 103 - "Community 103"
 Cohesion: 1.0
-Nodes (1): Run system health checks and diagnostics.
+Nodes (1): Run AJA executive reviews.
 
 ### Community 104 - "Community 104"
 Cohesion: 1.0
-Nodes (1): Manage AJA's structured secretary memory.
+Nodes (1): Manage the Worker Capability Registry.
 
 ### Community 105 - "Community 105"
 Cohesion: 1.0
-Nodes (1): Manage AJA outbound communication drafts.
+Nodes (1): Interactive wizard to configure AI provider, key, and model.
 
 ### Community 106 - "Community 106"
 Cohesion: 1.0
-Nodes (1): Run AJA executive reviews.
+Nodes (1): Print a concise dashboard of swarm health.
 
 ### Community 107 - "Community 107"
 Cohesion: 1.0
-Nodes (1): Manage the Worker Capability Registry.
+Nodes (1): Run system health checks and diagnostics.
 
 ### Community 108 - "Community 108"
 Cohesion: 1.0
-Nodes (1): Interactive wizard to configure AI provider, key, and model.
+Nodes (1): Manage AJA's structured secretary memory.
 
 ### Community 109 - "Community 109"
 Cohesion: 1.0
-Nodes (1): Print a concise dashboard of swarm health.
+Nodes (1): Manage AJA outbound communication drafts.
 
 ### Community 110 - "Community 110"
 Cohesion: 1.0
-Nodes (1): Run system health checks and diagnostics.
+Nodes (1): Run AJA executive reviews.
 
 ### Community 111 - "Community 111"
 Cohesion: 1.0
-Nodes (1): Manage AJA's structured secretary memory.
+Nodes (1): Manage the Worker Capability Registry.
 
 ### Community 112 - "Community 112"
 Cohesion: 1.0
-Nodes (1): Manage AJA outbound communication drafts.
+Nodes (1): Interactive wizard to configure AI provider, key, and model.
 
 ### Community 113 - "Community 113"
 Cohesion: 1.0
-Nodes (1): Run AJA executive reviews.
+Nodes (1): Print a concise dashboard of swarm health.
 
 ### Community 114 - "Community 114"
 Cohesion: 1.0
-Nodes (1): Record error details on a task and set its status.     error_type: 'RETRYABLE' o
+Nodes (1): Run system health checks and diagnostics.
 
 ### Community 115 - "Community 115"
 Cohesion: 1.0
-Nodes (1): Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele
+Nodes (1): Manage AJA's structured secretary memory.
 
 ### Community 116 - "Community 116"
 Cohesion: 1.0
-Nodes (1): Claude Logic: Auto-detect provider or use override.
+Nodes (1): Manage AJA outbound communication drafts.
 
 ### Community 117 - "Community 117"
 Cohesion: 1.0
-Nodes (1): Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.
+Nodes (1): Run AJA executive reviews.
 
 ### Community 118 - "Community 118"
 Cohesion: 1.0
-Nodes (1): Project Capabilities
+Nodes (1): Record error details on a task and set its status.     error_type: 'RETRYABLE' o
 
 ### Community 119 - "Community 119"
 Cohesion: 1.0
-Nodes (1): External AI Providers
+Nodes (1): Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele
 
 ### Community 120 - "Community 120"
 Cohesion: 1.0
-Nodes (1): Project Post-Mortem
+Nodes (1): Claude Logic: Auto-detect provider or use override.
 
 ### Community 121 - "Community 121"
+Cohesion: 1.0
+Nodes (1): Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.
+
+### Community 122 - "Community 122"
+Cohesion: 1.0
+Nodes (1): Project Capabilities
+
+### Community 123 - "Community 123"
+Cohesion: 1.0
+Nodes (1): External AI Providers
+
+### Community 124 - "Community 124"
+Cohesion: 1.0
+Nodes (1): Project Post-Mortem
+
+### Community 125 - "Community 125"
 Cohesion: 1.0
 Nodes (1): Sandbox Environment
 
 ## Knowledge Gaps
-- **145 isolated node(s):** `AgentX — Unified CLI Entry Point ================================= Usage:   agen`, `Start the interactive SafeShell TUI.`, `Launch API Bridge (background) + Dashboard dev server.`, `Delegate an objective to the SwarmEngine (auto-picks mode).`, `Print a concise dashboard of swarm health.` (+140 more)
+- **152 isolated node(s):** `AgentX — Unified CLI Entry Point ================================= Usage:   agen`, `Start the interactive SafeShell TUI.`, `Launch API Bridge (background) + Dashboard dev server.`, `Delegate an objective to the SwarmEngine (auto-picks mode).`, `Print a concise dashboard of swarm health.` (+147 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 48`** (2 nodes): `test_case.py`, `simulate()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -732,91 +752,99 @@ Nodes (1): Sandbox Environment
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 86`** (1 nodes): `UI Status Bar`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 87`** (1 nodes): `Execute a chain of skills sequentially with shared context.      Parameters`
+- **Thin community `Community 87`** (1 nodes): `Normalize and hash the objective string.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 88`** (1 nodes): `Print a concise dashboard of swarm health.`
+- **Thin community `Community 88`** (1 nodes): `Record the outcome of a decision.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 89`** (1 nodes): `Run system health checks and diagnostics.`
+- **Thin community `Community 89`** (1 nodes): `Retrieve recent decision outcomes for a specific objective hash.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 90`** (1 nodes): `Manage AJA's structured secretary memory.`
+- **Thin community `Community 90`** (1 nodes): `Calculate success/failure stats for an objective.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 91`** (1 nodes): `Manage AJA outbound communication drafts.`
+- **Thin community `Community 91`** (1 nodes): `Execute a chain of skills sequentially with shared context.      Parameters`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 92`** (1 nodes): `Run AJA executive reviews.`
+- **Thin community `Community 92`** (1 nodes): `Print a concise dashboard of swarm health.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 93`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
+- **Thin community `Community 93`** (1 nodes): `Run system health checks and diagnostics.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 94`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
+- **Thin community `Community 94`** (1 nodes): `Manage AJA's structured secretary memory.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 95`** (1 nodes): `Print a concise dashboard of swarm health.`
+- **Thin community `Community 95`** (1 nodes): `Manage AJA outbound communication drafts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 96`** (1 nodes): `Run system health checks and diagnostics.`
+- **Thin community `Community 96`** (1 nodes): `Run AJA executive reviews.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 97`** (1 nodes): `Manage AJA's structured secretary memory.`
+- **Thin community `Community 97`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 98`** (1 nodes): `Manage AJA outbound communication drafts.`
+- **Thin community `Community 98`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 99`** (1 nodes): `Run AJA executive reviews.`
+- **Thin community `Community 99`** (1 nodes): `Print a concise dashboard of swarm health.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 100`** (1 nodes): `Manage the Worker Capability Registry.`
+- **Thin community `Community 100`** (1 nodes): `Run system health checks and diagnostics.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 101`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
+- **Thin community `Community 101`** (1 nodes): `Manage AJA's structured secretary memory.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 102`** (1 nodes): `Print a concise dashboard of swarm health.`
+- **Thin community `Community 102`** (1 nodes): `Manage AJA outbound communication drafts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 103`** (1 nodes): `Run system health checks and diagnostics.`
+- **Thin community `Community 103`** (1 nodes): `Run AJA executive reviews.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 104`** (1 nodes): `Manage AJA's structured secretary memory.`
+- **Thin community `Community 104`** (1 nodes): `Manage the Worker Capability Registry.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 105`** (1 nodes): `Manage AJA outbound communication drafts.`
+- **Thin community `Community 105`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 106`** (1 nodes): `Run AJA executive reviews.`
+- **Thin community `Community 106`** (1 nodes): `Print a concise dashboard of swarm health.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 107`** (1 nodes): `Manage the Worker Capability Registry.`
+- **Thin community `Community 107`** (1 nodes): `Run system health checks and diagnostics.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 108`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
+- **Thin community `Community 108`** (1 nodes): `Manage AJA's structured secretary memory.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 109`** (1 nodes): `Print a concise dashboard of swarm health.`
+- **Thin community `Community 109`** (1 nodes): `Manage AJA outbound communication drafts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 110`** (1 nodes): `Run system health checks and diagnostics.`
+- **Thin community `Community 110`** (1 nodes): `Run AJA executive reviews.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 111`** (1 nodes): `Manage AJA's structured secretary memory.`
+- **Thin community `Community 111`** (1 nodes): `Manage the Worker Capability Registry.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 112`** (1 nodes): `Manage AJA outbound communication drafts.`
+- **Thin community `Community 112`** (1 nodes): `Interactive wizard to configure AI provider, key, and model.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 113`** (1 nodes): `Run AJA executive reviews.`
+- **Thin community `Community 113`** (1 nodes): `Print a concise dashboard of swarm health.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 114`** (1 nodes): `Record error details on a task and set its status.     error_type: 'RETRYABLE' o`
+- **Thin community `Community 114`** (1 nodes): `Run system health checks and diagnostics.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 115`** (1 nodes): `Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele`
+- **Thin community `Community 115`** (1 nodes): `Manage AJA's structured secretary memory.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 116`** (1 nodes): `Claude Logic: Auto-detect provider or use override.`
+- **Thin community `Community 116`** (1 nodes): `Manage AJA outbound communication drafts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 117`** (1 nodes): `Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.`
+- **Thin community `Community 117`** (1 nodes): `Run AJA executive reviews.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 118`** (1 nodes): `Project Capabilities`
+- **Thin community `Community 118`** (1 nodes): `Record error details on a task and set its status.     error_type: 'RETRYABLE' o`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 119`** (1 nodes): `External AI Providers`
+- **Thin community `Community 119`** (1 nodes): `Delete COMPLETED / FAILED_PERMANENT tasks older than ttl_days. Returns rows dele`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 120`** (1 nodes): `Project Post-Mortem`
+- **Thin community `Community 120`** (1 nodes): `Claude Logic: Auto-detect provider or use override.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 121`** (1 nodes): `Sandbox Environment`
+- **Thin community `Community 121`** (1 nodes): `Enhanced Proxy with Claude-inspired Fail-Open and Auto-Routing.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 122`** (1 nodes): `Project Capabilities`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 123`** (1 nodes): `External AI Providers`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 124`** (1 nodes): `Project Post-Mortem`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 125`** (1 nodes): `Sandbox Environment`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `CommandStripper` connect `Community 0` to `Community 3`?**
+- **Why does `CommandStripper` connect `Community 0` to `Community 2`?**
   _High betweenness centrality (0.023) - this node is a cross-community bridge._
+- **Why does `An integrated 'Safe Shell' that inspects commands using Claude-style stripping` connect `Community 2` to `Community 0`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Are the 38 inferred relationships involving `CommandStripper` (e.g. with `Persist an approval audit entry to SQLite (authoritative) and JSONL (debug expor` and `Write a debug snapshot of runtime state to JSON. Not authoritative — SQLite is.`) actually correct?**
   _`CommandStripper` has 38 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 16 inferred relationships involving `ToolGuard` (e.g. with `agentx/skills/skill_executor.py ================================ Phase 8B + 8B.1` and `Create tables needed exclusively by skill_executor (idempotent).`) actually correct?**
   _`ToolGuard` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `AgentX — Unified CLI Entry Point ================================= Usage:   agen`, `Start the interactive SafeShell TUI.`, `Launch API Bridge (background) + Dashboard dev server.` to the rest of the system?**
-  _145 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _152 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
