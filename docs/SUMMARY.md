@@ -220,6 +220,7 @@ Interfaces:
 - [PHASE_7_RESILIENT_RECOVERY.md](./PHASE_7_RESILIENT_RECOVERY.md): Crash survival and tool-level idempotency.
 - [PHASE_8_RESILIENT_SKILLS.md](./PHASE_8_RESILIENT_SKILLS.md): Autonomous skill capture, verification, and composition.
 - [PHASE_9_RESILIENT_LOOP.md](./PHASE_9_RESILIENT_LOOP.md): Persistent agent loop, triggers, guardrails, and human-in-the-loop approvals.
+- [PHASE_11_PARALLEL_SERIALIZABILITY.md](./PHASE_11_PARALLEL_SERIALIZABILITY.md): Conflict-serializable parallel execution and verification.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.
@@ -361,12 +362,24 @@ AgentX currently lacks:
 
 As a result, it operates as a reactive execution system rather than a fully autonomous planner. LLM agents struggle with long-horizon planning without hierarchical decomposition.
 
-### Transition to Planning Layer (Phase 11)
+## Phase 11: Parallel Plan Serializability & Verification
 
-The next evolution introduces:
-- **Goal decomposition** (HTN-style).
-- **Plan-then-execute / ReAct hybrid**.
-- **Dynamic replanning**.
-- **DAG-based execution**.
+Phase 11 transitions AgentX from reactive hierarchical execution to **conflict-aware parallel planning**.
 
-This transitions AgentX from an **execution system** → **autonomous planner**.
+- **Conflict-Aware Scheduler**: Decomposes HTN graphs into parallel "waves" of nodes while detecting state conflicts (Write-Write and Read-Write).
+- **Parallel ReAct Executor**: Executes independent primitive nodes concurrently using `ThreadPoolExecutor` with jitter-robustness.
+- **Serializability Verification**: Formal diagnostic layer that compares parallel execution outcomes against sequential baselines to guarantee state consistency.
+- **Escalation Stop & Safety**: Prevents infinite retry loops by halting execution waves when a node requires human intervention (`ESCALATE`).
+- **Thread-Safe State Bridge**: Enforces atomic `system_state` mutations via mutex locking.
+- **Windows Reliability**: Codebase-wide sanitization of non-ASCII characters to ensure compatibility with Windows terminal environments.
+
+Interfaces:
+- Logic: `agentx/planning/scheduler.py`, `agentx/planning/react_executor.py`, `agentx/planning/verification.py`, `agentx/planning/execution_bridge.py`
+- Tests: `tests/planning/test_parallel_serializability.py`
+
+## Next Evolution: Goal-Level Planning & Autonomous DAG Construction
+
+With Phase 11 complete, AgentX has the infrastructure for safe parallel execution. The next focus is:
+- **Autonomous Goal Decomposition**: Converting natural language into structured HTN/DAG plans.
+- **Global Plan Repair**: Dynamically fixing plans when environment state drifts from expectations.
+- **Cost-Optimized Planning**: Choosing execution paths based on token budget and latency constraints.

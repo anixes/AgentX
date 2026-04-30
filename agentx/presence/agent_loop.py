@@ -11,6 +11,72 @@ from agentx.persistence.tasks import fetch_pending_tasks, enqueue_scheduled_task
 from agentx.presence.trigger_engine import evaluate_triggers
 from agentx import cmd_run
 
+# ---------------------------------------------------------------------------
+# Phase 11 — Planning Layer feature flag
+# Set AGENTX_PLANNING_ENABLED=1 in the environment or agentx.json to enable.
+# ---------------------------------------------------------------------------
+PLANNING_ENABLED: bool = os.environ.get("AGENTX_PLANNING_ENABLED", "0").strip() == "1"
+
+# Lazy-load planning module so existing import path is never broken
+_planning_available: bool = False
+try:
+    from agentx.planning.planner import Planner
+    from agentx.planning.dag_validator import DAGValidator
+    from agentx.planning.react_executor import ReActExecutor
+    _planning_available = True
+except ImportError:
+    pass
+
+
+def _run_with_planning(objective: str, task_id: int) -> bool:
+    """
+    Phase 11 planning path.
+
+    1. Decompose objective → PlanGraph via LLM-backed Planner.
+    2. Validate the DAG.
+    3. Execute via ReActExecutor (ReAct loop + Replanner).
+
+    Returns True on full success, False on any failure.
+    Falls back to legacy cmd_run on validation error.
+    """
+    if not (_planning_available and PLANNING_ENABLED):
+        return False
+
+    import uuid
+    from agentx.planning.planner import PlanTooComplexError
+    from agentx.persistence.tasks import update_task_error
+
+    plan_id = str(uuid.uuid4())
+    log_event("PLANNING_STARTED", {"task_id": task_id, "plan_id": plan_id, "objective": objective})
+
+    try:
+        planner = Planner()
+        graph = planner.decompose(objective)
+
+        result = DAGValidator.validate(graph)
+        if not result.ok:
+            print(f"[Planning] DAG validation failed — falling back to cmd_run:\n  " + "\n  ".join(result.errors))
+            log_event("PLANNING_VALIDATION_FAILED", {"plan_id": plan_id, "errors": result.errors})
+            return False
+
+        executor = ReActExecutor(graph=graph, plan_id=plan_id, task_id=task_id)
+        success = executor.run()
+
+        log_event("PLANNING_FINISHED", {"plan_id": plan_id, "success": success, **executor.summary()})
+        return success
+        
+    except PlanTooComplexError as exc:
+        print(f"[Planning] Plan too complex for goal '{objective[:50]}'. Requesting human refinement.")
+        log_event("PLAN_TOO_COMPLEX", {"plan_id": plan_id, "task_id": task_id, "error": str(exc)})
+        send_notification("PLAN_TOO_COMPLEX", {"task_id": task_id, "objective": objective, "error": str(exc)})
+        update_task_error(task_id, str(exc), error_type="PERMANENT")
+        return True # Return true so the fallback isn't executed! The loop should consider it handled.
+
+    except Exception as exc:
+        print(f"[Planning] Unexpected error — falling back to cmd_run: {exc}")
+        log_event("PLANNING_ERROR", {"plan_id": plan_id, "error": str(exc)})
+        return False
+
 try:
     from agentx.persistence.tracker import log_event
 except ImportError:
@@ -192,7 +258,14 @@ def run_loop(interval: int = 10, max_iterations: int = -1):
             task_signature_times[sig].append(now)
             
             try:
-                cmd_run(objective=objective, background=False, task=task)
+                # ── Phase 11: Planning path (feature-gated) ───────────────
+                _used_planning = False
+                if PLANNING_ENABLED and _planning_available:
+                    _used_planning = _run_with_planning(objective, task_id)
+
+                # ── Phase 10: Legacy cmd_run path (always available) ──────
+                if not _used_planning:
+                    cmd_run(objective=objective, background=False, task=task)
                 # If it succeeds, we could reset circuit breaker failures
                 # but we don't know the sync outcome directly here unless we check DB again.
                 # We'll just assume completion and let the next cycle verify.
