@@ -73,6 +73,16 @@ def log_decision_outcome(objective: str, decision_type: str, confidence: float, 
                     INSERT INTO decision_logs (objective_hash, decision_type, confidence, outcome, task_id, created_at)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (obj_hash, decision_type, confidence, outcome, task_id, datetime.now(timezone.utc).isoformat()))
+
+        # Check for repeated failures and extract rule
+        if outcome == "FAILURE":
+            stats = get_feedback_stats(objective)
+            if stats.get(decision_type, {}).get("FAILURE", 0) >= 3:
+                try:
+                    from agentx.decision.rules import extract_rule_from_failures
+                    extract_rule_from_failures(objective, {})
+                except Exception as ex:
+                    print(f"[Feedback] Failed to extract rule: {ex}")
     except Exception as e:
         print(f"[Feedback] Failed to log outcome: {e}")
 

@@ -186,12 +186,23 @@ def cmd_run(objective: str = "", background: bool = False, task: dict = None):
         except ImportError:
             pass
 
-        _decision = _decide(objective, {
+        _context_for_decide = {
             "top_skills": _top_skills,
             "risk_level": _risk_level,
             "task_history": _history,
             "system_state": _sys_state
-        })
+        }
+        
+        _decision = _decide(objective, _context_for_decide)
+
+        # --- Deterministic Rule Engine Override (Phase 10) ---
+        try:
+            from agentx.decision.rules import check_rules
+            rule_override = check_rules(objective, _context_for_decide)
+            if rule_override:
+                _decision = rule_override
+        except Exception as e:
+            print(f"[Decision] Failed to check rules: {e}")
 
         # --- Decision Validation (Phase 10 Deterministic) ---
         try:
