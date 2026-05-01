@@ -1,7 +1,11 @@
 """
 agentx/planning/planner.py
 ===========================
-Phase 11 - Planner: Goal - PlanGraph.
+Phase 12 - Planner: Goal -> PlanGraph with method-first routing.
+
+Phase 11 design is preserved unchanged.  Phase 12 adds a pre-LLM routing
+stage: if the method library contains a high-confidence cached plan for
+the incoming goal, it is instantiated directly without an LLM call.
 
 Sends a deterministic prompt to the UnifiedGateway LLM and parses the
 JSON response into a validated PlanGraph.  Falls back gracefully if the
@@ -24,6 +28,7 @@ import os
 from typing import Any, Dict, Optional
 
 from agentx.planning.models import PlanGraph, PlanNode, DoD
+from agentx.planning.dag_validator import DAGValidator
 
 
 # ---------------------------------------------------------------------------
@@ -199,9 +204,20 @@ class Planner:
     max_nodes : hard cap on the number of nodes in the decomposed graph.
     """
 
-    def __init__(self, gateway=None, max_nodes: int = 15):
+    # Default score threshold for method-first routing
+    DEFAULT_METHOD_THRESHOLD: float = 0.55
+
+    def __init__(
+        self,
+        gateway=None,
+        max_nodes: int = 15,
+        method_threshold: float = DEFAULT_METHOD_THRESHOLD,
+        use_method_routing: bool = True,
+    ):
         self._gateway = gateway
         self.max_nodes = max_nodes
+        self.method_threshold = method_threshold
+        self.use_method_routing = use_method_routing
 
     # -- internal helpers ---------------------------------------------------
 
@@ -248,6 +264,62 @@ class Planner:
             graph.goal = goal
         return graph
 
+    # -- method-first routing -----------------------------------------------
+
+    def _try_method_plan(self, goal: str) -> "PlanGraph | None":
+        """
+        Attempt to build a PlanGraph from the method library without an LLM call.
+
+        Returns a validated PlanGraph if a high-confidence match is found,
+        otherwise returns None and the caller should fall back to LLM generation.
+        """
+        try:
+            from agentx.planning.method_retriever import retrieve_methods, method_fit
+        except ImportError:
+            return None
+
+        candidates = retrieve_methods(goal, top_n=5)
+        if not candidates:
+            return None
+
+        best = max(candidates, key=lambda m: method_fit(m, goal, current_state={}))
+
+        if best.get("score", 0.0) < self.method_threshold:
+            return None
+
+        template = best.get("plan_template")
+        if not template or not template.get("nodes"):
+            return None
+
+        try:
+            graph = PlanGraph.from_dict(template)
+        except Exception as exc:
+            print(f"[Planner] Method template parse error: {exc}")
+            return None
+
+        # Override goal with the live goal (template may have generic goal text)
+        graph.goal = goal
+
+        # Validate before using
+        result = DAGValidator.validate(graph)
+        if not result.ok:
+            print(f"[Planner] Method '{best.get('id')}' failed validation - falling back to LLM.")
+            return None
+
+        # Tag the graph with the source method id so ReActExecutor can update metrics
+        object.__setattr__(graph, "_source_method_id", best["id"]) if hasattr(graph, "__dataclass_fields__") else None
+        try:
+            graph._source_method_id = best["id"]  # type: ignore[attr-defined]
+        except AttributeError:
+            pass
+
+        fit = method_fit(best, goal, current_state={})
+        print(
+            f"[Planner] Method-first: using cached method '{best.get('id')}' "
+            f"(score={best.get('score', 0):.3f}, fit={fit:.3f})"
+        )
+        return graph
+
     # -- public API ---------------------------------------------------------
 
     def decompose(self, goal: str) -> PlanGraph:
@@ -264,6 +336,12 @@ class Planner:
         """
         if not goal or not goal.strip():
             raise ValueError("Planner.decompose: goal must be a non-empty string")
+
+        # Phase 12: Try method-first routing before calling the LLM
+        if self.use_method_routing:
+            method_plan = self._try_method_plan(goal)
+            if method_plan is not None:
+                return method_plan
 
         raw = self._call_llm(goal)
         if raw is None:
