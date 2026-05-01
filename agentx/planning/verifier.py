@@ -107,55 +107,17 @@ def verify_step(node: Any, state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Phase 15: Step-Level Verification.
     Dynamically checks a single node before execution to catch state drifts.
+    Deterministic version based on preconditions and uncertainty.
     """
-    from agentx.llm import completion
-    
-    node_json = json.dumps({
-        "id": node.id,
-        "task": node.task,
-        "preconditions": node.preconditions,
-        "effects": node.effects
-    }, indent=2)
-    state_json = json.dumps(state, indent=2)
-    
-    prompt = f"""
-You are an Execution Safety Verifier.
-Analyze the following step against the current system state.
+    missing = []
+    for k, v in node.preconditions.items():
+        if state.get(k) != v:
+            missing.append(k)
 
-Step:
-```json
-{node_json}
-```
+    risk = getattr(node, 'uncertainty', 0.5)
 
-Current State:
-```json
-{state_json}
-```
-
-Output your analysis as strict JSON with EXACTLY these keys:
-- "safe": boolean (true if it's safe to execute this step)
-- "risk": float between 0.0 and 1.0
-- "issues": list of strings (reasons why it might fail, if any)
-"""
-    try:
-        response = completion(prompt, system_prompt="You are a strict safety verification agent.")
-        raw_text = response.strip()
-        if raw_text.startswith("```json"):
-            raw_text = raw_text[7:]
-        if raw_text.endswith("```"):
-            raw_text = raw_text[:-3]
-            
-        data = json.loads(raw_text.strip())
-        
-        return {
-            "safe": bool(data.get("safe", True)),
-            "risk": float(data.get("risk", 0.1)),
-            "issues": list(data.get("issues", []))
-        }
-    except Exception as e:
-        print(f"[Verifier] Step Verification failed: {e}")
-        return {
-            "safe": True,
-            "risk": 0.5,
-            "issues": [f"Verification error: {e}"]
-        }
+    return {
+        "safe": len(missing) == 0,
+        "risk": risk,
+        "missing": missing
+    }

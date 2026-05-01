@@ -144,6 +144,8 @@ class ReActExecutor:
 
         from agentx.planning.verifier import verify_step
         
+        MAX_REPAIR_ATTEMPTS = 2
+        
         while True:
             ready_nodes = scheduler.ready_nodes()
             if not ready_nodes:
@@ -172,9 +174,17 @@ class ReActExecutor:
                     # 2. Verify Step
                     v = verify_step(node, self._bridge.system_state)
                     if not v.get("safe", True):
-                        print(f"[ReActExecutor] [WARN] Pre-execution verification failed for '{node.id}': {v.get('issues')}")
+                        print(f"[ReActExecutor] [WARN] Pre-execution verification failed for '{node.id}': {v.get('missing')}")
+                        
+                        if getattr(node, 'repair_attempts', 0) >= MAX_REPAIR_ATTEMPTS:
+                            node.status = "FAILED"
+                            node.error = "Max repair attempts reached."
+                            has_escalated = True
+                            break
+                        
                         repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
                         if repaired:
+                            node.repair_attempts = getattr(node, 'repair_attempts', 0) + 1
                             # Break the batch, rebuild scheduler next iteration
                             break
                         else:
@@ -191,6 +201,25 @@ class ReActExecutor:
                     if not success:
                         self._bridge.rollback_to(node.id)
                         
+                        from agentx.planning.failure_memory import FailureMemory
+                        from agentx.embeddings.service import EmbeddingService
+                        embed = EmbeddingService().embed_text
+                        
+                        FailureMemory.record({
+                            "goal": self.graph.goal,
+                            "node": node.id,
+                            "state": self._bridge.system_state,
+                            "plan_embedding": embed(self.graph.summary()),
+                            "error": node.error
+                        })
+                        
+                        if getattr(node, 'repair_attempts', 0) >= MAX_REPAIR_ATTEMPTS:
+                            action = self._replanner.handle_failure(node)
+                            self._record_repair(node, action)
+                            if action == RecoveryAction.ESCALATE:
+                                has_escalated = True
+                            break
+                        
                         # Try to repair
                         repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
                         if not repaired:
@@ -199,6 +228,9 @@ class ReActExecutor:
                             self._record_repair(node, action)
                             if action == RecoveryAction.ESCALATE:
                                 has_escalated = True
+                        else:
+                            node.repair_attempts = getattr(node, 'repair_attempts', 0) + 1
+                            
                         break # Break current batch to pick up repaired nodes in next scheduler loop
                 
                 if has_escalated:
@@ -326,6 +358,16 @@ class ReActExecutor:
         if not success:
             try:
                 from agentx.planning.failure_memory import FailureMemory
-                FailureMemory.record_failure(self.graph.goal, self.graph, error="Execution failed or escalated")
+                from agentx.embeddings.service import EmbeddingService
+                embed = EmbeddingService().embed_text
+                
+                FailureMemory.record({
+                    "goal": self.graph.goal,
+                    "node": "ESCALATION",
+                    "state": self._bridge.system_state,
+                    "plan_embedding": embed(self.graph.summary()),
+                    "plan_node_ids": [n.id for n in self.graph.primitive_nodes()],
+                    "error": "Execution failed or escalated"
+                })
             except Exception as e:
                 print(f"[ReActExecutor] Failed to record failure to memory: {e}")

@@ -43,20 +43,30 @@ class FailureMemory:
             print(f"[FailureMemory] Warning: could not save failures: {e}")
 
     @classmethod
-    def record_failure(cls, goal: str, plan: PlanGraph, error: str = ""):
+    def record(cls, payload: Dict[str, Any]):
         """Records a failed plan and its embeddings to persistent memory."""
         cls._load()
         
-        emb_service = EmbeddingService()
-        embedding = emb_service.embed_text(goal)
-        
-        record = {
+        goal = payload.get("goal", "")
+        if not goal:
+            return
+            
+        # The payload already contains plan_embedding if coming from Phase 15 code
+        # But if it doesn't, we create the embedding.
+        plan_embedding = payload.get("plan_embedding")
+        if plan_embedding is None:
+            emb_service = EmbeddingService()
+            plan_embedding = emb_service.embed_text(goal)
+            
+        record_data = {
             "goal": goal,
-            "goal_embedding": embedding,
-            "plan_node_ids": [n.id for n in plan.primitive_nodes()],
-            "error": error
+            "goal_embedding": plan_embedding,
+            "node": payload.get("node"),
+            "state": payload.get("state"),
+            "plan_node_ids": payload.get("plan_node_ids", []),
+            "error": payload.get("error", "")
         }
-        cls._failures.append(record)
+        cls._failures.append(record_data)
         cls._save()
         print(f"[FailureMemory] Recorded failure for goal '{goal[:50]}...'")
 

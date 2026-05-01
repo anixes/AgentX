@@ -74,22 +74,22 @@ class ExecutionBridge:
         self.task_id = task_id
         self.system_state: Dict[str, Any] = {}
         self._state_lock = threading.Lock()
-        self._checkpoints: Dict[str, Dict[str, Any]] = {}
+        
+        from agentx.planning.execution_log import ExecutionLog
+        self.log = ExecutionLog()
 
     # -- transactional execution --------------------------------------------
 
     def checkpoint_state(self, node_id: str) -> None:
         """Takes a deep copy snapshot of the current state before node execution."""
-        import copy
         with self._state_lock:
-            self._checkpoints[node_id] = copy.deepcopy(self.system_state)
+            self.log.checkpoint(node_id, self.system_state)
 
     def rollback_to(self, node_id: str) -> bool:
         """Restores the system state from the checkpoint taken before node_id."""
-        import copy
         with self._state_lock:
-            if node_id in self._checkpoints:
-                self.system_state = copy.deepcopy(self._checkpoints[node_id])
+            if node_id in self.log.checkpoints:
+                self.system_state = self.log.rollback(node_id)
                 print(f"[ExecutionBridge] Rolled back state to before node '{node_id}'")
                 return True
             print(f"[ExecutionBridge] Failed to rollback. No checkpoint found for '{node_id}'")
@@ -227,6 +227,9 @@ class ExecutionBridge:
             self._emit_observation(node, success=True)
             self._emit_debug_trace(node, preconditions_check, effects_applied, self.system_state, "SUCCESS")
             print(f"[ExecutionBridge] [OK] Node '{node.id}' COMPLETED (attempt {node.attempt})")
+            
+            with self._state_lock:
+                self.log.record(node.id, self.system_state)
             return True
 
         except Exception as exc:
@@ -235,6 +238,9 @@ class ExecutionBridge:
             self._emit_observation(node, success=False)
             self._emit_debug_trace(node, preconditions_check, {}, self.system_state, "FAILED")
             print(f"[ExecutionBridge] [FAIL] Node '{node.id}' FAILED: {node.error}")
+            
+            with self._state_lock:
+                self.log.record(node.id, self.system_state)
             return False
 
     def run_wave(self, nodes: list) -> Dict[str, bool]:
