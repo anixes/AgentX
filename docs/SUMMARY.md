@@ -221,6 +221,9 @@ Interfaces:
 - [PHASE_8_RESILIENT_SKILLS.md](./PHASE_8_RESILIENT_SKILLS.md): Autonomous skill capture, verification, and composition.
 - [PHASE_9_RESILIENT_LOOP.md](./PHASE_9_RESILIENT_LOOP.md): Persistent agent loop, triggers, guardrails, and human-in-the-loop approvals.
 - [PHASE_11_PARALLEL_SERIALIZABILITY.md](./PHASE_11_PARALLEL_SERIALIZABILITY.md): Conflict-serializable parallel execution and verification.
+- [PHASE_12_SELF_IMPROVING_METHODS.md](./PHASE_12_SELF_IMPROVING_METHODS.md): Method scoring, pruning, and automated learning.
+- [PHASE_14_MULTI_PLAN_VERIFICATION.md](./PHASE_14_MULTI_PLAN_VERIFICATION.md): Generate-Verify-Select architecture and Failure Memory.
+- [PHASE_15_TRANSACTIONAL_REPAIR.md](./PHASE_15_TRANSACTIONAL_REPAIR.md): Transactional state, rollbacks, and localized repair engine.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.
@@ -377,9 +380,26 @@ Interfaces:
 - Logic: `agentx/planning/scheduler.py`, `agentx/planning/react_executor.py`, `agentx/planning/verification.py`, `agentx/planning/execution_bridge.py`
 - Tests: `tests/planning/test_parallel_serializability.py`
 
+## Phase 14: Research-Grade Multi-Plan Planning System
+
+Phase 14 transforms planning from a single-plan generator into an adaptive **Generate-Verify-Select** architecture.
+
+- **Adaptive Candidate Generation**: Dynamically generates $K$ candidates based on goal complexity, filtered for structural diversity.
+- **Independent Verifier Agent**: A context-free LLM-based verification layer that catches logical errors and hallucinations without planner bias.
+- **Multi-Plan Selector**: Composite scoring engine that selects the optimal execution path based on risk, cost, and historical success rates.
+- **Failure Memory (Persistent Adaptation)**: records failed plans and penalizes similar proposals in the future to prevent infinite failure loops.
+
+## Phase 15: Transactional Execution & Local Repair
+
+Phase 15 upgrades execution from static to **adaptive, stateful, and self-healing**.
+
+- **Transactional State Management**: Versioned execution logging with pre-step checkpoints and atomic rollbacks to prevent state pollution.
+- **Verifier-Guided Runtime**: Deterministic pre-execution checks that validate preconditions and detect environment drift before actions are taken.
+- **Localized Repair Engine**: Surgical failure scope detection and subtree extraction that patches broken plans without full re-execution.
+- **High-Reliability Orchestration**: Refactored `ReActExecutor` loop with mandatory `Checkpoint -> Verify -> Execute -> Rollback -> Repair` cycles and safety guards.
+
 ## Next Evolution: Goal-Level Planning & Autonomous DAG Construction
 
-With Phase 11 complete, AgentX has the infrastructure for safe parallel execution. The next focus is:
+With Phase 15 complete, AgentX has a research-grade transactional planning and execution environment. The next focus is:
 - **Autonomous Goal Decomposition**: Converting natural language into structured HTN/DAG plans.
-- **Global Plan Repair**: Dynamically fixing plans when environment state drifts from expectations.
 - **Cost-Optimized Planning**: Choosing execution paths based on token budget and latency constraints.
