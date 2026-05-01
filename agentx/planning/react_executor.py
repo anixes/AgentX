@@ -202,6 +202,7 @@ class ReActExecutor:
             f"- success={success}, waves={wave_count}"
         )
         self._persist()
+        self._update_or_learn_method(success)
         return success
 
     # -- helpers ------------------------------------------------------------
@@ -247,3 +248,59 @@ class ReActExecutor:
             "node_counts": counts,
             "repairs": len(self.repair_history),
         }
+
+    def _update_or_learn_method(self, success: bool) -> None:
+        """
+        Phase 12 post-execution hook.
+
+        If the plan came from a cached method (tagged with _source_method_id),
+        update that method's metrics.  Otherwise, if the plan was LLM-generated
+        and successful, attempt to learn a new method from it.
+
+        This method is intentionally wrapped in a broad try/except so that
+        any learning failure never affects the final execution result.
+        """
+        primitives = self.graph.primitive_nodes()
+        avg_uncertainty = (
+            sum(n.uncertainty for n in primitives) / max(len(primitives), 1)
+        )
+        plan_score = max(0.0, 1.0 - avg_uncertainty) if success else 0.0
+
+        source_method_id = getattr(self.graph, "_source_method_id", None)
+
+        if source_method_id:
+            # Update metrics for the method that generated this plan
+            try:
+                from agentx.planning.method_store import MethodStore
+                from agentx.planning.method_scorer import update_metrics
+
+                method = MethodStore.get_by_id(source_method_id)
+                if method:
+                    updated = update_metrics(
+                        method,
+                        success=success,
+                        latency=0.0,
+                        uncertainty=avg_uncertainty,
+                    )
+                    MethodStore.upsert(updated)
+                    print(
+                        f"[ReActExecutor] Updated metrics for method '{source_method_id}' "
+                        f"(success={success}, score={updated.get('score', 0):.3f})"
+                    )
+            except Exception as exc:
+                print(f"[ReActExecutor] Method metrics update failed (non-critical): {exc}")
+        else:
+            # LLM-generated plan: try to learn a new method
+            try:
+                from agentx.planning.method_learner import learn_method
+
+                stored = learn_method(
+                    self.graph,
+                    goal=self.graph.goal,
+                    success=success,
+                    score=plan_score,
+                )
+                if stored:
+                    print(f"[ReActExecutor] Learned new method from plan '{self.plan_id}'")
+            except Exception as exc:
+                print(f"[ReActExecutor] Method learning failed (non-critical): {exc}")
