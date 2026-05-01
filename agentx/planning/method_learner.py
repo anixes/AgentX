@@ -224,34 +224,44 @@ def learn_method(plan, goal: str, success: bool, score: float) -> bool:
 
     from agentx.planning.method_store import MethodStore
     from agentx.planning.method_scorer import update_metrics
-    from agentx.planning.method_pruner import tfidf_cosine, prune_methods
+    from agentx.planning.method_pruner import prune_methods
+    from agentx.embeddings.service import EmbeddingService
+
+    # 1. Embed the goal for the new method
+    svc = EmbeddingService()
+    emb = svc.embed(goal)
 
     new_method = extract_method(plan, goal)
+    new_method["embedding"] = emb
 
-    # Deduplication: check against existing patterns
-    existing = MethodStore.load()
-    best_match: Optional[Dict] = None
-    best_sim: float = 0.0
+    # Deduplication: check against existing index
+    index = MethodStore.get_index()
+    candidates = index.search(emb, k=1)
+    
+    best_sim = 0.0
+    best_match_id = None
+    
+    if candidates:
+        best_match_id, best_sim = candidates[0]
 
-    for m in existing:
-        sim = tfidf_cosine(new_method["pattern"], m.get("pattern", ""))
-        if sim > best_sim:
-            best_sim = sim
-            best_match = m
-
-    if best_sim >= DEDUP_SIMILARITY_THRESHOLD and best_match is not None:
-        # Merge into existing method: update metrics with one success observation
-        merged = update_metrics(
-            best_match,
-            success=True,
-            latency=0.0,
-            uncertainty=new_method["metrics"]["avg_uncertainty"],
-        )
-        MethodStore.upsert(merged)
-        print(
-            f"[MethodLearner] Merged with existing method '{best_match.get('id')}' "
-            f"(similarity={best_sim:.3f})"
-        )
+    if best_sim >= DEDUP_SIMILARITY_THRESHOLD and best_match_id is not None:
+        best_match = MethodStore.get_by_id(best_match_id)
+        if best_match:
+            # Merge into existing method: update metrics with one success observation
+            merged = update_metrics(
+                best_match,
+                success=True,
+                latency=0.0,
+                uncertainty=new_method["metrics"]["avg_uncertainty"],
+            )
+            MethodStore.upsert(merged)
+            print(
+                f"[MethodLearner] Merged with existing method '{best_match.get('id')}' "
+                f"(similarity={best_sim:.3f})"
+            )
+        else:
+            MethodStore.upsert(new_method)
+            print(f"[MethodLearner] Stored new method '{new_method['id']}' (score={new_method['score']:.3f})")
     else:
         MethodStore.upsert(new_method)
         print(f"[MethodLearner] Stored new method '{new_method['id']}' (score={new_method['score']:.3f})")

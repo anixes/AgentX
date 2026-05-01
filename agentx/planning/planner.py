@@ -282,9 +282,14 @@ class Planner:
         if not candidates:
             return None
 
-        best = max(candidates, key=lambda m: method_fit(m, goal, current_state={}))
+        # candidates is a list of (method, sim)
+        scored = [
+            (m, method_fit(m, sim, current_state={}))
+            for m, sim in candidates
+        ]
+        best, best_fit = max(scored, key=lambda x: x[1])
 
-        if best.get("score", 0.0) < self.method_threshold:
+        if best_fit < self.method_threshold:
             return None
 
         template = best.get("plan_template")
@@ -303,7 +308,15 @@ class Planner:
         # Validate before using
         result = DAGValidator.validate(graph)
         if not result.ok:
-            print(f"[Planner] Method '{best.get('id')}' failed validation - falling back to LLM.")
+            print(f"[Planner] Method '{best.get('id')}' failed validation - penalizing and falling back to LLM.")
+            try:
+                from agentx.planning.method_scorer import update_metrics
+                from agentx.planning.method_store import MethodStore
+                # Penalize method due to bad DAG
+                updated = update_metrics(best, success=False, latency=0.0, uncertainty=1.0)
+                MethodStore.upsert(updated)
+            except Exception as e:
+                print(f"[Planner] Failed to penalize method: {e}")
             return None
 
         # Tag the graph with the source method id so ReActExecutor can update metrics
@@ -313,10 +326,9 @@ class Planner:
         except AttributeError:
             pass
 
-        fit = method_fit(best, goal, current_state={})
         print(
             f"[Planner] Method-first: using cached method '{best.get('id')}' "
-            f"(score={best.get('score', 0):.3f}, fit={fit:.3f})"
+            f"(score={best.get('score', 0):.3f}, fit={best_fit:.3f})"
         )
         return graph
 
