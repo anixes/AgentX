@@ -173,7 +173,7 @@ class TestRetrieveMethods:
         results = retrieve_methods("deploy a production service", top_n=3)
         # m1 and m3 should rank above m2 (cake is unrelated)
         assert len(results) >= 1
-        ids = [r["id"] for r in results]
+        ids = [m["id"] for m, sim in results]
         assert "m2" not in ids or ids.index("m2") > 0  # cake should not be first
 
     def test_retrieve_returns_empty_on_no_match(self, isolated_method_store):
@@ -193,8 +193,8 @@ class TestRetrieveMethods:
         m_deploy = _make_method("m1", "deploy a web service", success_rate=0.9)
         m_unrelated = _make_method("m2", "bake a chocolate cake", success_rate=0.9)
 
-        fit_deploy = method_fit(m_deploy, "deploy a microservice", current_state={})
-        fit_unrelated = method_fit(m_unrelated, "deploy a microservice", current_state={})
+        fit_deploy = method_fit(m_deploy, 0.9, current_state={})
+        fit_unrelated = method_fit(m_unrelated, 0.2, current_state={})
         assert fit_deploy > fit_unrelated
 
 

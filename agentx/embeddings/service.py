@@ -75,15 +75,27 @@ class EmbeddingService:
 
     def _mock_embed(self, text: str) -> List[float]:
         """
-        Deterministic mock embedding using SHA-256 hash seeding.
-        Maintains the symbolic pipeline properties for testing.
+        Deterministic mock embedding using word hashing.
+        This provides a simple bag-of-words-like property so tests testing 
+        semantic overlap will see non-zero similarities.
         """
-        seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:8], 16)
-        rng = random.Random(seed)
-        
-        # Create a vector where values are predictably distributed between -1 and 1
-        vec = [rng.uniform(-1.0, 1.0) for _ in range(self.dim)]
-        
+        vec = [0.0] * self.dim
+        if not text:
+            return vec
+            
+        import re
+        words = re.findall(r'\b\w+\b', text.lower())
+        for word in words:
+            # Hash each word to a few indices
+            import hashlib
+            seed = int(hashlib.sha256(word.encode("utf-8")).hexdigest()[:8], 16)
+            import random
+            rng = random.Random(seed)
+            idx1 = rng.randint(0, self.dim - 1)
+            idx2 = rng.randint(0, self.dim - 1)
+            vec[idx1] += 1.0
+            vec[idx2] += 1.0
+            
         # Normalize to unit length (like cosine embeddings)
         import math
         mag = math.sqrt(sum(v*v for v in vec))
