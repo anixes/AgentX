@@ -197,10 +197,33 @@ class ReActExecutor:
                     else:
                         success = False
                         
-                    # 4. Handle Failure & Rollback
+                    # 4. Handle Failure, Rollback & Compensation
                     if not success:
                         self._bridge.rollback_to(node.id)
                         
+                        # Forward recovery: Compensation
+                        policy = getattr(node, 'policy', None)
+                        if policy and getattr(policy, 'compensation', None):
+                            print(f"[ReActExecutor] Triggering compensation for '{node.id}': {policy.compensation}")
+                            from agentx.capabilities.registry import registry
+                            try:
+                                # Assuming compensation is a terminal command string for now
+                                comp_cap = registry.get("terminal.exec")
+                                comp_cap.execute({"cmd": policy.compensation})
+                            except Exception as e:
+                                print(f"[ReActExecutor] [WARN] Compensation failed: {e}")
+                        
+                        from agentx.planning.failure_classifier import classify_failure, FailureType
+                        f_type = classify_failure(node.error)
+                        print(f"[ReActExecutor] Failure classified as: {f_type.upper()}")
+                        
+                        # Handle TRANSIENT failures (Retry based on policy)
+                        if f_type == FailureType.TRANSIENT and policy and getattr(node, 'attempt', 1) <= getattr(policy, 'retry', 0):
+                            print(f"[ReActExecutor] Retrying transient failure (Attempt {node.attempt}/{policy.retry})")
+                            node.status = "PENDING"  # Will be picked up next schedule
+                            continue
+
+                        # Handle LOGIC or EXTERNAL failures
                         from agentx.planning.failure_memory import FailureMemory
                         from agentx.embeddings.service import EmbeddingService
                         embed = EmbeddingService().embed_text
@@ -210,27 +233,29 @@ class ReActExecutor:
                             "node": node.id,
                             "state": self._bridge.system_state,
                             "plan_embedding": embed(self.graph.summary()),
-                            "error": node.error
+                            "error": node.error,
+                            "failure_type": f_type
                         })
                         
-                        if getattr(node, 'repair_attempts', 0) >= MAX_REPAIR_ATTEMPTS:
+                        if getattr(node, 'repair_attempts', 0) >= MAX_REPAIR_ATTEMPTS or f_type == FailureType.EXTERNAL:
                             action = self._replanner.handle_failure(node)
                             self._record_repair(node, action)
                             if action == RecoveryAction.ESCALATE:
                                 has_escalated = True
                             break
                         
-                        # Try to repair
-                        repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
-                        if not repaired:
-                            # Fallback to standard replanner logic (escalate/retry)
-                            action = self._replanner.handle_failure(node)
-                            self._record_repair(node, action)
-                            if action == RecoveryAction.ESCALATE:
-                                has_escalated = True
-                        else:
-                            node.repair_attempts = getattr(node, 'repair_attempts', 0) + 1
-                            
+                        # Try to repair LOGIC failures
+                        if f_type == FailureType.LOGIC:
+                            repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
+                            if not repaired:
+                                # Fallback to standard replanner logic (escalate/retry)
+                                action = self._replanner.handle_failure(node)
+                                self._record_repair(node, action)
+                                if action == RecoveryAction.ESCALATE:
+                                    has_escalated = True
+                            else:
+                                node.repair_attempts = getattr(node, 'repair_attempts', 0) + 1
+                                
                         break # Break current batch to pick up repaired nodes in next scheduler loop
                 
                 if has_escalated:

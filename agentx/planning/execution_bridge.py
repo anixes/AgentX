@@ -209,20 +209,44 @@ class ExecutionBridge:
         self._emit_thought(node, context)
         self._emit_action(node)
 
-        try:
-            # Actual execution - delegates entirely to the existing engine
-            _cmd_run(objective=node.task, context=context if context else None)
+        from agentx.runtime.event_bus import bus, EVENTS
+        bus.publish(EVENTS["NODE_STARTED"], node)
 
-            # Apply effects to system state
+        try:
+            # Capability Execution instead of raw cmd_run
+            from agentx.capabilities.registry import registry
+            try:
+                cap = registry.get(getattr(node, 'tool', 'agent.coder'))
+            except KeyError:
+                # Fallback to a default agent capability if not explicitly registered,
+                # or fail the node if strict capabilities are enforced.
+                # For compatibility with legacy nodes, we assume 'agent.coder'
+                cap = registry.get('agent.coder')
+
+            # Merge node inputs with built context
+            cap_inputs = getattr(node, 'inputs', {}).copy()
+            cap_inputs.update(context)
+            cap_inputs['task'] = node.task
+
+            result = cap.execute(cap_inputs)
+
+            if not result.success:
+                raise Exception(result.error or "Capability execution failed")
+
+            # Apply capability state delta and node effects
             effects_applied = {}
-            if node.effects:
-                with self._state_lock:
+            with self._state_lock:
+                for k, v in result.state_delta.items():
+                    self.system_state[k] = v
+                    effects_applied[k] = v
+                if node.effects:
                     for k, v in node.effects.items():
                         self.system_state[k] = v
                         effects_applied[k] = v
 
             node.status = "COMPLETED"
-            node.result = {"completed": True, "task": node.task}
+            node.result = result.output
+            node.result["completed"] = True
             node.error = ""
             self._emit_observation(node, success=True)
             self._emit_debug_trace(node, preconditions_check, effects_applied, self.system_state, "SUCCESS")
@@ -230,6 +254,8 @@ class ExecutionBridge:
             
             with self._state_lock:
                 self.log.record(node.id, self.system_state)
+                
+            bus.publish(EVENTS["NODE_SUCCESS"], node)
             return True
 
         except Exception as exc:
@@ -241,6 +267,8 @@ class ExecutionBridge:
             
             with self._state_lock:
                 self.log.record(node.id, self.system_state)
+                
+            bus.publish(EVENTS["NODE_FAILED"], node)
             return False
 
     def run_wave(self, nodes: list) -> Dict[str, bool]:

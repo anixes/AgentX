@@ -224,6 +224,7 @@ Interfaces:
 - [PHASE_12_SELF_IMPROVING_METHODS.md](./PHASE_12_SELF_IMPROVING_METHODS.md): Method scoring, pruning, and automated learning.
 - [PHASE_14_MULTI_PLAN_VERIFICATION.md](./PHASE_14_MULTI_PLAN_VERIFICATION.md): Generate-Verify-Select architecture and Failure Memory.
 - [PHASE_15_TRANSACTIONAL_REPAIR.md](./PHASE_15_TRANSACTIONAL_REPAIR.md): Transactional state, rollbacks, and localized repair engine.
+- [PHASE_16_ORCHESTRATION_CAPABILITIES.md](./PHASE_16_ORCHESTRATION_CAPABILITIES.md): Capability system, sub-agents, and Jarvis server.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.
@@ -389,17 +390,21 @@ Phase 14 transforms planning from a single-plan generator into an adaptive **Gen
 - **Multi-Plan Selector**: Composite scoring engine that selects the optimal execution path based on risk, cost, and historical success rates.
 - **Failure Memory (Persistent Adaptation)**: records failed plans and penalizes similar proposals in the future to prevent infinite failure loops.
 
-## Phase 15: Transactional Execution & Local Repair
+## Phase 16: Central Orchestration & Capabilities
 
-Phase 15 upgrades execution from static to **adaptive, stateful, and self-healing**.
+Phase 16 transforms AgentX into a **Transactional Cognitive Operating System** for real-world control.
 
-- **Transactional State Management**: Versioned execution logging with pre-step checkpoints and atomic rollbacks to prevent state pollution.
-- **Verifier-Guided Runtime**: Deterministic pre-execution checks that validate preconditions and detect environment drift before actions are taken.
-- **Localized Repair Engine**: Surgical failure scope detection and subtree extraction that patches broken plans without full re-execution.
-- **High-Reliability Orchestration**: Refactored `ReActExecutor` loop with mandatory `Checkpoint -> Verify -> Execute -> Rollback -> Repair` cycles and safety guards.
+- **Canonical Execution IR (PlanIR)**: Policy-driven execution representation supporting retries, timeouts, and forward-recovery compensations.
+- **Structured Capability System**: Sandboxed tool interfaces with strict `CapabilityResult` contracts and an extensible global registry.
+- **Agent-of-Agents (Specialization)**: Delegation logic for specialized sub-agents (`CodingAgent`, `BrowserAgent`) operating under resource-bounded autonomy.
+- **Event-Driven Runtime**: Real-time event bus for lifecycle tracking and automated failure classification (`Transient`, `Logic`, `External`).
+- **Jarvis Layer (Remote Control)**: Persistent session management and FastAPI-based server for asynchronous remote task execution and real-time streaming.
+
+Interfaces:
+- Logic: `agentx/planning/ir.py`, `agentx/runtime/event_bus.py`, `agentx/capabilities/`, `agentx/server/`, `agentx/agents/`
 
 ## Next Evolution: Goal-Level Planning & Autonomous DAG Construction
 
-With Phase 15 complete, AgentX has a research-grade transactional planning and execution environment. The next focus is:
+With Phase 16 complete, AgentX is a general-purpose autonomous execution system. The final focus is:
 - **Autonomous Goal Decomposition**: Converting natural language into structured HTN/DAG plans.
 - **Cost-Optimized Planning**: Choosing execution paths based on token budget and latency constraints.

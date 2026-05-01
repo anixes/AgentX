@@ -50,14 +50,18 @@ def retrieve_methods(goal: str, top_n: int = 5) -> List[Tuple[Dict, float]]:
     svc = EmbeddingService()
     
     query_vec = svc.embed(goal)
-    candidates = index.search(query_vec, k=top_n)
+    candidates = index.search(query_vec, k=top_n * 2) # Get some extra to filter
 
     results = []
     # Map index results back to full method objects
     for mid, sim in candidates:
+        if sim < 0.15:
+            continue
         m = MethodStore.get_by_id(mid)
         if m:
             results.append((m, sim))
+            if len(results) == top_n:
+                break
             
     return results
 

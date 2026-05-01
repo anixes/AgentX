@@ -334,37 +334,77 @@ class Planner:
 
     # -- public API ---------------------------------------------------------
 
-    def decompose(self, goal: str) -> PlanGraph:
+    def decompose(self, goal: str, current_state: Optional[Dict] = None) -> PlanGraph:
         """
-        Main entry point.
-
-        1. Calls the LLM with the deterministic compiler prompt.
-        2. Parses and validates the JSON response.
-        3. Falls back to a single-node passthrough graph on any failure.
-
-        Returns
-        -------
-        PlanGraph  (always - never raises)
+        Phase 14: Multi-Plan Planning Architecture.
+        Generates, verifies, scores, and selects the optimal plan.
         """
         if not goal or not goal.strip():
             raise ValueError("Planner.decompose: goal must be a non-empty string")
+            
+        current_state = current_state or {}
+        
+        print(f"\\n[Planner] Initiating multi-plan generation for goal: '{goal}'")
+        
+        from agentx.planning.scorer import estimate_complexity, COMPLEXITY_LOW, COMPLEXITY_MEDIUM, score_plan
+        from agentx.planning.generator import generate_candidate_plans, revise_plan
+        from agentx.planning.verifier import verify_plan
+        from agentx.planning.selector import select_plan
 
-        # Phase 12: Try method-first routing before calling the LLM
-        if self.use_method_routing:
-            method_plan = self._try_method_plan(goal)
-            if method_plan is not None:
-                return method_plan
+        # 1. Complexity Estimation
+        complexity = estimate_complexity(goal)
+        if complexity == COMPLEXITY_LOW:
+            k = 1
+        elif complexity == COMPLEXITY_MEDIUM:
+            k = 3
+        else:
+            k = 5
+            
+        print(f"[Planner] Estimated complexity: {complexity}. Targeting {k} candidates.")
 
-        raw = self._call_llm(goal)
-        if raw is None:
-            print("[Planner] LLM unavailable - using fallback single-node graph")
+        # 2. Generate Candidates (Method Retrieval + LLM Generation + Diversity Filter)
+        candidates = generate_candidate_plans(goal, current_state, k)
+        if not candidates:
+            print("[Planner] Failed to generate any candidate plans. Falling back to passthrough.")
+            return _fallback_graph(goal)
+            
+        print(f"[Planner] Generated {len(candidates)} diverse candidate(s).")
+
+        verified_plans = []
+        for i, plan_candidate in enumerate(candidates):
+            print(f"  -> Evaluating candidate {i+1}...")
+            # 3. Verify Plan
+            feedback = verify_plan(plan_candidate)
+            
+            # 4. Critique & Refine if necessary
+            if not feedback.get("valid", True):
+                plan_candidate = revise_plan(plan_candidate, feedback)
+                # Re-verify after revision
+                feedback = verify_plan(plan_candidate)
+                
+            if not feedback.get("valid", True):
+                print(f"     [Reject] Candidate {i+1} failed verification.")
+                continue
+                
+            # 5. Cost-Aware Scoring
+            is_method = hasattr(plan_candidate, "_source_method_id")
+            method_sr = getattr(plan_candidate, "_method_success_rate", 0.5) if is_method else 0.5
+            
+            score = score_plan(plan_candidate, feedback.get("state_consistency", 0.5), is_method, method_sr)
+            risk = feedback.get("risk_score", 0.5)
+            
+            print(f"     [Accept] Candidate {i+1} - Score: {score:.2f}, Risk: {risk:.2f}")
+            verified_plans.append((plan_candidate, score, risk))
+            
+            # 6. Early Exit Check
+            if score > 0.9 and risk < 0.2:
+                print(f"[Planner] Early exit triggered by high-confidence, low-risk plan (Candidate {i+1}).")
+                return plan_candidate
+                
+        if not verified_plans:
+            print("[Planner] All candidates rejected by Verifier. Falling back to passthrough.")
             return _fallback_graph(goal)
 
-        try:
-            graph = self._parse_response(raw, goal)
-        except (json.JSONDecodeError, KeyError, ValueError) as exc:
-            print(f"[Planner] Failed to parse LLM response ({exc}) - using fallback graph")
-            return _fallback_graph(goal)
-
-        print(f"[Planner] Decomposed '{goal[:60]}' - {len(graph.nodes)} node(s)")
-        return graph
+        # 7. Selection
+        final_plan = select_plan(verified_plans)
+        return final_plan

@@ -64,8 +64,9 @@ def generate_candidate_plans(goal: str, state: Dict, k: int) -> List[PlanGraph]:
         # otherwise we just call plan().
         try:
             # We bypass method retrieval here to force generation
-            new_plan = temp_planner._generate_fallback_plan(goal, state)
-            if new_plan:
+            raw = temp_planner._call_llm(goal)
+            if raw:
+                new_plan = temp_planner._parse_response(raw, goal)
                 candidates.append(new_plan)
         except Exception as e:
             print(f"[Generator] LLM generation failed: {e}")
