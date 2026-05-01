@@ -142,6 +142,8 @@ class ReActExecutor:
         wave_count = 0
         scheduler = Scheduler(self.graph)
 
+        from agentx.planning.verifier import verify_step
+        
         while True:
             ready_nodes = scheduler.ready_nodes()
             if not ready_nodes:
@@ -160,39 +162,54 @@ class ReActExecutor:
                 if len(safe_batches) > 1:
                     print(f"[ReActExecutor]   Sub-batch {batch_idx+1}/{len(safe_batches)}: {[n.id for n in batch]}")
 
-                # -- ACT -------------------------------------------------------
-                results = {}
-                with ThreadPoolExecutor() as executor:
-                    futures = {executor.submit(self._bridge.run_node, node): node for node in batch}
-                    for f in futures:
-                        node = futures[f]
-                        try:
-                            results[node.id] = f.result()
-                        except Exception as e:
-                            results[node.id] = False
-                            node.status = "FAILED"
-                            node.error = f"Parallel execution error: {e}"
-                            print(f"[ReActExecutor] [FAIL] Unhandled thread exception for '{node.id}': {e}")
-
-                # -- OBSERVE ---------------------------------------------------
                 has_escalated = False
+                
+                # Execute sequentially for safe transactional boundary
                 for node in batch:
-                    if not results.get(node.id, False):
-                        action = self._replanner.handle_failure(node)
-                        self._record_repair(node, action)
-                        if action == RecoveryAction.ESCALATE:
-                            has_escalated = True
+                    # 1. Checkpoint state
+                    self._bridge.checkpoint_state(node.id)
+                    
+                    # 2. Verify Step
+                    v = verify_step(node, self._bridge.system_state)
+                    if not v.get("safe", True):
+                        print(f"[ReActExecutor] [WARN] Pre-execution verification failed for '{node.id}': {v.get('issues')}")
+                        repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
+                        if repaired:
+                            # Break the batch, rebuild scheduler next iteration
+                            break
+                        else:
+                            node.status = "FAILED"
+                            node.error = "Pre-execution verification failed, and repair failed."
+                            
+                    # 3. Execute
+                    if node.status != "FAILED":
+                        success = self._bridge.run_node(node)
+                    else:
+                        success = False
+                        
+                    # 4. Handle Failure & Rollback
+                    if not success:
+                        self._bridge.rollback_to(node.id)
+                        
+                        # Try to repair
+                        repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
+                        if not repaired:
+                            # Fallback to standard replanner logic (escalate/retry)
+                            action = self._replanner.handle_failure(node)
+                            self._record_repair(node, action)
+                            if action == RecoveryAction.ESCALATE:
+                                has_escalated = True
+                        break # Break current batch to pick up repaired nodes in next scheduler loop
                 
                 if has_escalated:
                     print(f"[ReActExecutor] [FAIL] Node escalated - stopping wave sequence.")
-                    # Persist partial failure before breaking
                     self._persist()
                     return False
 
             # Persist after every wave
             self._persist()
 
-            # Rebuild scheduler to pick up any nodes injected by Decompose
+            # Rebuild scheduler to pick up any nodes injected by repair or decompose
             scheduler = Scheduler(self.graph)
 
         success = self._all_completed()

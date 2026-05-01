@@ -267,6 +267,127 @@ class Replanner:
         except Exception:
             pass
 
+    # -- localized repair ---------------------------------------------------
+
+    def find_failure_scope(self, failed_node: PlanNode) -> List[PlanNode]:
+        """
+        Finds the failed node and all downstream dependent nodes.
+        Independent completed nodes are excluded.
+        """
+        scope_ids = {failed_node.id}
+        changed = True
+        
+        while changed:
+            changed = False
+            for node in self.graph.nodes:
+                if node.id not in scope_ids:
+                    # If any dependency is in the scope, this node is in the scope
+                    if any(dep in scope_ids for dep in node.dependencies):
+                        scope_ids.add(node.id)
+                        changed = True
+                        
+        return [n for n in self.graph.nodes if n.id in scope_ids]
+
+    def extract_subtree(self, failed_node: PlanNode) -> PlanGraph:
+        """
+        Extracts a minimal repairable PlanGraph unit starting from the failed node.
+        """
+        scope_nodes = self.find_failure_scope(failed_node)
+        import copy
+        subtree = PlanGraph(
+            goal=f"Recover from failure at '{failed_node.task}'",
+            nodes=[copy.deepcopy(n) for n in scope_nodes]
+        )
+        # Update dependencies within the subtree
+        scope_ids = {n.id for n in scope_nodes}
+        for node in subtree.nodes:
+            node.dependencies = [d for d in node.dependencies if d in scope_ids]
+            node.inputs = [i for i in node.inputs if i in scope_ids]
+            
+        return subtree
+
+    def repair_subtree(self, failed_node: PlanNode, state: Dict[str, Any]) -> bool:
+        """
+        Invokes the Planner to generate a repair for the failed subtree.
+        If successful, swaps it in.
+        Returns True if repaired, False otherwise.
+        """
+        print(f"[Replanner] Attempting localized repair for node '{failed_node.id}'...")
+        
+        # 1. Extract the broken piece
+        scope_nodes = self.find_failure_scope(failed_node)
+        
+        # We define the repair goal as achieving the effects of the nodes in the scope
+        # Usually, the simplest repair is re-planning the task of the failed node.
+        repair_goal = f"Successfully complete: {failed_node.task}"
+        
+        from agentx.planning.planner import Planner
+        temp_planner = Planner(use_method_routing=False) # Fallback directly to LLM for repair
+        
+        try:
+            # We bypass method cache because we specifically want a generative repair
+            new_subtree = temp_planner.decompose(repair_goal, state)
+            
+            if new_subtree and len(new_subtree.nodes) > 0 and new_subtree.nodes[0].id != "execute_goal":
+                self.replace_subtree(scope_nodes, new_subtree, failed_node)
+                print(f"[Replanner] Successfully applied localized repair for '{failed_node.id}'")
+                return True
+        except Exception as e:
+            print(f"[Replanner] Localized repair generation failed: {e}")
+            
+        return False
+
+    def replace_subtree(self, old_scope: List[PlanNode], new_subtree: PlanGraph, failed_node: PlanNode) -> None:
+        """
+        Swaps the old scope with the new subtree, rewiring dependencies.
+        """
+        old_ids = {n.id for n in old_scope}
+        
+        # Keep nodes that are not in the old scope
+        preserved_nodes = [n for n in self.graph.nodes if n.id not in old_ids]
+        
+        # Find the exit points of the new subtree (nodes with no successors inside the subtree)
+        new_ids = {n.id for n in new_subtree.nodes}
+        new_exit_nodes = []
+        for n in new_subtree.nodes:
+            is_depended_on = False
+            for other in new_subtree.nodes:
+                if n.id in other.dependencies:
+                    is_depended_on = True
+                    break
+            if not is_depended_on:
+                new_exit_nodes.append(n.id)
+                
+        if not new_exit_nodes:
+            new_exit_nodes = list(new_ids) # Fallback
+
+        # Add the new nodes to the graph
+        preserved_nodes.extend(new_subtree.nodes)
+        
+        # Wire the new subtree's roots to depend on the failed node's old dependencies
+        for n in new_subtree.nodes:
+            if not n.dependencies:
+                n.dependencies.extend(failed_node.dependencies)
+                n.inputs.extend(failed_node.inputs)
+
+        # Wire any preserved node that depended on an old scope node to depend on the new exit nodes
+        for n in preserved_nodes:
+            if n.id not in new_ids:
+                has_old_dep = any(dep in old_ids for dep in n.dependencies)
+                if has_old_dep:
+                    # Remove old deps
+                    n.dependencies = [d for d in n.dependencies if d not in old_ids]
+                    # Add new exit deps
+                    n.dependencies.extend(new_exit_nodes)
+                    
+                has_old_input = any(i in old_ids for i in n.inputs)
+                if has_old_input:
+                    n.inputs = [i for i in n.inputs if i not in old_ids]
+                    n.inputs.extend(new_exit_nodes)
+                    
+        # Update the graph nodes
+        self.graph.nodes = preserved_nodes
+
     # -- helpers ------------------------------------------------------------
 
     @staticmethod

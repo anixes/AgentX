@@ -74,6 +74,26 @@ class ExecutionBridge:
         self.task_id = task_id
         self.system_state: Dict[str, Any] = {}
         self._state_lock = threading.Lock()
+        self._checkpoints: Dict[str, Dict[str, Any]] = {}
+
+    # -- transactional execution --------------------------------------------
+
+    def checkpoint_state(self, node_id: str) -> None:
+        """Takes a deep copy snapshot of the current state before node execution."""
+        import copy
+        with self._state_lock:
+            self._checkpoints[node_id] = copy.deepcopy(self.system_state)
+
+    def rollback_to(self, node_id: str) -> bool:
+        """Restores the system state from the checkpoint taken before node_id."""
+        import copy
+        with self._state_lock:
+            if node_id in self._checkpoints:
+                self.system_state = copy.deepcopy(self._checkpoints[node_id])
+                print(f"[ExecutionBridge] Rolled back state to before node '{node_id}'")
+                return True
+            print(f"[ExecutionBridge] Failed to rollback. No checkpoint found for '{node_id}'")
+            return False
 
     # -- context assembly ---------------------------------------------------
 
