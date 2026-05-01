@@ -99,7 +99,6 @@ def score_plan(plan: PlanGraph, verifier_score: float, is_from_method: bool = Fa
     # Simple heuristic: more nodes = higher cost. Max cap at 10 nodes.
     cost = min(total_nodes / 10.0, 1.0)
     
-    # Combine
     score = (
         0.25 * (1.0 - avg_uncertainty) +
         0.20 * method_success_rate +
@@ -108,5 +107,12 @@ def score_plan(plan: PlanGraph, verifier_score: float, is_from_method: bool = Fa
         0.15 * (1.0 - cost) +
         0.10 * verifier_score
     )
+    
+    # Phase 14 Wave 4: Apply Failure Memory Penalty
+    from agentx.planning.failure_memory import FailureMemory
+    penalty = FailureMemory.get_failure_penalty(plan.goal, plan)
+    if penalty > 0:
+        print(f"[Scorer] Applying failure memory penalty of {penalty:.2f} to candidate.")
+        score -= (penalty * 0.5) # Subtract up to 0.5 from score to heavily penalize
     
     return max(0.0, min(1.0, score))

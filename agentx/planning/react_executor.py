@@ -304,3 +304,11 @@ class ReActExecutor:
                     print(f"[ReActExecutor] Learned new method from plan '{self.plan_id}'")
             except Exception as exc:
                 print(f"[ReActExecutor] Method learning failed (non-critical): {exc}")
+                
+        # Phase 14 Wave 4: Record Failure to prevent future looping
+        if not success:
+            try:
+                from agentx.planning.failure_memory import FailureMemory
+                FailureMemory.record_failure(self.graph.goal, self.graph, error="Execution failed or escalated")
+            except Exception as e:
+                print(f"[ReActExecutor] Failed to record failure to memory: {e}")
