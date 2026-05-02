@@ -41,7 +41,13 @@ AJA manages a registry of specialist workers (Copilot, Gemini, Aider, etc.) and 
 ### 11. Parallel Plan Serializability & Verification
 AJA implements a conflict-aware scheduler that decomposes complex objectives into parallel "waves" of execution. The **Serializability Verification Layer** ensures that concurrent execution is mathematically equivalent to a safe sequential baseline, preventing race conditions and state corruption during high-throughput autonomous missions.
 
-### 12. Dynamic Critic & Calibration Layer (Phase 21.6)
+### 12. Autonomous Strategy System (Phase 27)
+AgentX now operates on a **Think-Simulate-Act** loop. It generates multiple plans, simulates their outcomes in an internal world model, and selects the optimal strategic path based on predicted risk, success probability, and latency.
+
+### 13. Self-Generated Curriculum & Evolution
+The system autonomously detects skill gaps in its own performance and generates synthetic practice tasks in a controlled sandbox. This enables continuous strategic improvement and tool mastery without human intervention.
+
+### 14. Dynamic Critic & Calibration Layer (Phase 21.6)
 AJA continuously evaluates generated execution plans through an LLM-enhanced reasoning critic. The engine features dynamic confidence thresholding, calibrating its strictness autonomously based on observed false positive/negative rates, and detects "shared reasoning errors" to prevent false consensus across the swarm.
 
 ---

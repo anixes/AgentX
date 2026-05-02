@@ -1,24 +1,32 @@
-node_modules/
-dist/
-dashboard/node_modules/
-dashboard/dist/
-.env
-vault_data.json
+# AgentX State & Persistence
+.agentx/
+agentx_state.json
+agentx_policy.json
+agentx_strategies.json
+agentx_exploration_state.json
+agentx_history.jsonl
+agentx_memory.db
 temp_batons/
-
-# Graphify
-graphify-out/
 plan_graph.json
-scratch/
+vault_data.json
 
-*.log
-.agentx/*.sqlite3
-.agentx/*.sqlite3-journal
-.agentx/telegram-history.jsonl
-.agentx/telegram-pending.json
-.agentx/approval-audit.jsonl
-.agentx/aja_secretary.sqlite3
-.agentx/aja_secretary.sqlite3-*
+# API & Credentials
+.env
+.env.*
+secrets.json
+credentials.json
+*.pem
+*.key
+auth.json
+
+# Tool/System State
+.gsd/
+.kilo/
+graphify-out/
+scratch/
+pytest_output.txt
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -26,3 +34,16 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+venv/
+.venv/
+
+# Build & Modules
+node_modules/
+dist/
+build/
+dashboard/node_modules/
+dashboard/dist/
+
+# OS
+.DS_Store
+Thumbs.db
