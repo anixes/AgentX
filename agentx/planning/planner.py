@@ -261,7 +261,9 @@ Decompose this goal into an execution graph following the schema above.
 def _strip_markdown_fences(text: str) -> str:
     """Remove ```json ... ``` or ``` ... ``` wrappers."""
     text = text.strip()
-    text = re.sub(r"^```(-:json)-\s*", "", text)
+    # Handle ```json or just ``` headers
+    text = re.sub(r"^```(json)?\s*", "", text, flags=re.IGNORECASE)
+    # Handle ``` footer
     text = re.sub(r"\s*```$", "", text)
     return text.strip()
 
@@ -314,6 +316,28 @@ class Planner:
         self.max_nodes = max_nodes
         self.method_threshold = method_threshold
         self.use_method_routing = use_method_routing
+        self.knowledge_base = None
+
+    def bias(self, knowledge_base: Any):
+        """
+        Part E - Knowledge Base injection
+        """
+        self.knowledge_base = knowledge_base
+
+    def bias_with_strategies(self, trusted: List[Dict[str, Any]], experimental: List[Dict[str, Any]] = None, is_sandbox: bool = False, risk_level: float = 0.5):
+        """
+        Part C, G & G - Strategy Retrieval, Trusted Memory, and Explore vs Exploit
+        """
+        from agentx.learning.exploration import exploration_controller
+        
+        if exploration_controller.should_explore(is_sandbox, risk_level):
+            print("[Planner] EXPLORATION triggered. Focusing on experimental strategies.")
+            # Part F - Experimental Strategy Pool preferred during exploration
+            self.trusted_strategies = []
+            self.experimental_strategies = experimental or []
+        else:
+            self.trusted_strategies = trusted
+            self.experimental_strategies = experimental or []
 
     # -- internal helpers ---------------------------------------------------
 
@@ -351,7 +375,18 @@ class Planner:
         if config:
             config_text = f"\n\nGeneration Constraints: {config}"
             
-        prompt = _PLANNER_USER_TEMPLATE.format(goal=goal) + f"\n\nMode: {mode_prompt}{history_text}{config_text}"
+        kb_text = ""
+        if hasattr(self, "knowledge_base") and self.knowledge_base:
+            if hasattr(self.knowledge_base, "best_patterns") and self.knowledge_base.best_patterns:
+                kb_text = f"\n\nKnown Best Patterns (bias your plan towards these proven workflows if relevant):\n{json.dumps(self.knowledge_base.best_patterns[:3], indent=2)}"
+                
+        strat_text = ""
+        if hasattr(self, "trusted_strategies") and self.trusted_strategies:
+            strat_text += f"\n\nTRUSTED STRATEGIES (Use these! High success rate):\n{json.dumps(self.trusted_strategies, indent=2)}"
+        if hasattr(self, "experimental_strategies") and self.experimental_strategies:
+            strat_text += f"\n\nExperimental Strategies (Use with caution):\n{json.dumps(self.experimental_strategies, indent=2)}"
+            
+        prompt = _PLANNER_USER_TEMPLATE.format(goal=goal) + f"\n\nMode: {mode_prompt}{history_text}{config_text}{kb_text}{strat_text}"
         try:
             # UnifiedGateway.complete(system, user) - str
             response = gw.complete(system=system_prompt, user=prompt)
@@ -361,16 +396,36 @@ class Planner:
             return None
 
     def _parse_response(self, raw: str, goal: str) -> PlanGraph:
-        cleaned = _strip_markdown_fences(raw)
-        data: Dict[str, Any] = json.loads(cleaned)
-        # Enforce max_nodes
-        if len(data.get("nodes", [])) > self.max_nodes:
-            raise PlanTooComplexError(f"Plan exceeds max_nodes ({self.max_nodes}). Refinement required.")
-        graph = PlanGraph.from_dict(data)
-        # Backfill goal if LLM omitted it
-        if not graph.goal:
-            graph.goal = goal
-        return graph
+        try:
+            cleaned = _strip_markdown_fences(raw)
+            data = json.loads(cleaned)
+            if not isinstance(data, dict):
+                print(f"[Planner] Error: Expected dict, got {type(data)}")
+                return _fallback_graph(goal)
+
+            # Enforce max_nodes
+            nodes_list = data.get("nodes", [])
+            if not isinstance(nodes_list, list):
+                nodes_list = []
+                
+            if len(nodes_list) > self.max_nodes:
+                raise PlanTooComplexError(f"Plan exceeds max_nodes ({self.max_nodes}). Refinement required.")
+            
+            # Extract nodes and handle potential PlanNode errors
+            try:
+                graph = PlanGraph.from_dict(data)
+            except Exception as e:
+                print(f"[Planner] PlanGraph.from_dict failed: {e}")
+                return _fallback_graph(goal)
+                
+            # Backfill goal if LLM omitted it
+            if not graph.goal:
+                graph.goal = goal
+            return graph
+        except Exception as e:
+            print(f"[Planner] Parse Error: {e}")
+            print(f"[Planner] Raw output: {repr(raw)}")
+            raise e
 
     # -- method-first routing -----------------------------------------------
 
@@ -441,6 +496,13 @@ class Planner:
         return graph
 
     # -- public API ---------------------------------------------------------
+    
+    def generate_k_plans(self, goal: str, current_state: Dict, k: int = 3, mode: str = "default") -> List[PlanGraph]:
+        """
+        Part A — Generate Multiple Plans
+        """
+        from agentx.planning.generator import generate_candidate_plans
+        return generate_candidate_plans(goal, current_state, k, mode=mode)
 
     def _decompose_single(self, goal: str, current_state: Optional[Dict] = None, retrieval_retry: int = 0, mode: str = "default", config: Optional[Dict] = None, history: Optional[List[str]] = None) -> PlanGraph:
         """
@@ -496,7 +558,7 @@ class Planner:
         current_state["retrieved_context"] = context_str
 
         # 2. Generate Candidates (Method Retrieval + LLM Generation + Diversity Filter)
-        candidates = generate_candidate_plans(goal, current_state, k, mode=mode, config=config, history=history)
+        candidates = self.generate_k_plans(goal, current_state, k, mode=mode)
         if not candidates:
             print("[Planner] Failed to generate any candidate plans. Falling back to passthrough.")
             return _fallback_graph(goal)
@@ -538,8 +600,25 @@ class Planner:
             print("[Planner] All candidates rejected by Verifier. Falling back to passthrough.")
             return _fallback_graph(goal)
 
-        # 7. Selection
-        final_plan = select_plan(verified_plans)
+        # 7. Simulation & Selection
+        from agentx.planning.simulation import select_best_simulated_plan
+        print(f"[Planner] Simulating {len(verified_plans)} verified candidates...")
+        
+        # verified_plans is list of (plan, score, risk)
+        plans_to_simulate = [p[0] for p in verified_plans]
+        # For now, we don't have per-plan strategy associations passed explicitly here, 
+        # but the simulator handles the strategy if needed.
+        
+        final_plan = select_best_simulated_plan(plans_to_simulate)
+        
+        if not final_plan:
+            # Part H — Fallback Logic
+            print("[Planner] [ALERT] Simulation rejected all verified plans due to high risk.")
+            # In a real system, we might call request_user_input() here.
+            # For now, we return the plan with the highest score from the verified list as a fallback.
+            verified_plans.sort(key=lambda x: x[1], reverse=True)
+            return verified_plans[0][0]
+
         return final_plan
 
     def decompose(self, goal: str, current_state: Optional[Dict] = None) -> PlanGraph:

@@ -134,6 +134,35 @@ bus.subscribe(EVENTS["NODE_FAILED"], lambda n: broadcast_event("NODE_FAILED", n)
 bus.subscribe(EVENTS["ROLLBACK"], lambda n: broadcast_event("ROLLBACK", n))
 bus.subscribe(EVENTS["REPAIR"], lambda n: broadcast_event("REPAIR", n))
 
+from fastapi import Request
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    from agentx.scheduler.telegram import handle_telegram_message
+    from agentx.runtime.session import session_manager
+    try:
+        data = await request.json()
+        if "message" in data:
+            message = data["message"]
+            chat_id = str(message["chat"]["id"])
+            text = message.get("text", "")
+            
+            # Fetch session for memory
+            session = session_manager.get_or_create(chat_id)
+            session.log_interaction("user", text)
+            
+            # Pass the session context to the message handler
+            await handle_telegram_message(text, user_id=chat_id, session=session)
+            
+            # Note: We do not append the bot's response to the session history here
+            # because the async sender doesn't return the text synchronously, but
+            # intent_parser does generate a response. For complete history, we should
+            # ideally log the bot response in handle_telegram_message.
+            
+    except Exception as e:
+        print(f"[API] Telegram webhook error: {e}")
+        
+    return {"status": "ok"}
+
 @app.get("/dashboard/failures")
 async def get_failures_dashboard():
     try:

@@ -145,23 +145,27 @@ class PlanNode:
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "PlanNode":
-        dod_raw = d.get("dod", {})
-        dod = DoD.from_dict(dod_raw) if isinstance(dod_raw, dict) else DoD(str(dod_raw), "hybrid")
-        return cls(
-            id=d["id"],
-            task=d["task"],
-            dependencies=d.get("dependencies", []),
-            strategy=d.get("strategy", "direct"),
-            inputs=d.get("inputs", []),
-            outputs=d.get("outputs", {}),
-            preconditions=d.get("preconditions", {}),
-            effects=d.get("effects", {}),
-            dod=dod,
-            uncertainty=float(d.get("uncertainty", 0.3)),
-            risk=float(d.get("risk", 0.0)),
-            node_type=d.get("type", "primitive"),
-            children=d.get("children", []),
-        )
+        try:
+            dod_raw = d.get("dod", {})
+            dod = DoD.from_dict(dod_raw) if isinstance(dod_raw, dict) else DoD(str(dod_raw), "hybrid")
+            return cls(
+                id=d["id"],
+                task=d["task"],
+                dependencies=d.get("dependencies", []),
+                strategy=d.get("strategy", "direct"),
+                inputs=d.get("inputs", []),
+                outputs=d.get("outputs", {}),
+                preconditions=d.get("preconditions", {}),
+                effects=d.get("effects", {}),
+                dod=dod,
+                uncertainty=float(d.get("uncertainty", 0.3)),
+                risk=float(d.get("risk", 0.0)),
+                node_type=d.get("type", "primitive"),
+                children=d.get("children", []),
+            )
+        except Exception as e:
+            print(f"[PlanNode] from_dict failed on: {json.dumps(d)[:200]}")
+            raise e
 
 
 # ---------------------------------------------------------------------------
@@ -224,8 +228,13 @@ class PlanGraph:
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "PlanGraph":
-        nodes = [PlanNode.from_dict(n) for n in d.get("nodes", [])]
-        return cls(goal=d.get("goal", ""), nodes=nodes)
+        try:
+            nodes_raw = d.get("nodes", [])
+            nodes = [PlanNode.from_dict(n) for n in nodes_raw]
+            return cls(goal=d.get("goal", ""), nodes=nodes)
+        except Exception as e:
+            print(f"[PlanGraph] from_dict failed on: {json.dumps(d)[:200]}")
+            raise e
 
     @classmethod
     def from_json(cls, raw: str) -> "PlanGraph":

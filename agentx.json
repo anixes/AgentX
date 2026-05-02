@@ -21,9 +21,9 @@
     "max_agents": 5,
     "check_interval": 30,
     "models": {
-      "planner": "phi4-mini",
-      "worker": "qwen2.5:3b",
-      "critic": "phi4-mini"
+      "planner": "google:gemini-3-flash-preview",
+      "worker": "llama_cpp:gemma-4-e2b",
+      "critic": "llama_cpp:gemma-4-e2b"
     }
   }
 }

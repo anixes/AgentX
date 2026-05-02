@@ -1,72 +1,78 @@
+import json
 from agentx.scheduler.scheduler import scheduler
 from agentx.autonomy.intent_engine import intent_engine
-import uuid
+from agentx.goals.goal_engine import goal_engine
+from agentx.config import TELEGRAM_TOKEN, TELEGRAM_ALLOWED_USER_ID
+from agentx.interface.intent_parser import parse_intent
+from agentx.interface.telegram_listener import async_send_telegram_message
+
+async def handle_telegram_message(text: str, user_id: str, session):
+    """Conversational Router for Telegram messages."""
+    
+    # Security check
+    if TELEGRAM_ALLOWED_USER_ID and str(user_id) != str(TELEGRAM_ALLOWED_USER_ID):
+        await async_send_telegram_message(user_id, "Unauthorized user.")
+        return
+
+    # Build system state for contextual awareness
+    active_goals = [{"objective": g.objective, "priority": g.priority, "status": g.status} 
+                    for g in goal_engine.goals if g.status in ["PENDING", "RUNNING"]]
+    system_state = {
+        "autonomy_enabled": goal_engine.autonomy_enabled,
+        "is_interrupted": goal_engine.is_interrupted,
+        "active_goals": active_goals
+    }
+
+    # Run intent parsing with session history and system state
+    intent_data = parse_intent(text, session.history, system_state)
+    
+    intent_type = intent_data.get("type", "question")
+    response_text = intent_data.get("response", "I'm not sure how to handle that.")
+    
+    # Pre-send the conversational response (e.g., "Alright, starting that now.")
+    if response_text:
+        session.log_interaction("assistant", response_text)
+        await async_send_telegram_message(user_id, response_text)
+
+    # Act on the intent
+    if intent_type == "goal" and intent_data.get("goal"):
+        goal_text = intent_data.get("goal")
+        goal_engine.add_goal(goal_text)
+        # We don't send "Goal added" because the response_text handles it naturally
+        
+    elif intent_type == "control" and intent_data.get("command"):
+        cmd = intent_data.get("command").lower()
+        if cmd == "pause":
+            # pause active goal if possible or interrupt global
+            goal_engine.is_interrupted = True
+        elif cmd == "resume":
+            goal_engine.is_interrupted = False
+        elif cmd == "auto_on":
+            intent_engine.autonomy_enabled = True
+        elif cmd == "auto_off":
+            intent_engine.autonomy_enabled = False
+        # The conversational response_text covers the confirmation.
 
 def _send_telegram_report(message: str):
-    print(f"[Telegram Bot] REPORT: {message}")
-import uuid
+    """Legacy sync wrapper for IntentEngine usage. Use async_send_telegram_message instead where possible."""
+    import asyncio
+    
+    if not TELEGRAM_TOKEN or not TELEGRAM_ALLOWED_USER_ID:
+        print(f"[Telegram Bot] [MOCKED] REPORT: {message}")
+        return
 
-def handle_telegram_command(command: str):
-    parts = command.split(" ", 1)
-    cmd = parts[0]
-    args = parts[1] if len(parts) > 1 else ""
-    
-    if cmd == "/schedule":
-        # e.g., /schedule "backup project every 6h"
-        task_id = str(uuid.uuid4())[:8]
-        # Extremely basic parsing for interval (mocked to 6h = 21600s)
-        scheduler.add_task(task_id, args, 21600)
-        return f"Scheduled task {task_id}."
-    elif cmd == "/tasks":
-        return str(scheduler.get_tasks())
-    elif cmd == "/pause":
-        success = scheduler.pause_task(args.strip())
-        return f"Paused {args}" if success else "Task not found"
-    elif cmd == "/resume":
-        success = scheduler.resume_task(args.strip())
-        return f"Resumed {args}" if success else "Task not found"
-    elif cmd == "/approve":
-        # Example of approval workflow integration
-        return f"Approved task {args}"
-        
-    # Phase 24: Goal Engine Commands
-    from agentx.goals.goal_engine import goal_engine
-    
-    if cmd == "/goals":
-        goals_info = [f"[{g.id}] {g.objective} (Status: {g.status}, Priority: {g.priority})" for g in goal_engine.goals]
-        return "\n".join(goals_info) if goals_info else "No goals tracked."
-    elif cmd == "/add_goal":
-        # e.g. /add_goal "deploy project"
-        gid = goal_engine.add_goal(args.strip())
-        return f"Added goal {gid}: {args.strip()}"
-    elif cmd == "/pause_goal":
-        for g in goal_engine.goals:
-            if g.id == args.strip():
-                g.status = "PAUSED"
-                goal_engine.save_state()
-                return f"Paused goal {g.id}"
-        return "Goal not found."
-    elif cmd == "/resume_goal":
-        for g in goal_engine.goals:
-            if g.id == args.strip():
-                g.status = "PENDING"
-                goal_engine.save_state()
-                return f"Resumed goal {g.id}"
-        return "Goal not found."
-    elif cmd == "/status":
-        interrupted = goal_engine.is_interrupted
-        autonomy = goal_engine.autonomy_enabled
-        active_count = len(goal_engine.get_active_goals())
-        return f"System Status\nAutonomy: {autonomy}\nInterrupted: {interrupted}\nActive Goals: {active_count}"
-        
-    # Phase 25: Intent Engine Commands
-    elif cmd == "/auto_off":
-        intent_engine.autonomy_enabled = False
-        return "Self-initiated goals disabled."
-    elif cmd == "/auto_on":
-        intent_engine.autonomy_enabled = True
-        return "Self-initiated goals enabled."
-    elif cmd == "/auto_status":
-        return f"Intent Autonomy Enabled: {intent_engine.autonomy_enabled}\nRecent Actions: {intent_engine.recent_actions}"
-        
-    return "Unknown command"
+    def get_loop():
+        try:
+            return asyncio.get_running_loop()
+        except RuntimeError:
+            return None
+
+    loop = get_loop()
+    if loop and loop.is_running():
+        asyncio.create_task(async_send_telegram_message(TELEGRAM_ALLOWED_USER_ID, message))
+    else:
+        try:
+            asyncio.run(async_send_telegram_message(TELEGRAM_ALLOWED_USER_ID, message))
+        except Exception as e:
+            print(f"[Telegram Sync Fallback] Error: {e}")
+

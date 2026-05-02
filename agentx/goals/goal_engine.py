@@ -6,15 +6,17 @@ from typing import List, Dict, Any
 
 from agentx.planning.planner import Planner
 from agentx.orchestration.router import execute_routed_node
+from agentx.runtime.event_bus import bus, EVENTS
 
 GLOBAL_STATE_FILE = "d:/AgenticAI/Project1(no-name)/agentx_state.json"
 
 class Goal:
-    def __init__(self, objective: str, priority: int, deadline: float = None):
+    def __init__(self, objective: str, priority: int, deadline: float = None, is_sandbox: bool = False):
         self.id = str(uuid.uuid4())[:8]
         self.objective = objective
         self.priority = priority
         self.deadline = deadline or float('inf')
+        self.is_sandbox = is_sandbox
         self.subgoals = []
         self.status = "PENDING"
         
@@ -32,6 +34,7 @@ class Goal:
             "objective": self.objective,
             "priority": self.priority,
             "deadline": self.deadline,
+            "is_sandbox": self.is_sandbox,
             "status": self.status,
             "progress": self.progress,
             "failures": self.failures,
@@ -40,7 +43,7 @@ class Goal:
 
     @classmethod
     def from_dict(cls, data):
-        g = cls(data["objective"], data["priority"], data.get("deadline"))
+        g = cls(data["objective"], data["priority"], data.get("deadline"), data.get("is_sandbox", False))
         g.id = data["id"]
         g.status = data["status"]
         g.progress = data.get("progress", {"completed_steps": [], "failed_steps": [], "current_state": ""})
@@ -52,13 +55,19 @@ class GoalEngine:
     def __init__(self):
         self.goals: List[Goal] = []
         self.planner = Planner()
+        try:
+            from agentx.self_evolve.reflection import knowledge_base
+            self.planner.bias(knowledge_base)
+        except Exception as e:
+            print(f"[GoalEngine] Failed to load knowledge base into planner: {e}")
+            
         self.autonomy_enabled = True
         self.is_interrupted = False
         self.max_retries = 3
         self.load_state()
         
-    def add_goal(self, objective: str, priority: int = 1, deadline: float = None) -> str:
-        g = Goal(objective, priority, deadline)
+    def add_goal(self, objective: str, priority: int = 1, deadline: float = None, is_sandbox: bool = False) -> str:
+        g = Goal(objective, priority, deadline, is_sandbox)
         self.goals.append(g)
         self.save_state()
         return g.id
@@ -73,6 +82,14 @@ class GoalEngine:
         return sorted(goals, key=lambda g: (-g.priority, g.deadline))
         
     def expand_goal(self, goal: Goal):
+        try:
+            from agentx.learning.strategy_store import strategy_store
+            similar_strategies = strategy_store.search(goal.objective)
+            trusted = [s for s in similar_strategies if strategy_store.score_experience(s) >= 0.7 and s["executions"] > 2]
+            experimental = [s for s in similar_strategies if s not in trusted]
+            self.planner.bias_with_strategies(trusted, experimental, is_sandbox=goal.is_sandbox, risk_level=0.1)
+        except Exception as e:
+            print(f"[GoalEngine] Strategy Search error: {e}")
         return self.planner.decompose(goal.objective)
         
     def update_goal_state(self, goal: Goal, result: Any, node_id: str):
@@ -118,6 +135,10 @@ class GoalEngine:
         
     def modify_goal_strategy(self, goal: Goal):
         print(f"[GoalEngine] Modifying strategy for goal {goal.objective} due to failures.")
+        # Trigger Self-Build Cycle (Part D - Self-Improvement Loop)
+        from agentx.self_build.capability_builder import self_build_cycle
+        self_build_cycle(goal.objective)
+        
         goal.objective = f"fallback: {goal.objective}"
         goal.retries = 0
         
@@ -170,6 +191,17 @@ class GoalEngine:
         try:
             plan = self.expand_goal(goal)
             
+            # Emit PLAN_CREATED event with a quick summary
+            plan_summary = f"Objective: {goal.objective}"
+            if hasattr(plan, "nodes") and plan.nodes:
+                plan_summary += f"\nSteps: {len(plan.nodes)}"
+                for i, n in enumerate(plan.nodes[:3]):
+                    plan_summary += f"\n  {i+1}. {getattr(n, 'task', 'step')}"
+                if len(plan.nodes) > 3:
+                    plan_summary += f"\n  ...and {len(plan.nodes)-3} more"
+            
+            bus.publish(EVENTS["PLAN_CREATED"], {"plan_summary": plan_summary})
+            
             # Simple simulation of execution
             if hasattr(plan, "nodes") and plan.nodes:
                 node = plan.nodes[0]
@@ -203,6 +235,20 @@ class GoalEngine:
                 policy_store.update_policy(plan, {"success": True}, latency=0.1, rollbacks=0, repairs=0)
             except Exception:
                 pass
+                
+            # Part F & H - Improvement Trigger & Loop
+            try:
+                from agentx.self_evolve.reflection import process_execution
+                process_execution(goal.objective, plan, {"success": True})
+                
+                from agentx.learning.strategy_store import process_strategy_learning
+                process_strategy_learning(goal.objective, plan, {"success": True})
+                
+                from agentx.self_evolve.task_generator import curriculum_manager
+                if goal.is_sandbox:
+                    curriculum_manager.evaluate_training_result({"success": True})
+            except Exception as e:
+                print(f"[SelfEvolve] Failed to process execution: {e}")
             
             # Mark done if all done
             goal.status = "DONE"
@@ -219,5 +265,26 @@ class GoalEngine:
                     policy_store.update_policy(plan, {"success": False}, latency=0.1, rollbacks=0, repairs=0)
             except Exception:
                 pass
+
+            # Part F & H - Improvement Trigger & Loop
+            try:
+                if 'plan' in locals():
+                    from agentx.self_evolve.reflection import process_execution
+                    process_execution(goal.objective, plan, {"success": False, "error": str(e)})
+                    
+                    from agentx.learning.strategy_store import process_strategy_learning
+                    process_strategy_learning(goal.objective, plan, {"success": False, "error": str(e)})
+                    
+                from agentx.self_evolve.task_generator import curriculum_manager
+                if goal.is_sandbox:
+                    curriculum_manager.evaluate_training_result({"success": False, "error": str(e)})
+                else:
+                    # Part A - Skill Gap Detection
+                    gap = curriculum_manager.detect_skill_gap({"success": False, "error": str(e)})
+                    if gap:
+                        print(f"[Curriculum] Detected skill gap: {gap}")
+                        self._last_skill_gap = gap
+            except Exception as ev_err:
+                print(f"[SelfEvolve] Failed to process failure execution: {ev_err}")
 
 goal_engine = GoalEngine()

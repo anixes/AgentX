@@ -47,7 +47,48 @@ class IntentEngine:
         self.intent_last_run: Dict[str, float] = {}
         self.intent_failures: Dict[str, int] = {}
         self.COOLDOWN = 3600 # 1 hour
+        self._running = False
+        self._thread = None
+        self.total_count = 0
+        self.success_count = 0
+        self.recent_actions = []
+
+    def generate_intents(self, state: Dict) -> List[Intent]:
+        """
+        Generate candidate intents based on system state and history.
+        """
+        candidates = [
+            Intent("Check system health", "monitor", benefit=0.6, risk=0.05),
+            Intent("Clean temp files", "cleanup", benefit=0.4, risk=0.1),
+            Intent("Optimize database performance", "optimize", benefit=0.7, risk=0.2),
+        ]
         
+        # Check recent failures
+        from agentx.memory.failure_memory import failure_memory
+        if failure_memory.get_recent():
+            candidates.append(Intent("Retry failed deployment", "retry", benefit=0.8, risk=0.3))
+            
+        return candidates
+
+    def rank(self, intents: List[Intent]) -> List[Intent]:
+        """
+        Rank intents based on Reward = (Benefit * Confidence) - Cost - Risk.
+        """
+        def score(i: Intent):
+            # Phase 26: RL-lite reward function
+            return (i.benefit * i.confidence) - i.cost - i.risk
+            
+        return sorted(intents, key=score, reverse=True)
+
+    def safe(self, intent: Intent) -> bool:
+        """
+        Safety check for autonomous intents.
+        """
+        if intent.risk > 0.5:
+            return False
+        if any(bad in intent.objective.lower() for bad in DANGEROUS_GOALS):
+            return False
+        return True
         self.recent_actions: List[str] = []
         self.success_count = 0
         self.total_count = 0

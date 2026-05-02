@@ -51,25 +51,32 @@ def generate_candidate_plans(goal: str, state: Dict, k: int, mode: str = "defaul
 
     # 2. If we need more candidates, generate via LLM
     from agentx.planning.planner import Planner
-    # We create a temporary planner just for generation
     temp_planner = Planner()
     
     attempts = 0
-    while len(candidates) < k and attempts < k * 2:
+    while len(candidates) < k and attempts < k * 3:
         # Increase temperature slightly for subsequent attempts to ensure diversity
         temp = 0.2 + (attempts * 0.15)
         try:
-            # We bypass method retrieval here to force generation
-            # Pass the diversity mode to the LLM call
             raw = temp_planner._call_llm(goal, retrieved_context=state.get("retrieved_context", ""), mode=mode, config=config, history=history)
             if raw:
                 new_plan = temp_planner._parse_response(raw, goal)
-                candidates.append(new_plan)
+                
+                # Part G — Diversity Enforcement
+                # Check diversity before adding
+                potential_list = candidates + [new_plan]
+                diverse_list = filter_diverse(potential_list)
+                
+                if len(diverse_list) > len(candidates):
+                    candidates.append(new_plan)
+                else:
+                    print(f"[Generator] Candidate {attempts+1} too similar to existing. Forcing regeneration.")
+                    
         except Exception as e:
             print(f"[Generator] LLM generation failed: {e}")
         attempts += 1
 
-    return filter_diverse(candidates)
+    return candidates[:k]
 
 
 def filter_diverse(plans: List[PlanGraph], sim_threshold: float = 0.95) -> List[PlanGraph]:
