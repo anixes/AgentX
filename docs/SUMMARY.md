@@ -225,6 +225,12 @@ Interfaces:
 - [PHASE_14_MULTI_PLAN_VERIFICATION.md](./PHASE_14_MULTI_PLAN_VERIFICATION.md): Generate-Verify-Select architecture and Failure Memory.
 - [PHASE_15_TRANSACTIONAL_REPAIR.md](./PHASE_15_TRANSACTIONAL_REPAIR.md): Transactional state, rollbacks, and localized repair engine.
 - [PHASE_16_ORCHESTRATION_CAPABILITIES.md](./PHASE_16_ORCHESTRATION_CAPABILITIES.md): Capability system, sub-agents, and Jarvis server.
+- [PHASE_21_UNCERTAINTY_PROPAGATION.md](./PHASE_21_UNCERTAINTY_PROPAGATION.md): System-wide uncertainty propagation and safety thresholds.
+- [PHASE_22_SYNTHETIC_DIVERSITY.md](./PHASE_22_SYNTHETIC_DIVERSITY.md): Structural plan diversity via reasoning modes.
+- [PHASE_23_MEMORY_FAILURE_INTELLIGENCE.md](./PHASE_23_MEMORY_FAILURE_INTELLIGENCE.md): Experience store and failure intelligence.
+- [PHASE_24_LONG_TERM_AUTONOMY.md](./PHASE_24_LONG_TERM_AUTONOMY.md): Multi-device orchestration and goal engine.
+- [PHASE_25_SELF_INITIATED_GOALS.md](./PHASE_25_SELF_INITIATED_GOALS.md): Governed autonomy and intent engine.
+- [PHASE_26_RL_LITE_LEARNING.md](./PHASE_26_RL_LITE_LEARNING.md): RL-lite behavioral learning and policy store.
 - [AGENT_ORCHESTRATION.md](./AGENT_ORCHESTRATION.md): How the multi-process swarm works.
 - [AUDIT_REPORT.md](./AUDIT_REPORT.md): Historical record of surgical architectural refactoring (Phases 1-3).
 - [POST_MORTEM.md](./POST_MORTEM.md): Research findings from the Claude codebase audit.
@@ -357,54 +363,55 @@ Based on these heuristics, it selects an optimal path:
 > [!TIP]
 > This acts as a lightweight planning proxy, reducing unnecessary computation and failure risk.
 
-### Known Limitation — Absence of Goal-Level Planning
+## Phase 21: Uncertainty Propagation
 
-AgentX currently lacks:
-- Explicit task decomposition.
-- Global plan construction.
-- Structured plan repair.
+Tracking confidence drift across execution to prevent hallucination loops.
 
-As a result, it operates as a reactive execution system rather than a fully autonomous planner. LLM agents struggle with long-horizon planning without hierarchical decomposition.
+- **Accumulated Uncertainty**: Scores are tracked per step and decayed over time.
+- **Hard-stop Thresholds**: Halting execution when `task_uncertainty > 0.8`.
+- **Hierarchical Awareness**: Multi-step chain validation in `hierarchical_execution.py`.
 
-## Phase 11: Parallel Plan Serializability & Verification
+## Phase 22: Synthetic Diversity Layer
 
-Phase 11 transitions AgentX from reactive hierarchical execution to **conflict-aware parallel planning**.
+Structural diversity generation from a single model.
 
-- **Conflict-Aware Scheduler**: Decomposes HTN graphs into parallel "waves" of nodes while detecting state conflicts (Write-Write and Read-Write).
-- **Parallel ReAct Executor**: Executes independent primitive nodes concurrently using `ThreadPoolExecutor` with jitter-robustness.
-- **Serializability Verification**: Formal diagnostic layer that compares parallel execution outcomes against sequential baselines to guarantee state consistency.
-- **Escalation Stop & Safety**: Prevents infinite retry loops by halting execution waves when a node requires human intervention (`ESCALATE`).
-- **Thread-Safe State Bridge**: Enforces atomic `system_state` mutations via mutex locking.
-- **Windows Reliability**: Codebase-wide sanitization of non-ASCII characters to ensure compatibility with Windows terminal environments.
+- **Reasoning Modes**: `DEFAULT`, `RISK_ANALYSIS`, `MINIMAL`, `AGGRESSIVE`, `SKEPTIC`.
+- **Diversity Metrics**: Scoring plans based on semantic and structural variance.
+- **Collapse Safeguards**: Fallback to stable execution if diversity drops.
 
-Interfaces:
-- Logic: `agentx/planning/scheduler.py`, `agentx/planning/react_executor.py`, `agentx/planning/verification.py`, `agentx/planning/execution_bridge.py`
-- Tests: `tests/planning/test_parallel_serializability.py`
+## Phase 23: Memory & Failure Intelligence
 
-## Phase 14: Research-Grade Multi-Plan Planning System
+Learning from past mistakes to bias future planning.
 
-Phase 14 transforms planning from a single-plan generator into an adaptive **Generate-Verify-Select** architecture.
+- **Experience Store**: Persistent memory of goal/plan/result triplets.
+- **Failure Intelligence**: Penalizing plans similar to historical blunders.
+- **Autonomous Scheduling**: Automated retry and maintenance tasks.
 
-- **Adaptive Candidate Generation**: Dynamically generates $K$ candidates based on goal complexity, filtered for structural diversity.
-- **Independent Verifier Agent**: A context-free LLM-based verification layer that catches logical errors and hallucinations without planner bias.
-- **Multi-Plan Selector**: Composite scoring engine that selects the optimal execution path based on risk, cost, and historical success rates.
-- **Failure Memory (Persistent Adaptation)**: records failed plans and penalizes similar proposals in the future to prevent infinite failure loops.
+## Phase 24: Long-Term Autonomy & Multi-Device Orchestration
 
-## Phase 16: Central Orchestration & Capabilities
+Evolving into a continuous, multi-environment goal system.
 
-Phase 16 transforms AgentX into a **Transactional Cognitive Operating System** for real-world control.
+- **Goal Engine**: Managing objectives over long time horizons across `PENDING/DONE/FAILED`.
+- **Device Routing**: Intelligent task dispatch to `Phone`, `PC`, or `Cloud`.
+- **State Persistence**: Global state survives restarts via `agentx_state.json`.
 
-- **Canonical Execution IR (PlanIR)**: Policy-driven execution representation supporting retries, timeouts, and forward-recovery compensations.
-- **Structured Capability System**: Sandboxed tool interfaces with strict `CapabilityResult` contracts and an extensible global registry.
-- **Agent-of-Agents (Specialization)**: Delegation logic for specialized sub-agents (`CodingAgent`, `BrowserAgent`) operating under resource-bounded autonomy.
-- **Event-Driven Runtime**: Real-time event bus for lifecycle tracking and automated failure classification (`Transient`, `Logic`, `External`).
-- **Jarvis Layer (Remote Control)**: Persistent session management and FastAPI-based server for asynchronous remote task execution and real-time streaming.
+## Phase 25: Self-Initiated Goals (Governed Autonomy)
 
-Interfaces:
-- Logic: `agentx/planning/ir.py`, `agentx/runtime/event_bus.py`, `agentx/capabilities/`, `agentx/server/`, `agentx/agents/`
+Proactive task generation within safety bounds.
 
-## Next Evolution: Goal-Level Planning & Autonomous DAG Construction
+- **Intent Engine**: Generates candidate goals from system state and user patterns.
+- **Safety Filtering**: Risk/Benefit scoring and forbidden action blocking.
+- **Budgeting**: Enforcing action caps and cooldown periods.
 
-With Phase 16 complete, AgentX is a general-purpose autonomous execution system. The final focus is:
-- **Autonomous Goal Decomposition**: Converting natural language into structured HTN/DAG plans.
-- **Cost-Optimized Planning**: Choosing execution paths based on token budget and latency constraints.
+## Phase 26: RL-lite Behavioral Learning
+
+Dynamic decision optimization via reward-based policy biasing.
+
+- **Policy Store**: Scoring plan patterns, tools, and modes based on success.
+- **Reward Function**: `Success - Latency - Repair - Risk`.
+- **Exploration vs Exploitation**: Epsilon-greedy strategy for strategy discovery.
+- **Drift Control**: Auto-reset of policy on success rate degradation.
+
+## Next Evolution: Full Autonomous Deployment
+
+AgentX is now a fully autonomous learner capable of proactive self-improvement and long-horizon multi-device orchestration. Final focus remains on edge-case refinement and cross-device state synchronization stability.

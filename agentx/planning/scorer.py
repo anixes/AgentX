@@ -108,12 +108,22 @@ def score_plan(plan: PlanGraph, verifier_score: float, is_from_method: bool = Fa
         0.10 * verifier_score
     )
     
-    # Phase 14 Wave 4: Apply Failure Memory Penalty
-    from agentx.planning.failure_memory import FailureMemory
-    penalty = FailureMemory.get_failure_penalty(plan.goal, plan)
-    if penalty > 0:
-        print(f"[Scorer] Applying failure memory penalty of {penalty:.2f} to candidate.")
-        score -= (penalty * 0.5) # Subtract up to 0.5 from score to heavily penalize
+    # Phase 14 Wave 4 / Phase 23 / Phase 26: Apply Failure Memory Penalty
+    from agentx.memory.failure_memory import failure_memory
+    penalty = failure_memory.similarity_to_failed_plans(plan)
+    if penalty > 0.8: # high similarity to failed plan
+        print(f"[Scorer] Similar failed plan detected. Applying penalty of 1.0.")
+        score -= 1.0
+    elif penalty > 0:
+        score -= penalty
+        
+    # Phase 26: RL-lite Policy Bonus
+    try:
+        from agentx.rl.policy_store import policy_store
+        policy_bonus = policy_store.get_plan_bonus(plan)
+        score += policy_bonus
+    except Exception:
+        pass
         
     # Phase 21: Apply Disagreement Penalty
     if disagreement_penalty > 0:

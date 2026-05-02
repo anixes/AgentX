@@ -4,12 +4,14 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from agentx.runtime.session import session_manager
 from agentx.runtime.event_bus import bus, EVENTS
+import agentx.config
 
 app = FastAPI(title="AgentX Jarvis Server")
 
 class TaskRequest(BaseModel):
     user_id: str
     task: str
+    mode: str = "stable"
 
 class InterruptRequest(BaseModel):
     user_id: str
@@ -19,10 +21,15 @@ task_queue = asyncio.Queue()
 
 @app.post("/task")
 async def submit_task(req: TaskRequest):
+    if req.mode == "beta":
+        agentx.config.AGENTX_DIVERSITY_BETA = True
+    else:
+        agentx.config.AGENTX_DIVERSITY_BETA = False
+        
     session = session_manager.get_or_create(req.user_id)
     session.log_interaction("user", req.task)
     await task_queue.put({"session": session, "task": req.task})
-    return {"status": "queued", "session_id": session.session_id}
+    return {"status": "queued", "session_id": session.session_id, "mode": req.mode}
 
 class ResumeRequest(BaseModel):
     user_id: str
@@ -126,3 +133,18 @@ bus.subscribe(EVENTS["NODE_SUCCESS"], lambda n: broadcast_event("NODE_SUCCESS", 
 bus.subscribe(EVENTS["NODE_FAILED"], lambda n: broadcast_event("NODE_FAILED", n))
 bus.subscribe(EVENTS["ROLLBACK"], lambda n: broadcast_event("ROLLBACK", n))
 bus.subscribe(EVENTS["REPAIR"], lambda n: broadcast_event("REPAIR", n))
+
+@app.get("/dashboard/failures")
+async def get_failures_dashboard():
+    try:
+        from agentx.memory.failure_memory import failure_memory
+        clusters = failure_memory.cluster_failures_by_embedding()
+        analysis = failure_memory.analyze_failures()
+        return {
+            "status": "success",
+            "clusters": clusters,
+            "analysis": analysis,
+            "total_failures_tracked": len(failure_memory.records)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

@@ -41,9 +41,24 @@ AgentX follows a modern 4-layer agentic architecture to ensure stability and exp
 *   **Cascade-Path**: High-complexity tasks are forced into the full multi-agent consensus gate.
 *   **Early Abstention**: If the task is predicted to be unresolvable, the system escalates to the user *before* attempting execution.
 
-### 5. Causal Failure Recovery
-**Problem**: Generic retries repeat the same mistake.
-**Solution**: Errors are classified into causal categories (`AUTH_ERROR`, `RATE_LIMIT`, `TOOL_NOT_FOUND`). The **Adaptive Replanning Loop** uses these types to select targeted recovery strategies (e.g., refreshing auth tokens vs. switching models).
+### 6. Experience-Driven Learning (RL-lite)
+**Problem**: Agents often repeat the same sub-optimal patterns across different missions.
+**Solution**: AgentX implements a lightweight behavioral learning layer.
+*   **Policy Store**: Persists success scores for plan patterns, tools, and reasoning modes.
+*   **Reward Optimization**: Future planning is biased toward high-reward trajectories (`Success - Latency - Risk`).
+*   **Failure Memory**: Plans similar to historical failures are automatically penalized, preventing recurring loops.
+
+### 7. Governed Autonomy & Intent Generation
+**Problem**: Reactive agents require constant human prompting.
+**Solution**: The **Intent Engine** generates self-initiated goals based on system health, scheduled tasks, and user patterns.
+*   **Risk-Gated Autonomy**: Autonomous actions are limited by a strict safety budget and cooldown periods.
+*   **Benefit Scoring**: Only tasks with high predicted user value are initiated without approval.
+
+### 8. Long-Term Multi-Device Orchestration
+**Problem**: Persistent tasks get lost if the system restarts or moves between environments.
+**Solution**: The **Goal Engine** manages long-horizon objectives across Phone, PC, and Cloud.
+*   **Persistent State**: Goals are tracked from `PENDING` to `DONE` across system reboots.
+*   **Intelligent Routing**: Tasks are dispatched to the optimal hardware node based on tool requirements.
 
 ---
 
@@ -56,6 +71,8 @@ AgentX follows a modern 4-layer agentic architecture to ensure stability and exp
 | **Strategy Selection** | Strategy Optimization | Cost/Accuracy trade-offs |
 | **Multi-Agent Judge** | Reflection & Verification | Correctness guarantees |
 | **Replanning Loop** | Self-Correction | Autonomous recovery |
+| **Policy Store** | Decision Memory (RL) | Behavioral optimization |
+| **Goal Engine** | Long-Term Planning | Multi-device persistence |
 
 ---
-*Updated via Phase 10 Hardening on 2026-04-30.*
+*Updated via Phase 26 Hardening on 2026-05-02.*

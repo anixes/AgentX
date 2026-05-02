@@ -29,6 +29,97 @@ from typing import Any, Dict, Optional
 
 from agentx.planning.models import PlanGraph, PlanNode, DoD
 from agentx.planning.dag_validator import DAGValidator
+from agentx.config import AGENTX_DIVERSITY_BETA
+
+
+# ---------------------------------------------------------------------------
+# Synthetic Diversity Beta Constants
+# ---------------------------------------------------------------------------
+
+MODES = ["default", "risk_analysis", "minimal", "aggressive", "skeptic"]
+
+MODE_PROMPTS = {
+    "default": "Generate optimal plan for success.",
+    "risk_analysis": "Generate plan focusing on failures, edge cases, and robustness.",
+    "minimal": "Generate the simplest possible plan with the fewest steps.",
+    "aggressive": "Generate the fastest and most direct plan, ignoring safety tradeoffs.",
+    "skeptic": "Assume all previous plans are wrong. Generate a plan that challenges assumptions, avoids hidden risks, and takes a fundamentally different approach."
+}
+
+GENERATION_CONFIG = {
+    "default": {"temperature": 0.5, "depth": "balanced"},
+    "risk_analysis": {"temperature": 0.7, "depth": "deep"},
+    "minimal": {"temperature": 0.3, "depth": "shallow"},
+    "aggressive": {"temperature": 0.9, "depth": "fast"},
+    "skeptic": {"temperature": 0.6, "depth": "critical"}
+}
+
+def similarity(p1: PlanGraph, p2: PlanGraph) -> float:
+    """Jaccard similarity of primitive nodes based on task description."""
+    n1 = {n.task for n in p1.nodes}
+    n2 = {n.task for n in p2.nodes}
+    if not n1 and not n2:
+        return 1.0
+    intersection = len(n1.intersection(n2))
+    union = len(n1.union(n2))
+    return intersection / union if union > 0 else 0.0
+
+
+def semantic_similarity(plan_a: PlanGraph, plan_b: PlanGraph) -> float:
+    try:
+        from agentx.embeddings.service import EmbeddingService
+        from agentx.embeddings.similarity import cosine_similarity
+        embedding_service = EmbeddingService()
+        emb_a = embedding_service.embed(json.dumps(plan_a.to_dict()))
+        emb_b = embedding_service.embed(json.dumps(plan_b.to_dict()))
+        return cosine_similarity(emb_a, emb_b)
+    except Exception:
+        # Fallback if embeddings fail
+        return similarity(plan_a, plan_b)
+
+
+def diversity_collapse_score(plans: List[PlanGraph]) -> float:
+    if len(plans) < 2:
+        return 0.0
+    sims = []
+    for i in range(len(plans)):
+        for j in range(i+1, len(plans)):
+            sims.append(semantic_similarity(plans[i], plans[j]))
+    return sum(sims) / len(sims) if sims else 0.0
+
+
+def enforce_diversity(plans: List[PlanGraph]) -> List[PlanGraph]:
+    filtered = []
+    for p in plans:
+        keep = True
+        for q in filtered:
+            if similarity(p, q) > 0.85:
+                keep = False
+            if semantic_similarity(p, q) > 0.85:
+                keep = False
+        if keep:
+            filtered.append(p)
+    return filtered
+
+
+def avg_pairwise_distance(plans: List[PlanGraph]) -> float:
+    if len(plans) < 2:
+        return 0.0
+    total_dist = 0.0
+    count = 0
+    for i in range(len(plans)):
+        for j in range(i + 1, len(plans)):
+            total_dist += (1.0 - similarity(plans[i], plans[j]))
+            count += 1
+    return total_dist / count
+
+
+def structural_variance(plans: List[PlanGraph]) -> float:
+    if not plans:
+        return 0.0
+    node_counts = [len(p.nodes) for p in plans]
+    mean = sum(node_counts) / len(node_counts)
+    return sum((x - mean) ** 2 for x in node_counts) / len(node_counts)
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +327,7 @@ class Planner:
             self._gateway = None
         return self._gateway
 
-    def _call_llm(self, goal: str, retrieved_context: str = "") -> Optional[str]:
+    def _call_llm(self, goal: str, retrieved_context: str = "", mode: str = "default", config: Optional[Dict] = None, history: Optional[List[str]] = None) -> Optional[str]:
         gw = self._get_gateway()
         if gw is None:
             return None
@@ -248,7 +339,19 @@ class Planner:
             methods_str = "{}"
             
         system_prompt = _PLANNER_SYSTEM_PROMPT.format(methods=methods_str, context=retrieved_context)
-        prompt = _PLANNER_USER_TEMPLATE.format(goal=goal)
+        mode_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS["default"])
+        
+        history_text = ""
+        if history:
+            history_text = "\n\nPrevious plans generated for this goal (DO NOT DUPLICATE THESE):\n"
+            for i, p in enumerate(history):
+                history_text += f"Plan {i+1}: {p}\n"
+                
+        config_text = ""
+        if config:
+            config_text = f"\n\nGeneration Constraints: {config}"
+            
+        prompt = _PLANNER_USER_TEMPLATE.format(goal=goal) + f"\n\nMode: {mode_prompt}{history_text}{config_text}"
         try:
             # UnifiedGateway.complete(system, user) - str
             response = gw.complete(system=system_prompt, user=prompt)
@@ -339,7 +442,7 @@ class Planner:
 
     # -- public API ---------------------------------------------------------
 
-    def _decompose_single(self, goal: str, current_state: Optional[Dict] = None, retrieval_retry: int = 0) -> PlanGraph:
+    def _decompose_single(self, goal: str, current_state: Optional[Dict] = None, retrieval_retry: int = 0, mode: str = "default", config: Optional[Dict] = None, history: Optional[List[str]] = None) -> PlanGraph:
         """
         Phase 14: Multi-Plan Planning Architecture.
         Generates, verifies, scores, and selects the optimal plan.
@@ -378,7 +481,7 @@ class Planner:
             if not validate_answer(goal, context_text):
                 if retrieval_retry < 1:
                     print("[Planner] Hallucinated context detected. Retrying retrieval.")
-                    return self._decompose_single(goal, current_state, retrieval_retry + 1)
+                    return self._decompose_single(goal, current_state, retrieval_retry + 1, mode=mode)
                 else:
                     print("[Planner] Repeated hallucination detected. Proceeding without context.")
                     context_text = "No external context available."
@@ -393,7 +496,7 @@ class Planner:
         current_state["retrieved_context"] = context_str
 
         # 2. Generate Candidates (Method Retrieval + LLM Generation + Diversity Filter)
-        candidates = generate_candidate_plans(goal, current_state, k)
+        candidates = generate_candidate_plans(goal, current_state, k, mode=mode, config=config, history=history)
         if not candidates:
             print("[Planner] Failed to generate any candidate plans. Falling back to passthrough.")
             return _fallback_graph(goal)
@@ -442,12 +545,272 @@ class Planner:
     def decompose(self, goal: str, current_state: Optional[Dict] = None) -> PlanGraph:
         """
         Multi-run consensus planning with Disagreement-Aware Consensus + Minority Veto.
+        Supports Phase 22 Synthetic Diversity Beta.
+        """
+        import time
+        import agentx.config
+        
+        start_time = time.time()
+        
+        from agentx.observability.metrics import metrics_system
+        metrics = metrics_system.get_summary()
+
+        def should_disable_beta(metrics):
+            if metrics.get("success_rate_beta", 0.0) < metrics.get("success_rate_stable", 0.0):
+                return True
+            if metrics.get("latency_increase", 0.0) > 2.0:
+                return True
+            return False
+
+        if agentx.config.AGENTX_DIVERSITY_BETA and should_disable_beta(metrics):
+            print("[Planner] [BETA] Auto-disabling beta due to metric degradation.")
+            agentx.config.AGENTX_DIVERSITY_BETA = False
+
+        if not agentx.config.AGENTX_DIVERSITY_BETA:
+            return self._original_decompose(goal, current_state)
+
+        from agentx.planning.scorer import estimate_complexity, COMPLEXITY_LOW
+        complexity = estimate_complexity(goal)
+        if complexity == COMPLEXITY_LOW:
+            print("[Planner] [ROUTING] Simple task detected. Forcing stable mode.")
+            return self._original_decompose(goal, current_state)
+
+        active_modes = MODES
+        if hasattr(metrics_system, "metrics") and "mode_contribution" in metrics_system.metrics:
+            mode_scores = metrics_system.metrics["mode_contribution"]
+            if mode_scores:
+                active_modes = sorted(mode_scores.keys(), key=lambda k: mode_scores[k], reverse=True)[:3]
+                if not active_modes:
+                    active_modes = MODES
+
+        # Part A - Planner Integration: Experience Memory System
+        try:
+            from agentx.memory.experience_store import experience_store
+            similar = experience_store.retrieve_similar(goal)
+            if similar:
+                successes = [s for s in similar if s["success"]]
+                if len(successes) / len(similar) >= 0.7 and successes:
+                    print("[Planner] [MEMORY] High success rate for similar goals. Biasing generation.")
+                    if current_state is None: current_state = {}
+                    current_state["biased_plan"] = successes[0]["plan_structure"]
+        except Exception:
+            pass
+
+        print(f"[Planner] [BETA] Running synthetic diversity planning with modes: {active_modes}")
+        
+        MAX_RETRIES = 2
+        plans = []
+        for attempt in range(MAX_RETRIES):
+            plans = []
+            history = []
+            for mode in active_modes:
+                try:
+                    print(f"[Planner] [BETA] Generating plan for mode: {mode}")
+                    config = GENERATION_CONFIG.get(mode, GENERATION_CONFIG["default"])
+                    if attempt > 0:
+                        config = dict(config)
+                        config["temperature"] = min(1.0, config["temperature"] + 0.2) # noise
+                    
+                    import random
+                    use_history = history[-2:] if random.random() < 0.5 else None
+                    plan = self._decompose_single(goal, current_state, mode=mode, config=config, history=use_history)
+                    object.__setattr__(plan, "_generation_mode", mode) if hasattr(plan, "__dataclass_fields__") else None
+                    try:
+                        plan._generation_mode = mode
+                    except AttributeError:
+                        pass
+                    plans.append(plan)
+                    
+                    summary = " -> ".join([n.task for n in plan.nodes])
+                    history.append(summary)
+                except Exception as e:
+                    print(f"[Planner] [BETA] Mode {mode} generation failed: {e}")
+            
+            if diversity_collapse_score(plans) > 0.75:
+                print("[Planner] [BETA] Diversity collapse detected. Triggering regeneration with noise.")
+                if hasattr(metrics_system, "metrics"):
+                    metrics_system.metrics.setdefault("diversity_collapse_events", 0)
+                    metrics_system.metrics["diversity_collapse_events"] += 1
+                    metrics_system.metrics.setdefault("regeneration_triggered", 0)
+                    metrics_system.metrics["regeneration_triggered"] += 1
+                continue # trigger regeneration
+            
+            original_count = len(plans)
+            plans = enforce_diversity(plans)
+            print(f"[Planner] [BETA] Diversity enforcement: {len(plans)}/{original_count} plans retained (Attempt {attempt+1}).")
+            
+            if len(plans) >= 2:
+                break
+        
+        if not plans:
+            return _fallback_graph(goal)
+
+        if len(plans) == 1:
+            print("[Planner] [SAFETY] Diversity failed → fallback to stable")
+            return self._original_decompose(goal, current_state)
+
+        # Part 4: Integration with Existing System (Disagreement, Critic, Scorer)
+        from agentx.decision.disagreement import disagreement_score, detect_conflicts, minority_veto, update_disagreement_metrics
+        from agentx.planning.verifier import verify_plan
+        from agentx.planning.selector import select_plan
+        from agentx.decision.critic import compare_reasoning, critique_plan, critic_score
+
+        d_score = disagreement_score(plans)
+        conflicts = detect_conflicts(plans)
+        veto = minority_veto(plans)
+        
+        c_score_collapse = diversity_collapse_score(plans)
+        
+        # Part 2: Hard Beta Safety Gates
+        if d_score > 0.7 or c_score_collapse > 0.75 or len(plans) < 2:
+            print("[Planner] [SAFETY] Safety gate triggered → fallback to stable")
+            if hasattr(metrics_system, "metrics"):
+                metrics_system.metrics.setdefault("fallback_triggered", 0)
+                metrics_system.metrics["fallback_triggered"] += 1
+            return self._original_decompose(goal, current_state)
+
+        # Part 6: Metrics
+        latency = time.time() - start_time
+        beta_metrics = {
+            "diversity_score": avg_pairwise_distance(plans),
+            "plan_variance": structural_variance(plans),
+            "latency": latency
+        }
+        # Record beta metrics if the tracking method exists
+        if hasattr(metrics_system, "record_beta_metrics"):
+            metrics_system.record_beta_metrics(beta_metrics)
+
+        # Resume standard consensus/selection logic
+        shared_info = compare_reasoning(plans)
+        shared = shared_info.get("shared_patterns", {})
+        
+        has_shared_error = any(count == len(plans) for count in shared.values())
+        update_disagreement_metrics(d_score, veto, True) # True for beta_active
+
+        if d_score > 0.5 or conflicts or veto or has_shared_error:
+            verified_plans = []
+            for p in plans:
+                fb = verify_plan(p)
+                risk = fb.get("risk_score", 0.5)
+                verified_plans.append((p, 1.0 - risk, risk))
+            best_plan = select_plan(verified_plans)
+        elif d_score > 0.3:
+            critiques = []
+            for plan in plans:
+                critique = critique_plan(plan, current_state or {})
+                critiques.append((plan, critique))
+            
+            from agentx.planning.scorer import score_plan
+            scored = []
+            for plan, critique in critiques:
+                diversity_bonus = 0.0
+                if len(plans) > 1:
+                    sims = [semantic_similarity(plan, op) for op in plans if op is not plan]
+                    diversity_bonus = 1.0 - (sum(sims) / len(sims))
+
+                s = score_plan(plan, 0.5)
+                s += critic_score(plan, critique)
+                s += diversity_bonus * 0.5 # Add diversity bonus
+                scored.append((plan, s, 0.5))
+            best_plan = select_plan(scored)
+        else:
+            def plan_similarity_score(p: PlanGraph) -> float:
+                sim_total = 0.0
+                for other_p in plans:
+                    if other_p is p: continue
+                    sim_total += similarity(p, other_p)
+                return sim_total
+            plans.sort(key=plan_similarity_score, reverse=True)
+            best_plan = plans[0]
+
+        # Inject confidence
+        best_critique = critique_plan(best_plan, current_state or {})
+        c_score = critic_score(best_plan, best_critique)
+        fb = verify_plan(best_plan)
+        v_score = 1.0 - fb.get("risk_score", 0.5)
+        confidence = max(0.0, (1.0 - d_score) * c_score * v_score)
+        
+        object.__setattr__(best_plan, "confidence", confidence) if hasattr(best_plan, "__dataclass_fields__") else None
+        try:
+            best_plan.confidence = confidence
+        except Exception: pass
+        
+        # Phone Visibility Layer
+        status_info = {
+            "mode": "beta",
+            "plans": len(plans),
+            "selected": getattr(best_plan, "_generation_mode", "unknown"),
+            "confidence": confidence,
+            "diversity_score": beta_metrics.get("diversity_score", 0.0),
+            "status": "running"
+        }
+        
+        if confidence < 0.6 or d_score > 0.7:
+            status_info["status"] = "AWAITING_APPROVAL"
+            status_info["reason"] = "low confidence or high disagreement"
+            
+        object.__setattr__(best_plan, "phone_status", status_info) if hasattr(best_plan, "__dataclass_fields__") else None
+        try:
+            best_plan.phone_status = status_info
+        except Exception: pass
+        
+        # Part 4: Mandatory Logging
+        log_entry = {
+            "goal": goal,
+            "mode": "beta",
+            "plans_generated": len(plans),
+            "selected_mode": getattr(best_plan, "_generation_mode", "unknown"),
+            "diversity_score": beta_metrics.get("diversity_score", 0.0),
+            "collapse_score": c_score_collapse,
+            "fallback_triggered": False,
+            "latency": time.time() - start_time
+        }
+        if hasattr(metrics_system, "log_execution"):
+            metrics_system.log_execution(log_entry)
+        else:
+            metrics_system.metrics.setdefault("execution_logs", []).append(log_entry)
+        
+        # Part 6: Track mode contribution
+        sel_mode = getattr(best_plan, "_generation_mode", "unknown")
+        if hasattr(metrics_system, "metrics"):
+            mc = metrics_system.metrics.setdefault("mode_contribution", {})
+            mc[sel_mode] = mc.get(sel_mode, 0) + 1
+
+        # Phase 26: Exploration vs Exploitation
+        import random
+        try:
+            from agentx.rl.policy_store import policy_store
+            if random.random() < policy_store.exploration_rate and len(plans) > 1:
+                # Explore: pick a random plan instead of the best one
+                print("[Planner] [RL] Exploring new plan instead of best plan.")
+                candidates = [p for p in plans if p != best_plan]
+                if candidates:
+                    best_plan = random.choice(candidates)
+                    
+            # Part J - Telemetry + Metrics (Track)
+            if hasattr(metrics_system, "metrics"):
+                metrics_system.metrics["avg_reward"] = policy_store.avg_reward
+                metrics_system.metrics["exploration_rate"] = policy_store.exploration_rate
+                
+            # Part K - Drift Control (Critical)
+            # if success rate drops significantly, we reset policy
+            if hasattr(metrics_system, "metrics"):
+                success_rate_beta = metrics_system.metrics.get("success_rate_beta", 1.0)
+                if success_rate_beta < 0.8: # drop > 20%
+                    policy_store.reset_policy()
+        except Exception:
+            pass
+
+        return best_plan
+
+    def _original_decompose(self, goal: str, current_state: Optional[Dict] = None) -> PlanGraph:
+        """
+        Multi-run consensus planning (Original Phase 21.6 logic).
         """
         import random
-        # Deterministic execution for stability
         random.seed(42)
 
-        print("[Planner] Running multi-run consensus planning (3 runs)")
+        print("[Planner] Running original multi-run consensus planning (3 runs)")
         plans = []
         for _ in range(3):
             try:
@@ -473,38 +836,18 @@ class Planner:
         from agentx.decision.critic import compare_reasoning, critique_plan, critic_score
         shared_info = compare_reasoning(plans)
         shared = shared_info.get("shared_patterns", {})
-        escalation = shared_info.get("escalation")
-        if escalation:
-            print(f"[Planner] Shared reasoning escalation: {escalation}")
-
-        has_shared_error = False
-        if any(count == len(plans) for count in shared.values()):
-            has_shared_error = True
         
+        has_shared_error = any(count == len(plans) for count in shared.values())
         update_disagreement_metrics(score, veto, False)
         
-        if veto:
-            print(f"[Planner] MINORITY VETO TRIGGERED! Plans differ significantly.")
-            # Trigger deeper verification (fallback to verification check)
-            
         if score > 0.5 or conflicts or veto or has_shared_error:
-            if has_shared_error:
-                print(f"[Planner] SHARED ERROR DETECTED! Triggering verification loop.")
-            else:
-                print(f"[Planner] HIGH DISAGREEMENT (score={score:.2f}, conflicts={conflicts}). Triggering verification loop.")
-            # Trigger verification loop
             verified_plans = []
             for p in plans:
                 fb = verify_plan(p)
-                # mock a score for select_plan, using risk from feedback
                 risk = fb.get("risk_score", 0.5)
-                # To integrate smoothly with existing select_plan, we pass (plan, score, risk)
                 verified_plans.append((p, 1.0 - risk, risk))
             best_plan = select_plan(verified_plans)
-            
         elif score > 0.3:
-            print(f"[Planner] MEDIUM DISAGREEMENT (score={score:.2f}). Applying critic & hybrid scoring.")
-            # Apply critic module
             critiques = []
             for plan in plans:
                 critique = critique_plan(plan, current_state or {})
@@ -516,11 +859,8 @@ class Planner:
                 s = score_plan(plan, 0.5)
                 s += critic_score(plan, critique)
                 scored.append((plan, s, 0.5))
-            
             best_plan = select_plan(scored)
-            
         else:
-            print(f"[Planner] LOW DISAGREEMENT (score={score:.2f}). Normal consensus.")
             def plan_similarity_score(p: PlanGraph) -> float:
                 sim_score = 0.0
                 p_nodes = {n.id for n in p.primitive_nodes()}
@@ -531,25 +871,19 @@ class Planner:
                     union = len(p_nodes.union(other_nodes))
                     sim_score += inter / union if union > 0 else 0.0
                 return sim_score
-            
             plans.sort(key=plan_similarity_score, reverse=True)
             best_plan = plans[0]
 
-        print(f"[Planner] Consensus reached. Selected plan.")
-        
-        # Inject confidence mapping into plan for execution hook
+        # Inject confidence
         best_critique = critique_plan(best_plan, current_state or {})
         c_score = critic_score(best_plan, best_critique)
-        
         fb = verify_plan(best_plan)
         v_score = 1.0 - fb.get("risk_score", 0.5)
-        
         confidence = max(0.0, (1.0 - score) * c_score * v_score)
         
         object.__setattr__(best_plan, "confidence", confidence) if hasattr(best_plan, "__dataclass_fields__") else None
         try:
             best_plan.confidence = confidence
-        except Exception:
-            pass
+        except Exception: pass
 
         return best_plan

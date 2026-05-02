@@ -21,7 +21,7 @@ from agentx.embeddings.service import EmbeddingService
 from agentx.embeddings.similarity import cosine_similarity
 
 
-def generate_candidate_plans(goal: str, state: Dict, k: int) -> List[PlanGraph]:
+def generate_candidate_plans(goal: str, state: Dict, k: int, mode: str = "default", config: Optional[Dict] = None, history: Optional[List[str]] = None) -> List[PlanGraph]:
     """
     Generate up to K candidate plans for the goal.
     Sources:
@@ -58,13 +58,10 @@ def generate_candidate_plans(goal: str, state: Dict, k: int) -> List[PlanGraph]:
     while len(candidates) < k and attempts < k * 2:
         # Increase temperature slightly for subsequent attempts to ensure diversity
         temp = 0.2 + (attempts * 0.15)
-        # Assuming Planner.generate_llm_plan exists and accepts temp, 
-        # or we just call plan() and hope for diversity.
-        # For this implementation, we will use a direct call if available, 
-        # otherwise we just call plan().
         try:
             # We bypass method retrieval here to force generation
-            raw = temp_planner._call_llm(goal, retrieved_context=state.get("retrieved_context", ""))
+            # Pass the diversity mode to the LLM call
+            raw = temp_planner._call_llm(goal, retrieved_context=state.get("retrieved_context", ""), mode=mode, config=config, history=history)
             if raw:
                 new_plan = temp_planner._parse_response(raw, goal)
                 candidates.append(new_plan)
