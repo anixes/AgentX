@@ -62,14 +62,16 @@ class ReActExecutor:
         Auto-generated if not provided.
     """
 
-    def __init__(self, graph: PlanGraph, plan_id: Optional[str] = None, task_id: Optional[int] = None):
+    def __init__(self, graph: PlanGraph, plan_id: Optional[str] = None, task_id: Optional[int] = None, session=None):
         self.graph = graph
         self.plan_id = plan_id or str(uuid.uuid4())
         self.task_id = task_id
+        self.session = session
         self.repair_history: List[RepairRecord] = []
-
-        self._bridge = ExecutionBridge(graph, task_id=self.task_id)
-        self._replanner = Replanner(graph, self.repair_history)
+        self._bridge = ExecutionBridge(self.graph, task_id=self.task_id)
+        self._replanner = Replanner(self.graph, self.repair_history)
+        from agentx.planning.models import PlanVersion
+        self.current_version = PlanVersion(self.graph)
 
     # -- public API ---------------------------------------------------------
 
@@ -138,15 +140,41 @@ class ReActExecutor:
             f"- goal: {self.graph.goal[:80]}"
         )
         self._persist()
+        
+        # Phase 21.5: Execution Safety Hook
+        confidence = getattr(self.graph, "confidence", 1.0)
+        CONFIDENCE_THRESHOLD = 0.6
+        if confidence < CONFIDENCE_THRESHOLD and self.session:
+            print(f"[ReActExecutor] [WARN] Plan confidence ({confidence:.2f}) is below threshold ({CONFIDENCE_THRESHOLD}). Requesting user approval...")
+            from agentx.runtime.event_bus import bus, EVENTS
+            self.session.interrupt()
+            bus.publish(EVENTS.get("AWAITING_APPROVAL", "AWAITING_APPROVAL"), {"type": "plan", "graph": self.graph})
+            import time
+            while self.session.is_interrupted:
+                time.sleep(1)
+            # Check if plan execution was rejected
+            if getattr(self.session, "is_rejected", False):
+                print("[ReActExecutor] [FAIL] Plan execution rejected by user.")
+                return False
 
         wave_count = 0
         scheduler = Scheduler(self.graph)
 
         from agentx.planning.verifier import verify_step
+        from agentx.runtime.event_bus import bus, EVENTS
         
         MAX_REPAIR_ATTEMPTS = 2
+        RISK_THRESHOLD = 0.8
         
         while True:
+            # 3.2 Interrupt Hook
+            if self.session and self.session.is_interrupted:
+                print(f"[ReActExecutor] Execution interrupted for plan '{self.plan_id}'. Pausing...")
+                import time
+                while self.session.is_interrupted:
+                    time.sleep(1)
+                print(f"[ReActExecutor] Execution resumed for plan '{self.plan_id}'.")
+                
             ready_nodes = scheduler.ready_nodes()
             if not ready_nodes:
                 break
@@ -171,6 +199,32 @@ class ReActExecutor:
                     # 1. Checkpoint state
                     self._bridge.checkpoint_state(node.id)
                     
+                    # 1.5 Permission Check
+                    from agentx.security.permissions import default_permissions
+                    if not default_permissions.allow(node.tool):
+                        node.status = "FAILED"
+                        node.error = f"PermissionError: {node.tool} is not allowed by current security policies."
+                        has_escalated = True
+                        break
+
+                    # HITL Control: Risk Gate
+                    if getattr(node, 'risk', 0.0) >= RISK_THRESHOLD and self.session:
+                        print(f"[ReActExecutor] Risk threshold exceeded for node '{node.id}'. Requesting user approval...")
+                        node.status = "AWAITING_APPROVAL"
+                        self.session.pending_node = node
+                        bus.publish(EVENTS.get("AWAITING_APPROVAL", "AWAITING_APPROVAL"), node)
+                        self.session.interrupt()
+                        import time
+                        while self.session.is_interrupted:
+                            time.sleep(1)
+                        self.session.pending_node = None
+                        # Assume modified or approved. If rejected, it would be set to FAILED via API.
+                        if node.status == "FAILED":
+                            has_escalated = True
+                            break
+                        node.status = "RUNNING"
+
+
                     # 2. Verify Step
                     v = verify_step(node, self._bridge.system_state)
                     if not v.get("safe", True):
@@ -185,6 +239,8 @@ class ReActExecutor:
                         repaired = self._replanner.repair_subtree(node, self._bridge.system_state)
                         if repaired:
                             node.repair_attempts = getattr(node, 'repair_attempts', 0) + 1
+                            from agentx.planning.models import PlanVersion
+                            self.current_version = PlanVersion(self.graph, parent=self.current_version.id)
                             # Break the batch, rebuild scheduler next iteration
                             break
                         else:
@@ -255,6 +311,8 @@ class ReActExecutor:
                                     has_escalated = True
                             else:
                                 node.repair_attempts = getattr(node, 'repair_attempts', 0) + 1
+                                from agentx.planning.models import PlanVersion
+                                self.current_version = PlanVersion(self.graph, parent=self.current_version.id)
                                 
                         break # Break current batch to pick up repaired nodes in next scheduler loop
                 

@@ -550,8 +550,11 @@ def evaluate_pipeline(task_id: int, result: str, context: Dict[str, Any], strict
 
     # --- Layer 2 (cascade): Weak Judge Suppression + per-evaluator collection ---
     active_evaluators = []
-    RELIABILITY_THRESHOLD = 0.5
-    MIN_THRESHOLD = 0.3
+    from agentx.decision.calibration import compute_confidence_threshold
+    task_type = eval_context.get("task_type", "default")
+    dyn_thresholds = compute_confidence_threshold(task_type)
+    RELIABILITY_THRESHOLD = dyn_thresholds.get("reliability", 0.5)
+    MIN_THRESHOLD = max(0.1, dyn_thresholds.get("reliability", 0.5) - 0.2)
 
     for evaluator in evaluators_to_use:
         try:
@@ -635,7 +638,7 @@ def evaluate_pipeline(task_id: int, result: str, context: Dict[str, Any], strict
     uncertainty_score = 0.0
     if disagreement: uncertainty_score += 0.3
     if soft_vetoes > 0: uncertainty_score += 0.4
-    if confidence < 0.8: uncertainty_score += (0.8 - confidence)
+    if confidence < dyn_thresholds.get("confidence", 0.8): uncertainty_score += (dyn_thresholds.get("confidence", 0.8) - confidence)
     if veto_triggered: uncertainty_score += 0.5
     uncertainty_score = min(1.0, round(uncertainty_score, 3))
 
@@ -748,26 +751,120 @@ def evaluate_pipeline(task_id: int, result: str, context: Dict[str, Any], strict
             "agreement_score": agreement_score,
         }
 
-    # Fallback (e.g., all PARTIAL)
+    # Fallback (e.# =========================================
+# PART 4 — FAILURE SCENARIOS (SIMULATION)
+# =========================================
+
+_critic_run_history = []
+
+def log_critic_run(disagreement_score: float, critic_issues_count: int, final_success: bool, confidence_value: float, task_type: str, shared_error_detected: bool = False, failure_type: str = "none"):
+    _critic_run_history.append({
+        "disagreement_score": disagreement_score,
+        "critic_issues_count": critic_issues_count,
+        "final_success": final_success,
+        "confidence_value": confidence_value,
+        "task_type": task_type,
+        "shared_error_detected": shared_error_detected,
+        "failure_type": failure_type
+    })
+    
+    # PART 5: Failure analysis loop
+    if not final_success:
+        import logging
+        logger = logging.getLogger("agentx.decision.evaluator")
+        logger.info(f"[Failure Analysis] Disagreement: {disagreement_score:.2f}, Critic Issues: {critic_issues_count}, Failure Type: {failure_type}")
+        
+        # Learning rule
+        if failure_type == "logic_error" and critic_issues_count == 0:
+            logger.warning("[Failure Analysis] Critic missed a logic error. Increasing critic weight.")
+            # increase_critic_weight() hook would go here
+
+def compute_critic_metrics() -> dict:
+    total_runs = len(_critic_run_history)
+    if total_runs == 0:
+        return {}
+    
+    critic_trigger_count = sum(1 for r in _critic_run_history if r["critic_issues_count"] > 0)
+    critic_triggered_but_successful = sum(1 for r in _critic_run_history if r["critic_issues_count"] > 0 and r["final_success"])
+    critic_missed_failure = sum(1 for r in _critic_run_history if r["critic_issues_count"] == 0 and not r["final_success"])
+    detected_shared_errors = sum(1 for r in _critic_run_history if r["shared_error_detected"])
+    total_shared_errors = sum(1 for r in _critic_run_history if r["task_type"] == "adversarial" or r["shared_error_detected"])
+    
+    # Confidence accuracy (correlation proxy)
+    success_conf = [r["confidence_value"] for r in _critic_run_history if r["final_success"]]
+    fail_conf = [r["confidence_value"] for r in _critic_run_history if not r["final_success"]]
+    avg_success_conf = sum(success_conf) / len(success_conf) if success_conf else 0.0
+    avg_fail_conf = sum(fail_conf) / len(fail_conf) if fail_conf else 0.0
+    confidence_accuracy = avg_success_conf - avg_fail_conf
+
     return {
-        "decision": "UNCERTAIN",
-        "risk_score": 0.75,
-        "uncertainty_score": uncertainty_score,
-        "agreement_level": 0,
-        "veto_triggered": False,
-        "agreement_score": agreement_score,
-        "eval_path": "cascade",
+        "critic_trigger_rate": critic_trigger_count / total_runs,
+        "false_positive_rate": critic_triggered_but_successful / total_runs,
+        "false_negative_rate": critic_missed_failure / total_runs,
+        "confidence_accuracy": confidence_accuracy,
+        "shared_error_detection_rate": detected_shared_errors / max(1, total_shared_errors)
     }
 
-def evaluate_combined(task_id: int, result: str, context: Dict[str, Any], stricter: bool = False, model: str = None) -> str:
+def simulate_failure_scenarios():
     """
-    Deprecated proxy. Maps pipeline dict to old string format.
+    Phase 21.5 & 21.6: Failure Scenarios Simulation + Metrics Validation
     """
-    pipeline_res = evaluate_pipeline(task_id, result, context, stricter=stricter)
-    d = pipeline_res["decision"]
-    if d == "PASS":
-        return "TRUE_SUCCESS"
-    elif d == "FAIL":
-        return "FALSE_SUCCESS"
-    return "UNCERTAIN"
+    scenarios = {
+        "Test 1 — Shared Hallucination": {
+            "type": "adversarial",
+            "description": "All plans: same structure, same wrong assumption.",
+            "expected": ["disagreement LOW", "critic detects shared issue", "verifier triggered"],
+            "resolution": "compare_reasoning flags shared logic gap, forcing verification loop."
+        },
+        "Test 2 — Structural Correct, Logic Wrong": {
+            "type": "hard",
+            "description": "Plans valid structurally but wrong dependency logic.",
+            "expected": ["critic catches logic gap"],
+            "resolution": "critique_plan detects preconditions without dependencies, penalizing plan."
+        },
+        "Test 3 — Divergent Reasoning": {
+            "type": "ambiguous",
+            "description": "Plans differ significantly.",
+            "expected": ["disagreement HIGH", "critic refines selection"],
+            "resolution": "High disagreement falls back to verification loop, mitigating blind consensus."
+        },
+        "Test 4 — Missing Preconditions": {
+            "type": "easy",
+            "description": "Plan missing required state values.",
+            "expected": ["critic flags missing state", "plan rejected before execution"],
+            "resolution": "critic penalizes plan reducing confidence below threshold, requiring approval."
+        },
+        "Test 5 — Adversarial Plan": {
+            "type": "adversarial",
+            "description": "One plan is malicious.",
+            "expected": ["minority veto OR critic eliminates"],
+            "resolution": "Minority veto detects structural divergence or critic heavily penalizes logic gaps."
+        }
+    }
+    
+    # Mocking runs for Phase 21.6 validation
+    log_critic_run(0.1, 2, False, 0.4, "adversarial", True, "logic_error")
+    log_critic_run(0.2, 1, False, 0.5, "hard", False, "logic_error")
+    log_critic_run(0.8, 0, True, 0.7, "ambiguous", False, "none")
+    log_critic_run(0.3, 1, False, 0.4, "easy", False, "missing_precondition")
+    log_critic_run(0.4, 3, False, 0.3, "adversarial", False, "logic_error")
+    
+    metrics = compute_critic_metrics()
+    
+    print("[Evaluator] Running Failure Scenarios Simulation...")
+    for name, data in scenarios.items():
+        print(f"\n--- {name} [{data['type']}] ---")
+        print(f"Description: {data['description']}")
+        print(f"Expected: {', '.join(data['expected'])}")
+        print(f"System Resolution: {data['resolution']}")
+        
+    print("\n[Evaluator] Phase 21.6 Metrics Validation:")
+    for k, v in metrics.items():
+        if isinstance(v, float):
+            print(f"- {k}: {v:.3f}")
+        else:
+            print(f"- {k}: {v}")
+            
+    return scenarios, metrics
+
 

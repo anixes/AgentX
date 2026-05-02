@@ -26,6 +26,8 @@ nodes           : ordered list of PlanNode objects
 from __future__ import annotations
 
 import json
+import time
+import uuid
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Any
 
@@ -79,6 +81,7 @@ class PlanNode:
     
     dod: DoD = field(default_factory=lambda: DoD("Task completes without error.", "deterministic"))
     uncertainty: float = 0.3
+    risk: float = 0.0
 
     # HTN fields ----------------------------------------------------------
     # node_type  : "primitive"  - directly executable by the engine
@@ -137,6 +140,7 @@ class PlanNode:
             "effects": self.effects,
             "dod": self.dod.to_dict(),
             "uncertainty": self.uncertainty,
+            "risk": self.risk,
         }
 
     @classmethod
@@ -154,6 +158,7 @@ class PlanNode:
             effects=d.get("effects", {}),
             dod=dod,
             uncertainty=float(d.get("uncertainty", 0.3)),
+            risk=float(d.get("risk", 0.0)),
             node_type=d.get("type", "primitive"),
             children=d.get("children", []),
         )
@@ -228,3 +233,14 @@ class PlanGraph:
 
     def __repr__(self) -> str:
         return f"PlanGraph(goal={self.goal!r}, nodes={len(self.nodes)})"
+
+# ---------------------------------------------------------------------------
+# PlanVersion
+# ---------------------------------------------------------------------------
+
+class PlanVersion:
+    def __init__(self, plan: PlanGraph, parent: str = None):
+        self.id = str(uuid.uuid4())
+        self.parent = parent
+        self.plan = plan
+        self.timestamp = time.time()

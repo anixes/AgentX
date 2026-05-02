@@ -59,6 +59,11 @@ The plan is a Hierarchical Task Network:
 
 ---
 
+## CONTEXT (HYBRID RETRIEVAL)
+{context}
+
+---
+
 ## OUTPUT SCHEMA (STRICT)
 
 {
@@ -231,7 +236,7 @@ class Planner:
             self._gateway = None
         return self._gateway
 
-    def _call_llm(self, goal: str) -> Optional[str]:
+    def _call_llm(self, goal: str, retrieved_context: str = "") -> Optional[str]:
         gw = self._get_gateway()
         if gw is None:
             return None
@@ -242,7 +247,7 @@ class Planner:
         except Exception:
             methods_str = "{}"
             
-        system_prompt = _PLANNER_SYSTEM_PROMPT.format(methods=methods_str)
+        system_prompt = _PLANNER_SYSTEM_PROMPT.format(methods=methods_str, context=retrieved_context)
         prompt = _PLANNER_USER_TEMPLATE.format(goal=goal)
         try:
             # UnifiedGateway.complete(system, user) - str
@@ -334,7 +339,7 @@ class Planner:
 
     # -- public API ---------------------------------------------------------
 
-    def decompose(self, goal: str, current_state: Optional[Dict] = None) -> PlanGraph:
+    def _decompose_single(self, goal: str, current_state: Optional[Dict] = None, retrieval_retry: int = 0) -> PlanGraph:
         """
         Phase 14: Multi-Plan Planning Architecture.
         Generates, verifies, scores, and selects the optimal plan.
@@ -361,6 +366,31 @@ class Planner:
             k = 5
             
         print(f"[Planner] Estimated complexity: {complexity}. Targeting {k} candidates.")
+
+        # 1.5 Hybrid Retrieval
+        try:
+            from agentx.retrieval.retriever import retrieve
+            from agentx.retrieval.validator import validate_answer
+            retrieved_items = retrieve(goal)
+            
+            # 5.2 Reject hallucinated context
+            context_text = "\\n".join([f"- {item['content']} (Score: {item.get('score', 0)})" for item in retrieved_items])
+            if not validate_answer(goal, context_text):
+                if retrieval_retry < 1:
+                    print("[Planner] Hallucinated context detected. Retrying retrieval.")
+                    return self._decompose_single(goal, current_state, retrieval_retry + 1)
+                else:
+                    print("[Planner] Repeated hallucination detected. Proceeding without context.")
+                    context_text = "No external context available."
+            
+            context_str = context_text
+            print(f"[Planner] Retrieved {len(retrieved_items)} context items via Hybrid Search.")
+        except Exception as e:
+            print(f"[Planner] [WARN] Retrieval failed: {e}")
+            context_str = "No external context available."
+            
+        # Add retrieved context to current_state so downstream tools (generator) have it if they need it
+        current_state["retrieved_context"] = context_str
 
         # 2. Generate Candidates (Method Retrieval + LLM Generation + Diversity Filter)
         candidates = generate_candidate_plans(goal, current_state, k)
@@ -408,3 +438,118 @@ class Planner:
         # 7. Selection
         final_plan = select_plan(verified_plans)
         return final_plan
+
+    def decompose(self, goal: str, current_state: Optional[Dict] = None) -> PlanGraph:
+        """
+        Multi-run consensus planning with Disagreement-Aware Consensus + Minority Veto.
+        """
+        import random
+        # Deterministic execution for stability
+        random.seed(42)
+
+        print("[Planner] Running multi-run consensus planning (3 runs)")
+        plans = []
+        for _ in range(3):
+            try:
+                plan = self._decompose_single(goal, current_state)
+                plans.append(plan)
+            except Exception as e:
+                print(f"[Planner] decompose run failed: {e}")
+        
+        if not plans:
+            return _fallback_graph(goal)
+
+        if len(plans) == 1:
+            return plans[0]
+
+        from agentx.decision.disagreement import disagreement_score, detect_conflicts, minority_veto, update_disagreement_metrics
+        from agentx.planning.verifier import verify_plan
+        from agentx.planning.selector import select_plan
+        
+        score = disagreement_score(plans)
+        conflicts = detect_conflicts(plans)
+        veto = minority_veto(plans)
+        
+        from agentx.decision.critic import compare_reasoning, critique_plan, critic_score
+        shared_info = compare_reasoning(plans)
+        shared = shared_info.get("shared_patterns", {})
+        escalation = shared_info.get("escalation")
+        if escalation:
+            print(f"[Planner] Shared reasoning escalation: {escalation}")
+
+        has_shared_error = False
+        if any(count == len(plans) for count in shared.values()):
+            has_shared_error = True
+        
+        update_disagreement_metrics(score, veto, False)
+        
+        if veto:
+            print(f"[Planner] MINORITY VETO TRIGGERED! Plans differ significantly.")
+            # Trigger deeper verification (fallback to verification check)
+            
+        if score > 0.5 or conflicts or veto or has_shared_error:
+            if has_shared_error:
+                print(f"[Planner] SHARED ERROR DETECTED! Triggering verification loop.")
+            else:
+                print(f"[Planner] HIGH DISAGREEMENT (score={score:.2f}, conflicts={conflicts}). Triggering verification loop.")
+            # Trigger verification loop
+            verified_plans = []
+            for p in plans:
+                fb = verify_plan(p)
+                # mock a score for select_plan, using risk from feedback
+                risk = fb.get("risk_score", 0.5)
+                # To integrate smoothly with existing select_plan, we pass (plan, score, risk)
+                verified_plans.append((p, 1.0 - risk, risk))
+            best_plan = select_plan(verified_plans)
+            
+        elif score > 0.3:
+            print(f"[Planner] MEDIUM DISAGREEMENT (score={score:.2f}). Applying critic & hybrid scoring.")
+            # Apply critic module
+            critiques = []
+            for plan in plans:
+                critique = critique_plan(plan, current_state or {})
+                critiques.append((plan, critique))
+            
+            from agentx.planning.scorer import score_plan
+            scored = []
+            for plan, critique in critiques:
+                s = score_plan(plan, 0.5)
+                s += critic_score(plan, critique)
+                scored.append((plan, s, 0.5))
+            
+            best_plan = select_plan(scored)
+            
+        else:
+            print(f"[Planner] LOW DISAGREEMENT (score={score:.2f}). Normal consensus.")
+            def plan_similarity_score(p: PlanGraph) -> float:
+                sim_score = 0.0
+                p_nodes = {n.id for n in p.primitive_nodes()}
+                for other_p in plans:
+                    if other_p is p: continue
+                    other_nodes = {n.id for n in other_p.primitive_nodes()}
+                    inter = len(p_nodes.intersection(other_nodes))
+                    union = len(p_nodes.union(other_nodes))
+                    sim_score += inter / union if union > 0 else 0.0
+                return sim_score
+            
+            plans.sort(key=plan_similarity_score, reverse=True)
+            best_plan = plans[0]
+
+        print(f"[Planner] Consensus reached. Selected plan.")
+        
+        # Inject confidence mapping into plan for execution hook
+        best_critique = critique_plan(best_plan, current_state or {})
+        c_score = critic_score(best_plan, best_critique)
+        
+        fb = verify_plan(best_plan)
+        v_score = 1.0 - fb.get("risk_score", 0.5)
+        
+        confidence = max(0.0, (1.0 - score) * c_score * v_score)
+        
+        object.__setattr__(best_plan, "confidence", confidence) if hasattr(best_plan, "__dataclass_fields__") else None
+        try:
+            best_plan.confidence = confidence
+        except Exception:
+            pass
+
+        return best_plan

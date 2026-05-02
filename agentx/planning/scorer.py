@@ -60,7 +60,7 @@ def estimate_complexity(goal: str) -> str:
         return COMPLEXITY_HIGH
 
 
-def score_plan(plan: PlanGraph, verifier_score: float, is_from_method: bool = False, method_success_rate: float = 0.5) -> float:
+def score_plan(plan: PlanGraph, verifier_score: float, is_from_method: bool = False, method_success_rate: float = 0.5, disagreement_penalty: float = 0.0) -> float:
     """
     Cost-aware scoring function for a PlanGraph.
     
@@ -114,5 +114,10 @@ def score_plan(plan: PlanGraph, verifier_score: float, is_from_method: bool = Fa
     if penalty > 0:
         print(f"[Scorer] Applying failure memory penalty of {penalty:.2f} to candidate.")
         score -= (penalty * 0.5) # Subtract up to 0.5 from score to heavily penalize
+        
+    # Phase 21: Apply Disagreement Penalty
+    if disagreement_penalty > 0:
+        print(f"[Scorer] Applying disagreement penalty of {disagreement_penalty:.2f} to candidate.")
+        score -= disagreement_penalty
     
     return max(0.0, min(1.0, score))

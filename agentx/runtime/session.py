@@ -10,6 +10,8 @@ class Session:
         self.active_plan_id: Optional[str] = None
         self.state: Dict[str, Any] = {}
         self.is_interrupted: bool = False
+        self.checkpoint: Any = None  # Holds execution state when paused
+        self.pending_node: Any = None  # Holds the node awaiting HITL approval
 
     def log_interaction(self, role: str, content: str):
         self.history.append({"role": role, "content": content})
@@ -19,6 +21,12 @@ class Session:
 
     def resume(self):
         self.is_interrupted = False
+        
+    async def wait_until_resumed(self):
+        """Async wait until session is resumed."""
+        import asyncio
+        while self.is_interrupted:
+            await asyncio.sleep(1)
 
 class SessionManager:
     def __init__(self):

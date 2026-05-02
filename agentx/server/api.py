@@ -24,11 +24,55 @@ async def submit_task(req: TaskRequest):
     await task_queue.put({"session": session, "task": req.task})
     return {"status": "queued", "session_id": session.session_id}
 
+class ResumeRequest(BaseModel):
+    user_id: str
+
+class ModifyRequest(BaseModel):
+    user_id: str
+    new_plan_data: dict
+
 @app.post("/interrupt")
 async def interrupt_task(req: InterruptRequest):
     session = session_manager.get_or_create(req.user_id)
     session.interrupt()
     return {"status": "interrupted"}
+
+@app.post("/resume")
+async def resume_task(req: ResumeRequest):
+    session = session_manager.get_or_create(req.user_id)
+    session.resume()
+    return {"status": "resumed"}
+
+class ApproveRequest(BaseModel):
+    user_id: str
+
+@app.post("/approve")
+async def approve_node(req: ApproveRequest):
+    session = session_manager.get_or_create(req.user_id)
+    if session.pending_node:
+        session.pending_node.status = "APPROVED"
+    session.resume()
+    return {"status": "approved"}
+
+class RejectRequest(BaseModel):
+    user_id: str
+
+@app.post("/reject")
+async def reject_node(req: RejectRequest):
+    session = session_manager.get_or_create(req.user_id)
+    if session.pending_node:
+        session.pending_node.status = "FAILED"
+        session.pending_node.error = "User rejected execution."
+    session.resume()
+    return {"status": "rejected"}
+
+@app.post("/modify")
+async def modify_plan(req: ModifyRequest):
+    session = session_manager.get_or_create(req.user_id)
+    # Basic validation of new plan could happen here
+    # Override active plan or checkpoint state
+    session.checkpoint = req.new_plan_data
+    return {"status": "plan_modified"}
 
 # Connection manager for streaming
 class ConnectionManager:

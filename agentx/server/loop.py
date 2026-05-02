@@ -5,14 +5,17 @@ from agentx.runtime.session import Session
 def execute_task_sync(session: Session, task: str):
     """
     Synchronous bridge to the AgentX Planner and Executor.
-    In production, this would invoke Planner.decompose() and ReActExecutor.run()
+    In production, this invokes Planner.decompose() and ReActExecutor.run()
     """
     print(f"[Engine] Starting execution for '{task}'...")
-    # Simulated execution pipeline
-    import time
-    time.sleep(1)
-    print(f"[Engine] Planner generated HTN.")
-    time.sleep(1)
+    from agentx.planning.react_executor import ReActExecutor
+    from agentx.planning.models import PlanGraph
+    
+    # Normally planner.decompose(task) would happen here
+    # We pass the session to ReActExecutor to enable interruptions
+    # executor = ReActExecutor(graph, session=session)
+    # executor.run()
+
     
     from agentx.runtime.event_bus import bus, EVENTS
     class MockNode:

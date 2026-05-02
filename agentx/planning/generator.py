@@ -64,7 +64,7 @@ def generate_candidate_plans(goal: str, state: Dict, k: int) -> List[PlanGraph]:
         # otherwise we just call plan().
         try:
             # We bypass method retrieval here to force generation
-            raw = temp_planner._call_llm(goal)
+            raw = temp_planner._call_llm(goal, retrieved_context=state.get("retrieved_context", ""))
             if raw:
                 new_plan = temp_planner._parse_response(raw, goal)
                 candidates.append(new_plan)

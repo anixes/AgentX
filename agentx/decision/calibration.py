@@ -267,3 +267,44 @@ def run_daily_calibration(tracker=None) -> Dict[str, Any]:
         "drift_detected": results.get("drift", False),
         "meta_issues": meta_issues
     }
+
+# ---------------------------------------------------------------------------
+# Phase 21.6: Dynamic Thresholding
+# ---------------------------------------------------------------------------
+
+_thresholds = {
+    "easy": {"confidence": 0.5, "reliability": 0.4},
+    "medium": {"confidence": 0.7, "reliability": 0.5},
+    "hard": {"confidence": 0.85, "reliability": 0.6},
+    "adversarial": {"confidence": 0.9, "reliability": 0.7},
+    "ambiguous": {"confidence": 0.75, "reliability": 0.65},
+    "default": {"confidence": 0.6, "reliability": 0.5}
+}
+
+def compute_confidence_threshold(task_type: str = "default") -> dict:
+    """
+    Returns dynamic thresholds based on task difficulty.
+    """
+    return _thresholds.get(task_type, _thresholds["default"])
+
+def tune_threshold(task_type: str, false_positive_rate: float, false_negative_rate: float):
+    """
+    Adaptive tuning based on live error rates.
+    If false positives are high, increase thresholds (stricter).
+    If false negatives are high, decrease thresholds (more lenient).
+    """
+    if task_type not in _thresholds:
+        return
+        
+    t = _thresholds[task_type]
+    
+    if false_positive_rate > 0.2:
+        t["confidence"] = min(0.95, t["confidence"] + 0.05)
+        t["reliability"] = min(0.9, t["reliability"] + 0.05)
+        logger.info(f"[Calibration] Increased thresholds for {task_type} due to high FPR.")
+        
+    if false_negative_rate > 0.2:
+        t["confidence"] = max(0.4, t["confidence"] - 0.05)
+        t["reliability"] = max(0.3, t["reliability"] - 0.05)
+        logger.info(f"[Calibration] Decreased thresholds for {task_type} due to high FNR.")
+
